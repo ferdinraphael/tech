@@ -1,0 +1,32 @@
+:root {
+  --color-bg: #02070d;
+  --color-bg-elevated: #06111c;
+  --color-bg-panel: rgba(6, 18, 30, 0.8);
+  --color-bg-soft: rgba(11, 30, 46, 0.58);
+  --color-text: #edf7ff;
+  --color-text-soft: #a6b8c7;
+  --color-text-muted: #6f8495;
+  --color-border: rgba(114, 175, 211, 0.17);
+  --color-border-strong: rgba(66, 204, 255, 0.55);
+  --color-cyan: #35d7ff;
+  --color-blue: #6ebeff;
+  --color-violet: #a979ff;
+  --color-amber: #f1b743;
+  --color-mint: #5ff4db;
+  --color-green: #5bec7d;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --page-width: 1500px;
+  --header-height: 66px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow-panel: 0 18px 70px rgba(0, 0, 0, 0.3);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
