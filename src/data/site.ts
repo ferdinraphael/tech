@@ -103,6 +103,27 @@ export const littleWorlds = {
   tags: ['TypeScript', 'Canvas', 'Simulation'] as const,
 }
 
+export const projectIds = ['little-worlds'] as const
+export type ProjectId = (typeof projectIds)[number]
+
+export const projectById: Record<
+  ProjectId,
+  typeof littleWorlds & {
+    id: ProjectId
+    route: string
+    liveDemo: string
+    repository: string
+  }
+> = {
+  'little-worlds': {
+    id: 'little-worlds',
+    ...littleWorlds,
+    route: '/projects',
+    liveDemo: links.littleWorldsDemo,
+    repository: links.littleWorldsRepository,
+  },
+}
+
 export const websiteService = {
   title: 'Website in 2 Days',
   status: 'Coming soon',

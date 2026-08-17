@@ -16,7 +16,6 @@ import {
   engagements,
   links,
   littleWorlds,
-  notesCopy,
   profileSummary,
   projectsCopy,
   servicesCopy,
@@ -24,7 +23,7 @@ import {
 } from '../data/site'
 import styles from './Tech.module.css'
 
-type FoundationPageName = 'profile' | 'projects' | 'services' | 'notes'
+type FoundationPageName = 'profile' | 'projects' | 'services'
 
 interface FoundationPageProps {
   page: FoundationPageName
@@ -45,11 +44,6 @@ const pageMeta = {
     eyebrow: 'WAYS TO WORK TOGETHER',
     title: 'Focused engagements with practical next steps.',
     intro: servicesCopy,
-  },
-  notes: {
-    eyebrow: 'TECHNICAL NOTES',
-    title: 'A writing space is taking shape.',
-    intro: notesCopy,
   },
 } satisfies Record<FoundationPageName, Record<string, string>>
 
@@ -146,27 +140,6 @@ function ServicesContent() {
   )
 }
 
-function NotesContent() {
-  return (
-    <section className={styles.notesFoundation}>
-      <div className={styles.notesSignal} aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-      <p className={styles.sectionKicker}>EMPTY BY DESIGN</p>
-      <h2>No fabricated articles. A clear foundation for future writing.</h2>
-      <p>{notesCopy}</p>
-      <div className={styles.notesTopics}>
-        <span>Systems</span>
-        <span>Implementation decisions</span>
-        <span>Experiments</span>
-        <span>Building lessons</span>
-      </div>
-    </section>
-  )
-}
-
 export function FoundationPage({ page }: FoundationPageProps) {
   const meta = pageMeta[page]
   return (
@@ -189,7 +162,6 @@ export function FoundationPage({ page }: FoundationPageProps) {
       {page === 'profile' && <ProfileContent />}
       {page === 'projects' && <ProjectsContent />}
       {page === 'services' && <ServicesContent />}
-      {page === 'notes' && <NotesContent />}
       <nav className={styles.nextRoute} aria-label="Continue exploring">
         <Link to="/">
           Return to the constellation <ArrowRight aria-hidden="true" />
