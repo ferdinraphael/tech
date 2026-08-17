@@ -1,5 +1,4 @@
-import { ArrowRight, ArrowUpRight, CheckCircle2, Clock3, X } from 'lucide-react'
-import { forwardRef } from 'react'
+import { ArrowRight, ArrowUpRight, CheckCircle2, Clock3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { ConstellationNode } from '../data/site'
 import styles from './Tech.module.css'
@@ -7,32 +6,16 @@ import styles from './Tech.module.css'
 interface ContextPanelProps {
   node: ConstellationNode
   featured?: boolean
-  mobile?: boolean
-  onClose?: () => void
+  inline?: boolean
 }
 
-export const ContextPanel = forwardRef<HTMLButtonElement, ContextPanelProps>(
-  function ContextPanel({ node, featured = false, mobile = false, onClose }, ref) {
+export function ContextPanel({ node, featured = false, inline = false }: ContextPanelProps) {
     const Icon = node.icon
     return (
       <article
-        className={`${styles.contextPanel} ${mobile ? styles.contextPanelMobile : ''}`}
+        className={`${styles.contextPanel} ${inline ? styles.contextPanelInline : ''}`}
         aria-label={`${node.label} ${featured ? 'featured content' : 'selected content'}`}
       >
-        {mobile && (
-          <>
-            <span className={styles.sheetHandle} aria-hidden="true" />
-            <button
-              ref={ref}
-              type="button"
-              className={styles.sheetClose}
-              aria-label={`Close ${node.label} details`}
-              onClick={onClose}
-            >
-              <X aria-hidden="true" />
-            </button>
-          </>
-        )}
         <div className={styles.contextHeading}>
           <span className={`${styles.contextIcon} ${styles[`accent${node.accent[0].toUpperCase()}${node.accent.slice(1)}`]}`}>
             <Icon aria-hidden="true" />
@@ -40,7 +23,6 @@ export const ContextPanel = forwardRef<HTMLButtonElement, ContextPanelProps>(
           <div>
             <span className={styles.eyebrow}>{node.eyebrow ?? node.kind}</span>
             <h2>{node.label}</h2>
-            {featured && <span className={styles.featuredLabel}>Featured, not selected</span>}
           </div>
         </div>
         <p>{node.summary}</p>
@@ -99,5 +81,4 @@ export const ContextPanel = forwardRef<HTMLButtonElement, ContextPanelProps>(
         )}
       </article>
     )
-  },
-)
+}

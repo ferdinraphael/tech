@@ -60,6 +60,7 @@ export interface NodeAction {
 export interface ConstellationNode {
   id: NodeId
   label: string
+  mapLabel?: string
   eyebrow?: string
   kind: NodeKind
   icon: LucideIcon
@@ -126,7 +127,7 @@ export const nodes: readonly ConstellationNode[] = [
     accent: 'blue',
     summary: 'The centre of this technical map.',
     desktopPosition: { x: 50, y: 49 },
-    mobilePosition: { x: 50, y: 49 },
+    mobilePosition: { x: 50, y: 46 },
     interactive: true,
   },
   {
@@ -139,7 +140,7 @@ export const nodes: readonly ConstellationNode[] = [
     route: '/profile',
     actions: [{ label: 'View Profile', route: '/profile' }],
     desktopPosition: { x: 50, y: 16 },
-    mobilePosition: { x: 50, y: 16 },
+    mobilePosition: { x: 50, y: 12 },
     interactive: true,
   },
   {
@@ -156,7 +157,7 @@ export const nodes: readonly ConstellationNode[] = [
       { label: 'GitHub', href: links.github },
     ],
     desktopPosition: { x: 24, y: 43 },
-    mobilePosition: { x: 23, y: 48 },
+    mobilePosition: { x: 23, y: 43 },
     interactive: true,
   },
   {
@@ -170,7 +171,7 @@ export const nodes: readonly ConstellationNode[] = [
     description: 'Related content: Little Worlds.',
     actions: [{ label: 'View Projects', route: '/projects' }],
     desktopPosition: { x: 76, y: 42 },
-    mobilePosition: { x: 77, y: 48 },
+    mobilePosition: { x: 77, y: 43 },
     interactive: true,
   },
   {
@@ -184,7 +185,7 @@ export const nodes: readonly ConstellationNode[] = [
     route: '/services',
     actions: [{ label: 'View Services', route: '/services' }],
     desktopPosition: { x: 34, y: 76 },
-    mobilePosition: { x: 36, y: 79 },
+    mobilePosition: { x: 32, y: 72 },
     interactive: true,
   },
   {
@@ -197,7 +198,7 @@ export const nodes: readonly ConstellationNode[] = [
     route: '/notes',
     actions: [{ label: 'View Notes', route: '/notes' }],
     desktopPosition: { x: 67, y: 76 },
-    mobilePosition: { x: 65, y: 79 },
+    mobilePosition: { x: 66, y: 72 },
     interactive: true,
   },
   {
@@ -215,7 +216,7 @@ export const nodes: readonly ConstellationNode[] = [
       { label: 'Repository', href: links.littleWorldsRepository },
     ],
     desktopPosition: { x: 14, y: 14 },
-    mobilePosition: { x: 12, y: 21 },
+    mobilePosition: { x: 11, y: 19 },
     featured: true,
     interactive: true,
     compact: true,
@@ -231,13 +232,14 @@ export const nodes: readonly ConstellationNode[] = [
     status: websiteService.status,
     actions: [{ label: 'Coming Soon', disabled: true }],
     desktopPosition: { x: 9, y: 79 },
-    mobilePosition: { x: 10, y: 83 },
+    mobilePosition: { x: 9, y: 60 },
     interactive: true,
     compact: true,
   },
   {
     id: 'engagements',
     label: engagements.title,
+    mapLabel: 'Work Together',
     eyebrow: 'ENGAGEMENTS',
     kind: 'engagement',
     icon: BriefcaseBusiness,
@@ -247,7 +249,7 @@ export const nodes: readonly ConstellationNode[] = [
     status: engagements.status,
     actions: [{ label: 'Discuss your requirement', href: links.enquiry }],
     desktopPosition: { x: 55, y: 94 },
-    mobilePosition: { x: 78, y: 94 },
+    mobilePosition: { x: 31, y: 92 },
     interactive: true,
     compact: true,
   },
@@ -259,7 +261,7 @@ export const nodes: readonly ConstellationNode[] = [
     accent: 'quiet',
     summary: 'A conceptual space for technical experiments.',
     desktopPosition: { x: 92, y: 72 },
-    mobilePosition: { x: 91, y: 78 },
+    mobilePosition: { x: 92, y: 63 },
     interactive: false,
     compact: true,
   },
@@ -271,7 +273,7 @@ export const nodes: readonly ConstellationNode[] = [
     accent: 'quiet',
     summary: 'The thinking that connects systems, decisions, and lessons.',
     desktopPosition: { x: 87, y: 92 },
-    mobilePosition: { x: 88, y: 92 },
+    mobilePosition: { x: 79, y: 91 },
     interactive: false,
     compact: true,
   },

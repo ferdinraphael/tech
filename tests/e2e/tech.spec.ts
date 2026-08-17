@@ -24,19 +24,43 @@ test('Little Worlds selected content uses approved actions', async ({ page }) =>
   await expect(panel.getByText('Python')).toHaveCount(0)
 })
 
-test('mobile sheet opens, closes, and bottom navigation stays clear', async ({ page }) => {
+test('mobile context stays inline while selection and relationships persist', async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 767 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('./')
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await page.getByRole('button', { name: /^Little Worlds\./ }).click()
-  const dialog = page.getByRole('dialog', { name: /Little Worlds details/ })
-  await expect(dialog).toBeVisible()
+  const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
+  const littleWorlds = page.getByRole('button', { name: /^Little Worlds\./ })
+  await littleWorlds.click()
+  const inline = page.getByRole('region', { name: /Little Worlds inline details/ })
+  await expect(inline).toBeVisible()
+  await expect(littleWorlds).toHaveAttribute('aria-pressed', 'true')
+  await expect(map).toHaveAttribute('data-selected', 'little-worlds')
+  await expect(map.locator('[data-active="true"]')).toHaveCount(4)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  const mapBox = await map.boundingBox()
+  const inlineBox = await inline.boundingBox()
+  expect(mapBox && inlineBox && inlineBox.y >= mapBox.y + mapBox.height).toBeTruthy()
+
   const bottomNav = page.getByRole('navigation', { name: 'Mobile primary navigation' })
+  const clear = inline.getByRole('button', { name: 'Clear selection' })
+  await clear.scrollIntoViewIfNeeded()
   const navBox = await bottomNav.boundingBox()
-  const dialogBox = await dialog.boundingBox()
-  expect(navBox && dialogBox && dialogBox.y + dialogBox.height <= navBox.y + 1).toBeTruthy()
-  await dialog.getByRole('button', { name: /Close Little Worlds details/ }).click()
-  await expect(dialog).toHaveCount(0)
+  const clearBox = await clear.boundingBox()
+  expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
+
+  await map.scrollIntoViewIfNeeded()
+  await expect(map).toHaveAttribute('data-selected', 'little-worlds')
+  await expect(map.locator('[data-active="true"]')).toHaveCount(4)
+
+  await page.getByRole('button', { name: /^Projects\./ }).click()
+  const projectsInline = page.getByRole('region', { name: /Projects inline details/ })
+  await expect(projectsInline).toBeVisible()
+  await expect(map).toHaveAttribute('data-selected', 'projects')
+  await projectsInline.getByRole('button', { name: 'Clear selection' }).click()
+  await expect(page.getByRole('region', { name: /inline details/ })).toHaveCount(0)
+  await expect(map).toHaveAttribute('data-selected', 'none')
 })
 
 test('routes, browser back, and clean /tech/ base path work', async ({ page }) => {
@@ -44,6 +68,11 @@ test('routes, browser back, and clean /tech/ base path work', async ({ page }) =
   await page.getByRole('link', { name: 'Projects', exact: true }).first().click()
   await expect(page).toHaveURL(/\/tech\/projects$/)
   await expect(page.getByRole('heading', { name: /Built to explore/ })).toBeVisible()
+  const clickedNavOutline = await page
+    .getByRole('link', { name: 'Projects', exact: true })
+    .first()
+    .evaluate((element) => getComputedStyle(element).outlineStyle)
+  expect(clickedNavOutline).toBe('none')
   await page.goBack()
   await expect(page).toHaveURL(/\/tech\/$/)
 })
@@ -63,6 +92,17 @@ test('captures the primary desktop review states', async ({ page }) => {
     page.getByRole('article', { name: /Little Worlds selected content/ }),
   ).toBeVisible()
   await page.screenshot({ path: 'visual-review/1536-little-worlds-selected.png' })
+
+  for (const route of ['profile', 'projects', 'services', 'notes']) {
+    await page.goto(`./${route}`)
+    const heading = page.getByRole('heading', { level: 1 })
+    await expect(heading).toBeVisible()
+    const headingSize = await heading.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).fontSize),
+    )
+    expect(headingSize).toBeLessThanOrEqual(48)
+    await page.screenshot({ path: `visual-review/1536-${route}-route.png` })
+  }
 })
 
 test('captures the primary mobile review states', async ({ page }) => {
@@ -71,18 +111,30 @@ test('captures the primary mobile review states', async ({ page }) => {
   await page.goto('./')
   await page.screenshot({ path: 'visual-review/412-default.png' })
 
+  const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
   await page.getByRole('button', { name: /^Little Worlds\./ }).click()
-  const dialog = page.getByRole('dialog', { name: /Little Worlds details/ })
-  await expect(dialog).toBeVisible()
-  await page.screenshot({ path: 'visual-review/412-little-worlds-open.png' })
+  const littleWorldsInline = page.getByRole('region', { name: /Little Worlds inline details/ })
+  await expect(littleWorldsInline).toBeVisible()
+  await page.screenshot({ path: 'visual-review/412-little-worlds-inline.png' })
 
-  await dialog.getByRole('button', { name: /Close Little Worlds details/ }).click()
-  await expect(dialog).toHaveCount(0)
-  await page.screenshot({ path: 'visual-review/412-little-worlds-closed.png' })
+  await map.scrollIntoViewIfNeeded()
+  await expect(map).toHaveAttribute('data-selected', 'little-worlds')
+  await page.screenshot({ path: 'visual-review/412-little-worlds-map-active.png' })
+
+  await page.getByRole('button', { name: /^Projects\./ }).click()
+  const projectsInline = page.getByRole('region', { name: /Projects inline details/ })
+  await expect(projectsInline).toBeVisible()
+  await page.screenshot({ path: 'visual-review/412-projects-inline.png' })
+
+  await projectsInline.getByRole('button', { name: 'Clear selection' }).click()
+  await map.scrollIntoViewIfNeeded()
+  await expect(map).toHaveAttribute('data-selected', 'none')
+  await page.screenshot({ path: 'visual-review/412-selection-cleared.png' })
 })
 
 for (const viewport of [
   { width: 360, height: 800 },
+  { width: 375, height: 667 },
   { width: 430, height: 932 },
   { width: 768, height: 1024 },
   { width: 1366, height: 768 },
@@ -101,13 +153,19 @@ for (const viewport of [
       : page.getByRole('navigation', { name: 'Primary navigation' })
     await expect(primaryNav).toBeVisible()
     if (viewport.width < 768) {
+      const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
+      await expect(map.locator('[data-node-id]')).toHaveCount(9)
+      await page.getByRole('button', { name: /^Projects\./ }).click()
+      const inline = page.getByRole('region', { name: /Projects inline details/ })
+      await expect(inline).toBeVisible()
+      await expect(map).toHaveAttribute('data-selected', 'projects')
       const bottomNav = page.getByRole('navigation', { name: 'Mobile primary navigation' })
       await expect(bottomNav).toBeVisible()
-      const lastPanel = page.getByRole('heading', { name: 'Services' }).last()
-      await lastPanel.scrollIntoViewIfNeeded()
+      const clear = inline.getByRole('button', { name: 'Clear selection' })
+      await clear.scrollIntoViewIfNeeded()
       const navBox = await bottomNav.boundingBox()
-      const panelBox = await lastPanel.boundingBox()
-      expect(navBox && panelBox && panelBox.y + panelBox.height < navBox.y).toBeTruthy()
+      const clearBox = await clear.boundingBox()
+      expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
     }
   })
 }

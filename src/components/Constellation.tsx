@@ -7,13 +7,25 @@ import {
   relationshipTouches,
   relationships,
   type NodeId,
+  type Position,
 } from '../data/site'
 import styles from './Tech.module.css'
 
 interface ConstellationProps {
   selectedId: NodeId | null
-  onSelect: (id: NodeId, trigger: HTMLButtonElement) => void
+  onSelect: (id: NodeId) => void
   stageRef?: RefObject<HTMLDivElement | null>
+}
+
+function connectorPath(from: Position, to: Position, index: number) {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const length = Math.hypot(dx, dy) || 1
+  const bend = (index % 2 === 0 ? 1 : -1) * 2.4
+  const controlX = (from.x + to.x) / 2 - (dy / length) * bend
+  const controlY = (from.y + to.y) / 2 + (dx / length) * bend
+
+  return `M ${from.x} ${from.y} Q ${controlX} ${controlY} ${to.x} ${to.y}`
 }
 
 export function Constellation({
@@ -39,33 +51,31 @@ export function Constellation({
       >
         <ellipse cx="50" cy="49" rx="33" ry="31" className={styles.orbit} />
         <ellipse cx="50" cy="49" rx="44" ry="43" className={styles.orbitOuter} />
-        {relationships.map((relationship) => {
+        {relationships.map((relationship, index) => {
           const from = nodeById.get(relationship.from)!
           const to = nodeById.get(relationship.to)!
           const active = relationshipTouches(relationship, selectedId)
           return (
             <g key={`${relationship.from}-${relationship.to}`}>
-              <line
+              <path
                 className={[
                   styles.connectorDesktop,
                   active ? styles.connectorActive : '',
                   selectedId && !active ? styles.connectorQuiet : '',
                 ].join(' ')}
-                x1={from.desktopPosition.x}
-                y1={from.desktopPosition.y}
-                x2={to.desktopPosition.x}
-                y2={to.desktopPosition.y}
+                d={connectorPath(from.desktopPosition, to.desktopPosition, index)}
+                data-relationship={`${relationship.from}-${relationship.to}`}
+                data-active={active ? 'true' : 'false'}
               />
-              <line
+              <path
                 className={[
                   styles.connectorMobile,
                   active ? styles.connectorActive : '',
                   selectedId && !active ? styles.connectorQuiet : '',
                 ].join(' ')}
-                x1={from.mobilePosition.x}
-                y1={from.mobilePosition.y}
-                x2={to.mobilePosition.x}
-                y2={to.mobilePosition.y}
+                d={connectorPath(from.mobilePosition, to.mobilePosition, index)}
+                data-relationship={`${relationship.from}-${relationship.to}`}
+                data-active={active ? 'true' : 'false'}
               />
             </g>
           )
@@ -102,7 +112,7 @@ export function Constellation({
               <span className={styles.nodeOrb}>
                 <Icon aria-hidden="true" />
               </span>
-              <span className={styles.nodeLabel}>{node.label}</span>
+              <span className={styles.nodeLabel}>{node.mapLabel ?? node.label}</span>
             </div>
           )
         }
@@ -120,12 +130,12 @@ export function Constellation({
                 ? 'Clear constellation selection'
                 : `${node.label}. ${relationCount} direct relationships.${selected ? ' Selected.' : ''}`
             }
-            onClick={(event) => onSelect(node.id, event.currentTarget)}
+            onClick={() => onSelect(node.id)}
           >
             <span className={styles.nodeOrb}>
               {node.id === 'identity' ? <Code2 aria-hidden="true" /> : <Icon aria-hidden="true" />}
             </span>
-            <span className={styles.nodeLabel}>{node.label}</span>
+            <span className={styles.nodeLabel}>{node.mapLabel ?? node.label}</span>
           </button>
         )
       })}

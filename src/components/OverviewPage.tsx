@@ -20,12 +20,11 @@ export function OverviewPage() {
   const [isMobile, setIsMobile] = useState(() =>
     window.innerWidth <= 767 || window.matchMedia('(max-width: 767px)').matches,
   )
-  const sheetCloseRef = useRef<HTMLButtonElement>(null)
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const inlineContextRef = useRef<HTMLElement>(null)
+  const pendingScrollRef = useRef(false)
 
   const clearSelection = useCallback(() => {
     setSelectedId(null)
-    window.setTimeout(() => triggerRef.current?.focus(), 0)
   }, [])
 
   useEffect(() => {
@@ -43,16 +42,27 @@ export function OverviewPage() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [clearSelection, selectedId])
 
-  const selectNode = (id: NodeId, trigger: HTMLButtonElement) => {
-    triggerRef.current = trigger
+  useEffect(() => {
+    if (!isMobile || !selectedId || !pendingScrollRef.current) return
+    pendingScrollRef.current = false
+    const timeout = window.setTimeout(() => {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      inlineContextRef.current?.scrollIntoView({
+        behavior: reducedMotion ? 'auto' : 'smooth',
+        block: 'start',
+      })
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
+  }, [isMobile, selectedId])
+
+  const selectNode = (id: NodeId) => {
     if (id === 'identity') {
       clearSelection()
       return
     }
+    pendingScrollRef.current = isMobile
     setSelectedId(id)
-    if (isMobile) {
-      window.setTimeout(() => sheetCloseRef.current?.focus(), 0)
-    }
   }
 
   const selectedNode = selectedId ? nodeById.get(selectedId) ?? null : null
@@ -96,20 +106,22 @@ export function OverviewPage() {
       </section>
 
       {selectedNode && isMobile && (
-        <div className={`${styles.mobileSheet} ${styles.mobileSheetOpen}`} role="dialog" aria-modal="true" aria-label={`${selectedNode.label} details`}>
-          <ContextPanel
-            ref={sheetCloseRef}
-            node={selectedNode}
-            mobile
-            onClose={clearSelection}
-          />
-        </div>
+        <section
+          ref={inlineContextRef}
+          className={styles.inlineContext}
+          aria-label={`${selectedNode.label} inline details`}
+        >
+          <ContextPanel node={selectedNode} inline />
+          <button className={styles.inlineClear} type="button" onClick={clearSelection}>
+            Clear selection
+          </button>
+        </section>
       )}
 
       <div className={styles.supportingGrid}>
         <section className={styles.sectionPanel} aria-labelledby="selected-projects-heading">
           <div className={styles.sectionHeader}>
-            <h2 id="selected-projects-heading">Selected Project</h2>
+            <h2 id="selected-projects-heading">Featured Project</h2>
             <Link to="/projects">
               View all projects <ArrowRight aria-hidden="true" />
             </Link>
@@ -167,7 +179,6 @@ export function OverviewPage() {
         </div>
         <div className={styles.serviceGrid}>
           <article className={styles.serviceCard}>
-            <span className={styles.cardNumber}>01</span>
             <div>
               <div className={styles.titleWithStatus}>
                 <h3>{websiteService.title}</h3>
@@ -178,7 +189,6 @@ export function OverviewPage() {
             <span className={styles.comingSoon}>Coming Soon</span>
           </article>
           <article className={styles.serviceCard}>
-            <span className={styles.cardNumber}>02</span>
             <div>
               <div className={styles.titleWithStatus}>
                 <h3>{engagements.title}</h3>

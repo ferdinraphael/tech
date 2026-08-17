@@ -32,25 +32,21 @@ interface FoundationPageProps {
 
 const pageMeta = {
   profile: {
-    index: '01',
     eyebrow: 'TECHNICAL PROFILE',
     title: 'Experience across systems, products, and delivery.',
     intro: profileSummary,
   },
   projects: {
-    index: '02',
     eyebrow: 'PROJECTS',
     title: 'Built to explore, test, and understand.',
     intro: projectsCopy,
   },
   services: {
-    index: '03',
     eyebrow: 'WAYS TO WORK TOGETHER',
     title: 'Focused engagements with practical next steps.',
     intro: servicesCopy,
   },
   notes: {
-    index: '04',
     eyebrow: 'TECHNICAL NOTES',
     title: 'A writing space is taking shape.',
     intro: notesCopy,
@@ -104,7 +100,7 @@ function ProjectsContent() {
     <section className={styles.featureRouteCard}>
       <div className={styles.featureRouteVisual}>
         <Package aria-hidden="true" />
-        <span>ACTIVE PROJECT / 01</span>
+        <span>ACTIVE PROJECT</span>
       </div>
       <div className={styles.featureRouteBody}>
         <span className={styles.activeStatus}><i aria-hidden="true" /> {littleWorlds.status}</span>
@@ -130,14 +126,14 @@ function ServicesContent() {
   return (
     <div className={styles.routeServiceGrid}>
       <article>
-        <span>01 / SERVICE PILOT</span>
+        <span>SERVICE PILOT</span>
         <h2>{websiteService.title}</h2>
         <strong>{websiteService.status}</strong>
         <p>{websiteService.description}</p>
         <span className={styles.comingSoon}>No public booking link yet</span>
       </article>
       <article>
-        <span>02 / ENGAGEMENTS</span>
+        <span>ENGAGEMENTS</span>
         <h2>{engagements.title}</h2>
         <strong>{engagements.status}</strong>
         <p>{engagements.description}</p>
@@ -176,7 +172,6 @@ export function FoundationPage({ page }: FoundationPageProps) {
   return (
     <div className={styles.routePage}>
       <section className={styles.routeHero}>
-        <div className={styles.routeIndex}>{meta.index}</div>
         <div>
           <p className={styles.eyebrow}>{meta.eyebrow}</p>
           <h1>{meta.title}</h1>

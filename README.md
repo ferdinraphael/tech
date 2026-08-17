@@ -9,7 +9,7 @@ Deployment is **not enabled**. The project is prepared for a future GitHub Pages
 - Complete responsive Overview route
 - Typed, data-driven interactive constellation
 - Neutral, featured, selected, and cleared interaction states
-- Desktop contextual panel and mobile bottom sheet
+- Desktop contextual panel and in-flow mobile contextual details
 - Verified Little Worlds project content
 - Intentional empty state for technical notes
 - Two approved service/engagement cards
@@ -110,7 +110,7 @@ Relationships are separate typed `{ from, to }` records. Rendering and selected-
 - **Neutral:** initial state; no node has `aria-pressed="true"` and all relationships remain restrained.
 - **Featured:** Little Worlds supplies the wide-desktop panel without becoming selected. A subtle indicator may appear, but the graph remains neutral.
 - **Selected:** direct paths and connected nodes become prominent, unrelated content quiets, and contextual content switches.
-- **Cleared:** Escape, the sheet close control, or the central identity control restores neutral state and the wide-desktop featured panel.
+- **Cleared:** Escape, the inline clear action, or the central identity control restores neutral state and the wide-desktop featured panel.
 
 ### Coordinate maps
 
@@ -147,8 +147,8 @@ The Notes route and empty state are intentionally ready for future writing. Intr
 - Live selection announcement
 - Keyboard selection and Escape-to-clear
 - Accessible mobile menu with Escape closure
-- Dialog semantics for the mobile bottom sheet
-- Focus moves to the sheet close control and returns to the triggering node
+- Mobile contextual details remain in normal document flow without modal or focus-trap semantics
+- Motion-aware scrolling brings inline context into view without stealing focus
 - Minimum 44-pixel interactive controls where practical
 - Persistent mobile navigation respects safe-area insets
 - Status text accompanies color indicators
@@ -166,7 +166,8 @@ Vitest and React Testing Library cover:
 - Projects and Little Worlds panels
 - Website in 2 Days Coming Soon behavior
 - approved enquiry action
-- mobile sheet opening, closing, and focus restoration
+- mobile inline context rendering, updating, relationship persistence, and clearing
+- reduced-motion inline-context scrolling
 - notes empty state
 - foundation and invalid routes
 
@@ -174,7 +175,7 @@ Playwright covers:
 
 - overview loading
 - Projects and Little Worlds selection
-- mobile sheet behavior
+- mobile inline-context behavior and persistent selected relationships
 - route navigation and browser back
 - production serving under `/tech/`
 - horizontal-overflow checks
@@ -191,6 +192,7 @@ Primary visual review:
 Responsive smoke checks:
 
 - 360 × 800
+- 375 × 667
 - 430 × 932
 - 768 × 1024
 - 1366 × 768
