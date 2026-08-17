@@ -77,6 +77,24 @@ test('routes, browser back, and clean /tech/ base path work', async ({ page }) =
   await expect(page).toHaveURL(/\/tech\/$/)
 })
 
+test('production Notes remains empty, draft-safe, active, and intentional for unknown slugs', async ({ page }) => {
+  await page.goto('./notes')
+  await expect(page).toHaveURL(/\/tech\/notes$/)
+  await expect(page.getByRole('heading', { name: 'No published articles yet.' })).toBeVisible()
+  await expect(page.getByText('Technical writing framework preview')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Framework draft previews' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Notes', exact: true }).first()).toHaveAttribute('aria-current', 'page')
+
+  await page.goto('./notes/framework-preview')
+  await expect(page.getByRole('heading', { name: 'That technical note is not available.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Notes', exact: true }).first()).toHaveAttribute('aria-current', 'page')
+
+  await page.goto('./notes/unknown-article')
+  await expect(page.getByRole('heading', { name: 'That technical note is not available.' })).toBeVisible()
+  await page.goBack()
+  await expect(page).toHaveURL(/\/tech\/notes\/framework-preview$/)
+})
+
 test('captures the primary desktop review states', async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 864 })
   await page.emulateMedia({ reducedMotion: 'reduce' })
@@ -166,6 +184,20 @@ for (const viewport of [
       const navBox = await bottomNav.boundingBox()
       const clearBox = await clear.boundingBox()
       expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
+    }
+
+    await page.goto('./notes')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await expect(page.getByRole('heading', { name: 'No published articles yet.' })).toBeVisible()
+    if (viewport.width < 768) {
+      const bottomNav = page.getByRole('navigation', { name: 'Mobile primary navigation' })
+      const emptyCopy = page.getByText(/The Markdown framework is ready/)
+      await emptyCopy.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+      await expect.poll(async () => {
+        const navBox = await bottomNav.boundingBox()
+        const copyBox = await emptyCopy.boundingBox()
+        return Boolean(navBox && copyBox && copyBox.y + copyBox.height < navBox.y)
+      }).toBe(true)
     }
   })
 }
