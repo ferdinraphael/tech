@@ -185,7 +185,7 @@ export const nodes: readonly ConstellationNode[] = [
     route: '/services',
     actions: [{ label: 'View Services', route: '/services' }],
     desktopPosition: { x: 34, y: 76 },
-    mobilePosition: { x: 32, y: 72 },
+    mobilePosition: { x: 32, y: 62 },
     interactive: true,
   },
   {
@@ -198,7 +198,7 @@ export const nodes: readonly ConstellationNode[] = [
     route: '/notes',
     actions: [{ label: 'View Notes', route: '/notes' }],
     desktopPosition: { x: 67, y: 76 },
-    mobilePosition: { x: 66, y: 72 },
+    mobilePosition: { x: 68, y: 62 },
     interactive: true,
   },
   {
@@ -232,7 +232,7 @@ export const nodes: readonly ConstellationNode[] = [
     status: websiteService.status,
     actions: [{ label: 'Coming Soon', disabled: true }],
     desktopPosition: { x: 9, y: 79 },
-    mobilePosition: { x: 9, y: 60 },
+    mobilePosition: { x: 9, y: 79 },
     interactive: true,
     compact: true,
   },
