@@ -82,7 +82,7 @@ test('production Writings remains empty, draft-safe, active, canonical, and comp
   await expect(page).toHaveURL(/\/tech\/writings$/)
   await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toBeVisible()
   await expect(page.getByText('Technical writing framework preview')).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Framework draft previews' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Draft previews' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Writings', exact: true }).first()).toHaveAttribute('aria-current', 'page')
   await expect(page.locator('a[href^="/notes"], a[href^="/tech/notes"]')).toHaveCount(0)
 

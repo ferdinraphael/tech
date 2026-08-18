@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { App } from '../App'
@@ -32,10 +32,13 @@ describe('foundation routes', () => {
     renderRoute('/writings')
     expect(await screen.findByRole('heading', { level: 1, name: /writing space is taking shape/i }, { timeout: 5_000 })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'No published writings yet.' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Framework draft previews' })).toBeInTheDocument()
-    expect(screen.getByText('Connected to Little Worlds')).toBeInTheDocument()
-    expect(screen.getByText('DRAFT')).toBeInTheDocument()
-    expect(screen.getByText('Article')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Draft previews' })).toBeInTheDocument()
+    const frameworkPreviewCard = screen.getByRole('heading', { name: 'Technical writing framework preview' }).closest('article')
+    expect(frameworkPreviewCard).not.toBeNull()
+    expect(within(frameworkPreviewCard!).getByText('Connected to Little Worlds')).toBeInTheDocument()
+    expect(within(frameworkPreviewCard!).getByText('DRAFT')).toBeInTheDocument()
+    expect(within(frameworkPreviewCard!).getByText('Article')).toBeInTheDocument()
+    expect(within(frameworkPreviewCard!).getByRole('link', { name: 'Preview draft' })).toBeInTheDocument()
     expect(document.querySelectorAll('a[href^="/notes"]')).toHaveLength(0)
   })
 

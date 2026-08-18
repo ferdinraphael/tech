@@ -37,7 +37,7 @@ function WritingCard({ writing }: { writing: WritingRecord }) {
         </p>
       )}
       <Link className={styles.cardLink} to={`/writings/${writing.slug}`}>
-        {writing.draft ? 'Open framework preview' : 'Read writing'} <ArrowRight aria-hidden="true" />
+        {writing.draft ? 'Preview draft' : 'Read writing'} <ArrowRight aria-hidden="true" />
       </Link>
     </article>
   )
@@ -83,11 +83,11 @@ export default function WritingsIndexPage() {
           <div className={styles.sectionHeading}>
             <div>
               <p>LOCAL AUTHORING</p>
-              <h2 id="draft-previews">Framework draft previews</h2>
+              <h2 id="draft-previews">Draft previews</h2>
             </div>
             <span><FlaskConical aria-hidden="true" /> Development only</span>
           </div>
-          <p className={styles.draftNotice}>These fixtures are visibly unpublished and are excluded from production navigation and routing.</p>
+          <p className={styles.draftNotice}>These drafts are visibly unpublished and are excluded from production navigation and routing.</p>
           <div className={styles.articleGrid}>
             {writingCatalogue.drafts.map((writing) => <WritingCard key={writing.slug} writing={writing} />)}
           </div>
