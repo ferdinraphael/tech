@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 
 test.skip(process.env.WRITINGS_DEV_PREVIEW !== '1', 'Runs only against the bounded development preview.')
 
@@ -127,6 +128,159 @@ test('mobile Contents control appears only after the TOC, preserves state, and r
   await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toBeVisible()
   await expect(returnButton).toHaveCount(0)
   await page.screenshot({ path: 'visual-review/412-writings-index.png', fullPage: false })
+})
+
+test('standalone plaintext uses the article width, wraps visually, and copies exactly', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], {
+    origin: 'http://127.0.0.1:4174',
+  })
+  const expectedPlaintextLines = [
+    'When fixing a bug or failing test, do not silently introduce defaults, fallbacks, retries, coercions, ignored errors, or other compensating behavior just to make the code pass.',
+    '',
+    'If such a workaround appears necessary:',
+    '- identify the underlying assumption or contract being violated;',
+    '- explain what behavior the workaround changes;',
+    '- preserve information about the original failure where relevant;',
+    '- make the workaround observable if it may persist;',
+    '- distinguish temporary compatibility behavior from the intended system contract;',
+    '- do not change a failing test merely to accommodate the workaround unless the intended behavior has been confirmed;',
+    '- flag the workaround explicitly before implementing it.',
+  ]
+  const articleSource = await readFile(
+    new URL('../../src/content/writings/drafts/when-the-workaround-becomes-the-architecture.md', import.meta.url),
+    'utf8',
+  )
+  const plaintextMatch = articleSource.match(
+    /## Make the decision explicit\r?\n[\s\S]*?```text\r?\n([\s\S]*?)\r?\n```/,
+  )
+  const expectedPlaintext = plaintextMatch?.[1]
+  expect(expectedPlaintext).toBeDefined()
+
+  for (const viewport of [
+    { width: 1536, height: 864 },
+    { width: 375, height: 667 },
+    { width: 412, height: 767 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.goto('./writings/when-the-workaround-becomes-the-architecture#make-the-decision-explicit')
+    await page.evaluate(() => {
+      const originalWriteText = navigator.clipboard.writeText.bind(navigator.clipboard)
+      Object.defineProperty(navigator.clipboard, 'writeText', {
+        configurable: true,
+        value: async (text: string) => {
+          ;(window as typeof window & { __copiedPlaintext?: string }).__copiedPlaintext = text
+          return originalWriteText(text)
+        },
+      })
+    })
+    const heading = page.getByRole('heading', { name: 'Make the decision explicit' })
+    await expect(heading).toBeInViewport()
+    const plaintext = page.locator('pre[aria-label="Plain text code"]').filter({
+      hasText: 'When fixing a bug or failing test',
+    })
+    await expect(plaintext).toBeVisible()
+    const renderedPlaintext = await plaintext.locator('code').textContent()
+    expect(renderedPlaintext?.split(/\r?\n/)).toEqual(expectedPlaintextLines)
+
+    const presentation = await plaintext.evaluate((pre) => {
+      const figure = pre.closest('figure')
+      const code = pre.querySelector('code')
+      if (!figure || !code || !figure.parentElement) throw new Error('Plaintext code structure is missing.')
+      const figureStyle = getComputedStyle(figure)
+      const preStyle = getComputedStyle(pre)
+      const codeStyle = getComputedStyle(code)
+      return {
+        marginLeft: figureStyle.marginLeft,
+        marginRight: figureStyle.marginRight,
+        widthDelta: Math.abs(figure.parentElement.clientWidth - figure.getBoundingClientRect().width),
+        preOverflowX: preStyle.overflowX,
+        preOverflows: pre.scrollWidth > pre.clientWidth,
+        whiteSpace: codeStyle.whiteSpace,
+        overflowWrap: codeStyle.overflowWrap,
+        wordBreak: codeStyle.wordBreak,
+        codeWidth: codeStyle.width,
+        codeMinWidth: codeStyle.minWidth,
+      }
+    })
+
+    expect(presentation).toMatchObject({
+      marginLeft: '0px',
+      marginRight: '0px',
+      preOverflowX: 'hidden',
+      preOverflows: false,
+      whiteSpace: 'pre-wrap',
+      overflowWrap: 'anywhere',
+      wordBreak: 'normal',
+      codeMinWidth: '0px',
+    })
+    expect(presentation.widthDelta).toBeLessThanOrEqual(1)
+    expect(presentation.codeWidth).not.toBe('max-content')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+
+    const copyButton = plaintext.locator('..').getByRole('button', { name: 'Copy Plain text code' })
+    await copyButton.click()
+    await expect(copyButton).toContainText('Copied')
+    expect(await page.evaluate(() => (
+      window as typeof window & { __copiedPlaintext?: string }
+    ).__copiedPlaintext)).toBe(expectedPlaintext)
+
+    await heading.scrollIntoViewIfNeeded()
+    await page.screenshot({
+      path: `visual-review/${viewport.width}-workaround-make-decision-plaintext.png`,
+      fullPage: false,
+    })
+  }
+})
+
+test('programming blocks and code tabs keep non-wrapping source-code behavior', async ({ page }) => {
+  for (const viewport of [
+    { width: 375, height: 667 },
+    { width: 412, height: 767 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.goto(`${writingPath}#a-normal-fenced-block`)
+    const heading = page.getByRole('heading', { name: 'A normal fenced block' })
+    await expect(heading).toBeInViewport()
+    const source = page.locator('pre[aria-label="JSON code"]')
+    await expect(source).toBeVisible()
+    const sourcePresentation = await source.evaluate((pre) => {
+      const code = pre.querySelector('code')
+      if (!code) throw new Error('Source code element is missing.')
+      return {
+        overflowX: getComputedStyle(pre).overflowX,
+        whiteSpace: getComputedStyle(code).whiteSpace,
+        width: getComputedStyle(code).width,
+      }
+    })
+    expect(sourcePresentation.overflowX).toBe('auto')
+    expect(sourcePresentation.whiteSpace).toBe('pre')
+    expect(sourcePresentation.width).not.toBe('auto')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await heading.scrollIntoViewIfNeeded()
+    await page.screenshot({
+      path: `visual-review/${viewport.width}-framework-normal-source-code.png`,
+      fullPage: false,
+    })
+  }
+
+  await page.goto(`${writingPath}#equivalent-examples`)
+  const panel = page.getByRole('tabpanel').first()
+  const tabCode = panel.locator('pre[aria-label="C# code"]')
+  const tabPresentation = await tabCode.evaluate((pre) => {
+    const figure = pre.closest('figure')
+    const code = pre.querySelector('code')
+    if (!figure || !code) throw new Error('Code-tab structure is missing.')
+    return {
+      figureMargin: getComputedStyle(figure).margin,
+      overflowX: getComputedStyle(pre).overflowX,
+      whiteSpace: getComputedStyle(code).whiteSpace,
+      width: getComputedStyle(code).width,
+    }
+  })
+  expect(tabPresentation.figureMargin).toBe('0px')
+  expect(tabPresentation.overflowX).toBe('auto')
+  expect(tabPresentation.whiteSpace).toBe('pre')
+  expect(tabPresentation.width).not.toBe('auto')
 })
 
 for (const viewport of [

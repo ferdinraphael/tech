@@ -62,6 +62,7 @@ export function CodeTabs({ samples }: { samples: CodeSample[] }) {
           language={activeSample.language}
           label={codeLanguageLabel(activeSample.language)}
           showLanguageLabel={false}
+          standalone={false}
         />
       </div>
     </section>

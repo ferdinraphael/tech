@@ -11,6 +11,7 @@ interface CodeBlockProps {
   label?: string
   labelledBy?: string
   showLanguageLabel?: boolean
+  standalone?: boolean
 }
 
 export function CodeBlock({
@@ -19,6 +20,7 @@ export function CodeBlock({
   label,
   labelledBy,
   showLanguageLabel = true,
+  standalone = true,
 }: CodeBlockProps) {
   const [copied, setCopied] = useState(false)
   const timerRef = useRef<number | undefined>(undefined)
@@ -37,9 +39,16 @@ export function CodeBlock({
   }
 
   const languageLabel = label ?? (language ? codeLanguageLabel(language) : 'Code')
+  const className = [
+    styles.codeBlock,
+    standalone ? styles.standaloneCodeBlock : undefined,
+    standalone && language === 'text' ? styles.plainTextBlock : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <figure className={styles.codeBlock} aria-labelledby={labelledBy}>
+    <figure className={className} aria-labelledby={labelledBy}>
       <figcaption className={styles.codeToolbar}>
         {showLanguageLabel ? <span>{languageLabel}</span> : <span>CODE</span>}
         <button type="button" onClick={copyCode} aria-label={`Copy ${languageLabel} code`}>

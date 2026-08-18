@@ -565,6 +565,11 @@
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
 }
 
+.standaloneCodeBlock {
+  margin-right: 0;
+  margin-left: 0;
+}
+
 .codeToolbar {
   display: flex;
   min-height: 42px;
@@ -624,6 +629,18 @@
   min-width: 100%;
   font-family: var(--font-mono);
   white-space: pre;
+}
+
+.plainTextBlock pre {
+  overflow-x: hidden;
+}
+
+.plainTextBlock code {
+  width: auto;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .codeTabs {
