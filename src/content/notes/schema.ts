@@ -1,6 +1,6 @@
-import GithubSlugger from '../../vendor/github-slugger/index.js'
-import { marked, type MarkedToken } from '../../vendor/marked.esm.js'
-import { load as loadYaml } from '../../vendor/js-yaml.mjs'
+import GithubSlugger from 'github-slugger'
+import { load as loadYaml } from 'js-yaml'
+import { marked, type Token } from 'marked'
 import { projectIds, type ProjectId } from '../../data/site'
 import { normalizeCodeLanguage } from './languages'
 import type {
@@ -12,6 +12,8 @@ import type {
   ArticleSource,
   CodeSample,
 } from './types'
+
+type MarkedToken = Token & { text?: string; tokens?: MarkedToken[] }
 
 export class ArticleValidationError extends Error {
   constructor(message: string) {

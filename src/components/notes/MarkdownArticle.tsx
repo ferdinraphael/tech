@@ -1,11 +1,13 @@
 import { Fragment, createElement, type ReactNode } from 'react'
-import GithubSlugger from '../../vendor/github-slugger/index.js'
-import { marked, type MarkedToken } from '../../vendor/marked.esm.js'
+import GithubSlugger from 'github-slugger'
+import { marked, type Token } from 'marked'
 import { normalizeCodeLanguage } from '../../content/notes/languages'
 import type { ArticleSegment } from '../../content/notes/types'
 import { CodeBlock } from './CodeBlock'
 import { CodeTabs } from './CodeTabs'
 import styles from './Notes.module.css'
+
+type MarkedToken = Token & { text?: string; tokens?: MarkedToken[] }
 
 function safeUrl(value: string | undefined, image = false): string | null {
   if (!value) return null
