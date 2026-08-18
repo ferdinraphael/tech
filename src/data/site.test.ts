@@ -33,6 +33,17 @@ describe('constellation data', () => {
     expect(nodes).not.toHaveProperty('selected')
   })
 
+  it('models Writings as the canonical constellation category', () => {
+    const writings = nodes.find(({ id }) => id === 'writings')
+    expect(writings).toEqual(expect.objectContaining({
+      label: 'Writings',
+      route: '/writings',
+    }))
+    expect(writings?.actions).toEqual([{ label: 'View Writings', route: '/writings' }])
+    expect(relationships).toContainEqual({ from: 'writings', to: 'technical-thinking' })
+    expect(nodes.some(({ id }) => id === ('notes' as never))).toBe(false)
+  })
+
   it('contains only the approved project and no fabricated satellites', () => {
     expect(nodes.filter((node) => node.kind === 'project').map((node) => node.label)).toEqual([
       'Little Worlds',

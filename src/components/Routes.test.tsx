@@ -1,12 +1,18 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { App } from '../App'
+
+function LocationProbe() {
+  const location = useLocation()
+  return <output data-testid="location">{`${location.pathname}${location.search}${location.hash}`}</output>
+}
 
 function renderRoute(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <App />
+      <LocationProbe />
     </MemoryRouter>,
   )
 }
@@ -16,11 +22,44 @@ describe('foundation routes', () => {
     ['/profile', /Experience across systems/],
     ['/projects', /Built to explore/],
     ['/services', /Focused engagements/],
-    ['/notes', /writing space is taking shape/],
   ])('renders %s', (path, heading) => {
     renderRoute(path)
     expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Back to overview/ })).toBeInTheDocument()
+  })
+
+  it('renders the Writings index with an intentional empty state and separate development drafts', async () => {
+    renderRoute('/writings')
+    expect(await screen.findByRole('heading', { level: 1, name: /writing space is taking shape/i }, { timeout: 5_000 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No published writings yet.' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Framework draft previews' })).toBeInTheDocument()
+    expect(screen.getByText('Connected to Little Worlds')).toBeInTheDocument()
+    expect(screen.getByText('DRAFT')).toBeInTheDocument()
+    expect(screen.getByText('Article')).toBeInTheDocument()
+    expect(document.querySelectorAll('a[href^="/notes"]')).toHaveLength(0)
+  })
+
+  it('loads a draft writing directly in development with Writings navigation active', async () => {
+    renderRoute('/writings/framework-preview')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Technical writing framework preview' }, { timeout: 5_000 })).toBeInTheDocument()
+    expect(screen.getByText('DRAFT')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Related projects' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Little Worlds' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Writings' }).some((link) => link.getAttribute('aria-current') === 'page')).toBe(true)
+  })
+
+  it('renders an intentional writing-not-found state for an unknown canonical slug', async () => {
+    renderRoute('/writings/not-a-real-writing')
+    expect(await screen.findByRole('heading', { name: 'That writing is not available.' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Return to Writings/ })).toHaveAttribute('href', '/writings')
+  })
+
+  it.each([
+    ['/notes', '/writings'],
+    ['/notes/framework-preview?mode=review#equivalent-examples', '/writings/framework-preview?mode=review#equivalent-examples'],
+  ])('redirects legacy %s with replace-style canonical location', async (legacy, canonical) => {
+    renderRoute(legacy)
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(canonical))
   })
 
   it('renders a useful invalid route', () => {

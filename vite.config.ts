@@ -1,14 +1,18 @@
 import { copyFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { Plugin } from 'vite'
+import type { Plugin, ResolvedConfig } from 'vite'
 import { configDefaults, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 function githubPagesFallback(): Plugin {
+  let outputDirectory = resolve('dist')
   return {
     name: 'github-pages-spa-fallback',
+    configResolved(config: ResolvedConfig) {
+      outputDirectory = resolve(config.root, config.build.outDir)
+    },
     closeBundle() {
-      copyFileSync(resolve('dist/index.html'), resolve('dist/404.html'))
+      copyFileSync(resolve(outputDirectory, 'index.html'), resolve(outputDirectory, '404.html'))
     },
   }
 }
