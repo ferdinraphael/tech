@@ -85,7 +85,10 @@ test('mobile Contents control appears only after the TOC, preserves state, and r
   await page.screenshot({ path: 'visual-review/412-writings-contents-visible.png', fullPage: false })
 
   const examplesHeading = page.getByRole('heading', { name: 'Equivalent examples' })
-  await examplesHeading.scrollIntoViewIfNeeded()
+  await examplesHeading.evaluate((heading) => {
+    const top = heading.getBoundingClientRect().top + window.scrollY
+    window.scrollTo(0, top - 100)
+  })
   const pythonTab = page.getByRole('tab', { name: 'Python' }).first()
   await pythonTab.focus()
   await expect(returnButton).toBeVisible()

@@ -32,6 +32,7 @@ function WritingView({ writing }: { writing: WritingRecord }) {
 
   const returnToContents = () => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (activeHeading) activateHeading(activeHeading)
     tocRef.current?.scrollIntoView({
       behavior: reducedMotion ? 'auto' : 'smooth',
       block: 'start',
