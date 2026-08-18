@@ -157,7 +157,7 @@ test('standalone plaintext uses the article width, wraps visually, and copies ex
   const plaintextMatch = articleSource.match(
     /## Make the decision explicit\r?\n[\s\S]*?```text\r?\n([\s\S]*?)\r?\n```/,
   )
-  const expectedPlaintext = plaintextMatch?.[1]
+  const expectedPlaintext = plaintextMatch?.[1].replace(/\r\n?/g, '\n')
   expect(expectedPlaintext).toBeDefined()
 
   for (const viewport of [
