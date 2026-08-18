@@ -46,14 +46,14 @@ function WritingView({ writing }: { writing: WritingRecord }) {
           <ArrowLeft aria-hidden="true" /> Back to Writings
         </Link>
         <div className={styles.articleEyebrow}>
-          <span>{writing.draft ? 'FRAMEWORK PREVIEW' : writingFormatLabel(writing.format).toUpperCase()}</span>
+          <span>{writingFormatLabel(writing.format).toUpperCase()}</span>
           {writing.draft && <strong>DRAFT</strong>}
         </div>
         <h1>{writing.title}</h1>
         <p>{writing.description}</p>
         <div className={styles.articleMeta}>
           <span>{writingFormatLabel(writing.format)}</span>
-          {writing.publishedAt ? <span>Published {formatWritingDate(writing.publishedAt)}</span> : <span>Unpublished development fixture</span>}
+          {writing.publishedAt ? <span>Published {formatWritingDate(writing.publishedAt)}</span> : <span>Unpublished draft</span>}
           {writing.updatedAt && <span>Updated {formatWritingDate(writing.updatedAt)}</span>}
           {writing.series && <span>Series: {writing.series.name} · Part {writing.series.order}</span>}
         </div>

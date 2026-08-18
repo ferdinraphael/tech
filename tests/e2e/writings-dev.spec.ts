@@ -12,7 +12,10 @@ test('desktop writing tracks active headings, direct hashes, history, tabs, copy
   await page.goto(writingPath)
 
   await expect(page.getByRole('heading', { level: 1, name: 'Technical writing framework preview' })).toBeVisible()
+  await expect(page.getByText('ARTICLE', { exact: true })).toBeVisible()
   await expect(page.getByText('DRAFT', { exact: true })).toBeVisible()
+  await expect(page.getByText('Unpublished draft', { exact: true })).toBeVisible()
+  await expect(page.getByText('FRAMEWORK PREVIEW', { exact: true })).toHaveCount(0)
   const contents = page.getByRole('navigation', { name: 'Contents' })
   await expect(contents).toBeVisible()
   await expect(contents.getByRole('link', { name: 'What this fixture checks' })).toHaveAttribute('aria-current', 'location')

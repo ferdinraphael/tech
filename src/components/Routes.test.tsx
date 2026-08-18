@@ -45,7 +45,10 @@ describe('foundation routes', () => {
   it('loads a draft writing directly in development with Writings navigation active', async () => {
     renderRoute('/writings/framework-preview')
     expect(await screen.findByRole('heading', { level: 1, name: 'Technical writing framework preview' }, { timeout: 5_000 })).toBeInTheDocument()
+    expect(screen.getByText('ARTICLE')).toBeInTheDocument()
     expect(screen.getByText('DRAFT')).toBeInTheDocument()
+    expect(screen.getByText('Unpublished draft')).toBeInTheDocument()
+    expect(screen.queryByText('FRAMEWORK PREVIEW')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Related projects' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Little Worlds' })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Writings' }).some((link) => link.getAttribute('aria-current') === 'page')).toBe(true)
