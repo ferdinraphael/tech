@@ -9,7 +9,7 @@ import python from 'highlight.js/lib/languages/python'
 import sql from 'highlight.js/lib/languages/sql'
 import typescript from 'highlight.js/lib/languages/typescript'
 import xml from 'highlight.js/lib/languages/xml'
-import type { CanonicalCodeLanguage } from '../../content/notes/types'
+import type { CanonicalCodeLanguage } from '../../content/writings/types'
 
 highlighter.registerLanguage('bash', bash)
 highlighter.registerLanguage('csharp', csharp)

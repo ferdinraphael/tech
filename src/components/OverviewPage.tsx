@@ -7,7 +7,7 @@ import {
   links,
   littleWorlds,
   nodeById,
-  notesCopy,
+  writingsCopy,
   type NodeId,
   websiteService,
 } from '../data/site'
@@ -76,7 +76,7 @@ export function OverviewPage() {
             Software, systems, experiments, and technical thinking<span>.</span>
           </h1>
           <p>
-            I build software, automate workflows, run experiments, and write technical notes
+            I build software, automate workflows, run experiments, and write about technical systems
             that turn ideas into systems. This is a map of my technical work.
           </p>
           <div className={styles.exploreHint}>
@@ -153,18 +153,18 @@ export function OverviewPage() {
           </article>
         </section>
 
-        <section className={styles.sectionPanel} aria-labelledby="latest-notes-heading">
+        <section className={styles.sectionPanel} aria-labelledby="writings-heading">
           <div className={styles.sectionHeader}>
-            <h2 id="latest-notes-heading">Latest Notes</h2>
-            <Link to="/notes">
-              View Notes <ArrowRight aria-hidden="true" />
+            <h2 id="writings-heading">Writings</h2>
+            <Link to="/writings">
+              View Writings <ArrowRight aria-hidden="true" />
             </Link>
           </div>
           <div className={styles.emptyState}>
-            <span>NOTES / PREPARING</span>
-            <p>{notesCopy}</p>
-            <Link to="/notes">
-              Explore the notes foundation <ArrowRight aria-hidden="true" />
+            <span>WRITINGS / PREPARING</span>
+            <p>{writingsCopy}</p>
+            <Link to="/writings">
+              Explore the Writings foundation <ArrowRight aria-hidden="true" />
             </Link>
           </div>
         </section>

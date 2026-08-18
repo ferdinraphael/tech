@@ -20,14 +20,14 @@ const primaryNav = [
   { label: 'Profile', to: '/profile' },
   { label: 'Projects', to: '/projects' },
   { label: 'Services', to: '/services' },
-  { label: 'Notes', to: '/notes' },
+  { label: 'Writings', to: '/writings' },
 ]
 
 const bottomNav = [
   { label: 'Overview', to: '/', icon: Home },
   { label: 'Projects', to: '/projects', icon: Package },
   { label: 'Services', to: '/services', icon: PanelsTopLeft },
-  { label: 'Notes', to: '/notes', icon: FileText },
+  { label: 'Writings', to: '/writings', icon: FileText },
 ]
 
 function Brand() {
@@ -158,15 +158,15 @@ export function AppShell() {
           <a href={links.github} target="_blank" rel="noreferrer">
             <Github aria-hidden="true" /> GitHub
           </a>
-          <NavLink to="/notes">
-            <FileText aria-hidden="true" /> Notes
+          <NavLink to="/writings">
+            <FileText aria-hidden="true" /> Writings
           </NavLink>
           <a href={links.email}>
             <Mail aria-hidden="true" /> Contact
           </a>
         </div>
         <span className={styles.footerStatus}>
-          <i aria-hidden="true" /> Building systems. Running experiments. Preparing notes.
+          <i aria-hidden="true" /> Building systems. Running experiments. Preparing writings.
         </span>
       </footer>
 

@@ -1,4 +1,4 @@
-export function formatArticleDate(value: string): string {
+export function formatWritingDate(value: string): string {
   return new Intl.DateTimeFormat('en', {
     day: 'numeric',
     month: 'short',

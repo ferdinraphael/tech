@@ -1,9 +1,9 @@
 import { Check, Copy } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { codeLanguageLabel } from '../../content/notes/languages'
-import type { CanonicalCodeLanguage } from '../../content/notes/types'
+import { codeLanguageLabel } from '../../content/writings/languages'
+import type { CanonicalCodeLanguage } from '../../content/writings/types'
 import { highlightCode } from './highlight'
-import styles from './Notes.module.css'
+import styles from './Writings.module.css'
 
 interface CodeBlockProps {
   code: string

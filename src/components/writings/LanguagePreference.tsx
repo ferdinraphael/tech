@@ -2,8 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import {
   normalizeCodeLanguage,
   preferredLanguageStorageKey,
-} from '../../content/notes/languages'
-import type { CanonicalCodeLanguage } from '../../content/notes/types'
+} from '../../content/writings/languages'
+import type { CanonicalCodeLanguage } from '../../content/writings/types'
 import { LanguagePreferenceContext, type LanguagePreferenceValue } from './LanguagePreferenceContext'
 
 function storedLanguage(): CanonicalCodeLanguage | null {

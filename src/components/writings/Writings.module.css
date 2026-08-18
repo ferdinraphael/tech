@@ -1,17 +1,17 @@
-.notesPage,
+.writingsPage,
 .articlePage {
   min-height: 75vh;
   padding: 34px 40px 56px;
 }
 
-.notesHero,
+.writingsHero,
 .articleHeader {
   position: relative;
   padding: 20px 0 34px;
   border-bottom: 1px solid var(--color-border);
 }
 
-.notesHero {
+.writingsHero {
   max-width: 900px;
 }
 
@@ -38,7 +38,7 @@
   background: var(--color-text-muted);
 }
 
-.notesHero h1,
+.writingsHero h1,
 .articleHeader h1,
 .notFound h1 {
   margin: 16px 0;
@@ -49,7 +49,7 @@
   letter-spacing: -0.055em;
 }
 
-.notesHero > p:not(.eyebrow),
+.writingsHero > p:not(.eyebrow),
 .articleHeader > p,
 .notFound > p:not(.eyebrow) {
   max-width: 760px;
@@ -345,6 +345,7 @@
   overflow: auto;
   border-top: 1px solid var(--color-border-strong);
   border-bottom: 1px solid var(--color-border);
+  scroll-margin-top: calc(var(--header-height) + 18px);
 }
 
 .toc > p {
@@ -362,10 +363,27 @@
 }
 
 .toc a {
+  position: relative;
+  display: inline-block;
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.45;
   text-decoration: none;
+}
+
+.toc a[aria-current='location'] {
+  color: var(--color-cyan);
+  font-weight: 500;
+}
+
+.toc a[aria-current='location']::before {
+  position: absolute;
+  top: 0.62em;
+  left: -12px;
+  width: 5px;
+  height: 1px;
+  content: '';
+  background: currentColor;
 }
 
 .toc a:hover,
@@ -767,6 +785,10 @@
   border-top: 1px solid var(--color-border);
 }
 
+.contentsReturn {
+  display: none;
+}
+
 .notFound {
   max-width: 760px;
   min-height: 62vh;
@@ -810,24 +832,24 @@
 }
 
 @media (max-width: 767px) {
-  .notesPage,
+  .writingsPage,
   .articlePage {
     padding: 24px 16px calc(102px + env(safe-area-inset-bottom));
   }
 
-  .notesHero,
+  .writingsHero,
   .articleHeader {
     padding: 12px 0 28px;
   }
 
-  .notesHero h1,
+  .writingsHero h1,
   .articleHeader h1,
   .notFound h1 {
     font-size: clamp(30px, 9.5vw, 39px);
     line-height: 1.12;
   }
 
-  .notesHero > p:not(.eyebrow),
+  .writingsHero > p:not(.eyebrow),
   .articleHeader > p,
   .notFound > p:not(.eyebrow) {
     font-size: 14px;
@@ -863,6 +885,33 @@
 
   .toc ol {
     columns: 1;
+  }
+
+  .contentsReturn {
+    position: fixed;
+    z-index: 55;
+    right: 16px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    display: inline-flex;
+    min-height: 44px;
+    padding: 0 15px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: 999px;
+    color: var(--color-cyan);
+    background: rgba(5, 20, 32, 0.94);
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.36);
+    backdrop-filter: blur(14px);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .contentsReturn svg {
+    width: 15px;
+    height: 15px;
   }
 
   .markdownBody {

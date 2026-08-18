@@ -2,28 +2,29 @@ import GithubSlugger from 'github-slugger'
 import { load as loadYaml } from 'js-yaml'
 import { marked, type Token } from 'marked'
 import { projectIds, type ProjectId } from '../../data/site'
+import { isWritingFormat } from './formats'
 import { normalizeCodeLanguage } from './languages'
 import type {
-  ArticleCatalogue,
-  ArticleHeading,
-  ArticleMetadata,
-  ArticleRecord,
-  ArticleSegment,
-  ArticleSource,
+  WritingCatalogue,
+  WritingHeading,
+  WritingMetadata,
+  WritingRecord,
+  WritingSegment,
+  WritingSource,
   CodeSample,
 } from './types'
 
 type MarkedToken = Token & { text?: string; tokens?: MarkedToken[] }
 
-export class ArticleValidationError extends Error {
+export class WritingValidationError extends Error {
   constructor(message: string) {
     super(message)
-    this.name = 'ArticleValidationError'
+    this.name = 'WritingValidationError'
   }
 }
 
 function fail(sourcePath: string, message: string): never {
-  throw new ArticleValidationError(`${sourcePath}: ${message}`)
+  throw new WritingValidationError(`${sourcePath}: ${message}`)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -76,11 +77,15 @@ function parseMetadata(
   value: unknown,
   sourcePath: string,
   validProjectIds: ReadonlySet<string>,
-): ArticleMetadata {
+): WritingMetadata {
   if (!isRecord(value)) fail(sourcePath, 'frontmatter must be a YAML mapping')
 
   const title = requiredString(value.title, 'title', sourcePath)
   const description = requiredString(value.description, 'description', sourcePath)
+  if (!isWritingFormat(value.format)) {
+    fail(sourcePath, 'frontmatter field "format" must be a supported writing format')
+  }
+  const format = value.format
   if (typeof value.draft !== 'boolean') {
     fail(sourcePath, 'frontmatter field "draft" must be explicitly true or false')
   }
@@ -89,7 +94,7 @@ function parseMetadata(
   const publishedAt = validDate(value.publishedAt, 'publishedAt', sourcePath)
   const updatedAt = validDate(value.updatedAt, 'updatedAt', sourcePath)
   if (!draft && !publishedAt) {
-    fail(sourcePath, 'published articles require "publishedAt"')
+    fail(sourcePath, 'published writings require "publishedAt"')
   }
   if (publishedAt && updatedAt && updatedAt < publishedAt) {
     fail(sourcePath, '"updatedAt" cannot be earlier than "publishedAt"')
@@ -106,7 +111,7 @@ function parseMetadata(
     }
   }
 
-  let series: ArticleMetadata['series']
+  let series: WritingMetadata['series']
   if (value.series !== undefined) {
     if (!isRecord(value.series)) {
       fail(sourcePath, 'frontmatter field "series" must be a mapping')
@@ -126,6 +131,7 @@ function parseMetadata(
   return {
     title,
     description,
+    format,
     publishedAt,
     updatedAt,
     draft,
@@ -147,7 +153,7 @@ export function splitFrontmatter(
 ): { frontmatter: unknown; body: string } {
   const normalized = source.replace(/\r\n?/g, '\n')
   if (!normalized.startsWith('---\n')) {
-    return fail(sourcePath, 'article must begin with YAML frontmatter')
+    return fail(sourcePath, 'writing must begin with YAML frontmatter')
   }
   const end = normalized.indexOf('\n---\n', 4)
   if (end === -1) return fail(sourcePath, 'frontmatter closing delimiter is missing')
@@ -173,12 +179,12 @@ function isFenceClose(line: string, marker: string): boolean {
   return new RegExp(`^\\s*${character}{${marker.length},}\\s*$`).test(line)
 }
 
-export function parseArticleSegments(
+export function parseWritingSegments(
   body: string,
   sourcePath: string,
-): ArticleSegment[] {
+): WritingSegment[] {
   const lines = body.replace(/\r\n?/g, '\n').split('\n')
-  const segments: ArticleSegment[] = []
+  const segments: WritingSegment[] = []
   let markdownStart = 0
   let index = 0
 
@@ -263,11 +269,11 @@ function tokenText(token: MarkedToken): string {
 }
 
 function extractHeadings(
-  segments: ArticleSegment[],
+  segments: WritingSegment[],
   sourcePath: string,
-): ArticleHeading[] {
+): WritingHeading[] {
   const slugger = new GithubSlugger()
-  const headings: ArticleHeading[] = []
+  const headings: WritingHeading[] = []
   try {
     for (const segment of segments) {
       if (segment.type !== 'markdown') continue
@@ -288,18 +294,18 @@ function slugFromPath(sourcePath: string): string {
   const filename = sourcePath.replace(/\\/g, '/').split('/').pop() ?? ''
   const slug = filename.replace(/\.md$/i, '')
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    fail(sourcePath, 'filename must form a lowercase kebab-case article slug')
+    fail(sourcePath, 'filename must form a lowercase kebab-case writing slug')
   }
   return slug
 }
 
-export function parseArticleSource(
-  input: ArticleSource,
+export function parseWritingSource(
+  input: WritingSource,
   validProjectIds: ReadonlySet<string> = new Set(projectIds),
-): ArticleRecord {
+): WritingRecord {
   const { frontmatter, body } = splitFrontmatter(input.source, input.path)
   const metadata = parseMetadata(frontmatter, input.path, validProjectIds)
-  const segments = parseArticleSegments(body, input.path)
+  const segments = parseWritingSegments(body, input.path)
   return {
     ...metadata,
     slug: slugFromPath(input.path),
@@ -310,27 +316,27 @@ export function parseArticleSource(
   }
 }
 
-export function buildArticleCatalogue(
-  sources: ArticleSource[],
+export function buildWritingCatalogue(
+  sources: WritingSource[],
   options: {
     includeDrafts: boolean
     validProjectIds?: ReadonlySet<string>
   },
-): ArticleCatalogue {
+): WritingCatalogue {
   const validProjectIds = options.validProjectIds ?? new Set(projectIds)
-  const all = sources.map((source) => parseArticleSource(source, validProjectIds))
+  const all = sources.map((source) => parseWritingSource(source, validProjectIds))
   const seen = new Set<string>()
-  for (const article of all) {
-    if (seen.has(article.slug)) {
-      fail(article.sourcePath, `duplicate article slug "${article.slug}"`)
+  for (const writing of all) {
+    if (seen.has(writing.slug)) {
+      fail(writing.sourcePath, `duplicate writing slug "${writing.slug}"`)
     }
-    seen.add(article.slug)
+    seen.add(writing.slug)
   }
 
   const published = all
-    .filter((article) => !article.draft)
+    .filter((writing) => !writing.draft)
     .sort((left, right) => right.publishedAt!.localeCompare(left.publishedAt!))
-  const drafts = all.filter((article) => article.draft)
+  const drafts = all.filter((writing) => writing.draft)
   const visible = options.includeDrafts ? [...published, ...drafts] : published
 
   return {
@@ -339,7 +345,7 @@ export function buildArticleCatalogue(
     drafts: options.includeDrafts ? drafts : [],
     visible,
     getBySlug(slug: string) {
-      return visible.find((article) => article.slug === slug)
+      return visible.find((writing) => writing.slug === slug)
     },
   }
 }

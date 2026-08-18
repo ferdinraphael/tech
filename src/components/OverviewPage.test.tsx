@@ -145,7 +145,7 @@ describe('overview interactions', () => {
     }))
     const user = userEvent.setup()
     renderOverview()
-    await user.click(screen.getByRole('button', { name: /^Notes\./ }))
+    await user.click(screen.getByRole('button', { name: /^Writings\./ }))
     await waitFor(() =>
       expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
         behavior: 'auto',
@@ -156,17 +156,17 @@ describe('overview interactions', () => {
 
   it('supports keyboard activation of constellation nodes', () => {
     renderOverview()
-    const notes = screen.getByRole('button', { name: /^Notes\./ })
-    notes.focus()
-    fireEvent.keyDown(notes, { key: 'Enter' })
-    fireEvent.click(notes)
-    expect(notes).toHaveAttribute('aria-pressed', 'true')
+    const writings = screen.getByRole('button', { name: /^Writings\./ })
+    writings.focus()
+    fireEvent.keyDown(writings, { key: 'Enter' })
+    fireEvent.click(writings)
+    expect(writings).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('renders an intentional notes empty state without articles', () => {
+  it('renders an intentional Writings foundation state without published content', () => {
     renderOverview()
-    expect(screen.getByText('NOTES / PREPARING')).toBeInTheDocument()
-    expect(screen.getByText(/Technical notes are being prepared/)).toBeInTheDocument()
+    expect(screen.getByText('WRITINGS / PREPARING')).toBeInTheDocument()
+    expect(screen.getByText(/Technical articles, concept notes, mental models/)).toBeInTheDocument()
     expect(screen.queryByText('Designing Modular Simulation Systems')).not.toBeInTheDocument()
   })
 })

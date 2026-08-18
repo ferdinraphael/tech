@@ -1,24 +1,35 @@
 import type { ProjectId } from '../../data/site'
 
-export interface ArticleSeries {
+export type WritingFormat =
+  | 'article'
+  | 'concept-note'
+  | 'mental-model'
+  | 'worked-example'
+  | 'practice-set'
+  | 'mini-project'
+  | 'debugging-note'
+  | 'reference-sheet'
+
+export interface WritingSeries {
   name: string
   order: number
 }
 
-export interface ArticleMetadata {
+export interface WritingMetadata {
   title: string
   description: string
+  format: WritingFormat
   publishedAt?: string
   updatedAt?: string
   draft: boolean
   tags: string[]
   technologies: string[]
-  series?: ArticleSeries
+  series?: WritingSeries
   relatedProjects: ProjectId[]
   featured: boolean
 }
 
-export interface ArticleHeading {
+export interface WritingHeading {
   depth: 2 | 3
   id: string
   text: string
@@ -29,16 +40,16 @@ export interface CodeSample {
   code: string
 }
 
-export type ArticleSegment =
+export type WritingSegment =
   | { type: 'markdown'; source: string }
   | { type: 'code-tabs'; samples: CodeSample[] }
 
-export interface ArticleRecord extends ArticleMetadata {
+export interface WritingRecord extends WritingMetadata {
   slug: string
   sourcePath: string
   body: string
-  headings: ArticleHeading[]
-  segments: ArticleSegment[]
+  headings: WritingHeading[]
+  segments: WritingSegment[]
 }
 
 export type CanonicalCodeLanguage =
@@ -54,15 +65,15 @@ export type CanonicalCodeLanguage =
   | 'css'
   | 'text'
 
-export interface ArticleSource {
+export interface WritingSource {
   path: string
   source: string
 }
 
-export interface ArticleCatalogue {
-  all: ArticleRecord[]
-  published: ArticleRecord[]
-  drafts: ArticleRecord[]
-  visible: ArticleRecord[]
-  getBySlug(slug: string): ArticleRecord | undefined
+export interface WritingCatalogue {
+  all: WritingRecord[]
+  published: WritingRecord[]
+  drafts: WritingRecord[]
+  visible: WritingRecord[]
+  getBySlug(slug: string): WritingRecord | undefined
 }

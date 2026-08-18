@@ -1090,7 +1090,7 @@
 .routeCta h2,
 .featureRouteBody h2,
 .routeServiceGrid h2,
-.notesFoundation h2 {
+.writingsFoundation h2 {
   margin: 0;
   font-family: var(--font-mono);
   font-size: clamp(24px, 3vw, 38px);
@@ -1128,7 +1128,7 @@
 .routeCta p,
 .featureRouteBody p,
 .routeServiceGrid p,
-.notesFoundation > p {
+.writingsFoundation > p {
   color: var(--color-text-soft);
   font-size: 12px;
   line-height: 1.7;
@@ -1267,7 +1267,7 @@
   margin-top: 24px;
 }
 
-.notesFoundation {
+.writingsFoundation {
   max-width: 920px;
   margin: 40px auto;
   padding: 50px;
@@ -1277,14 +1277,14 @@
   background: var(--color-bg-panel);
 }
 
-.notesSignal {
+.writingsSignal {
   display: flex;
   justify-content: center;
   gap: 7px;
   margin-bottom: 34px;
 }
 
-.notesSignal span {
+.writingsSignal span {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -1292,10 +1292,10 @@
   box-shadow: 0 0 14px rgba(169, 121, 255, 0.6);
 }
 
-.notesSignal span:nth-child(2) { opacity: 0.5; }
-.notesSignal span:nth-child(3) { opacity: 0.22; }
+.writingsSignal span:nth-child(2) { opacity: 0.5; }
+.writingsSignal span:nth-child(3) { opacity: 0.22; }
 
-.notesTopics {
+.writingsTopics {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -1303,7 +1303,7 @@
   margin-top: 28px;
 }
 
-.notesTopics span {
+.writingsTopics span {
   padding: 7px 12px;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -1842,7 +1842,7 @@
     padding: 26px 22px;
   }
 
-  .notesFoundation {
+  .writingsFoundation {
     margin: 32px 0;
     padding: 38px 20px;
   }

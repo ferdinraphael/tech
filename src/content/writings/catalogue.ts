@@ -1,6 +1,6 @@
 import { projectIds } from '../../data/site'
-import { buildArticleCatalogue } from './schema'
-import type { ArticleSource } from './types'
+import { buildWritingCatalogue } from './schema'
+import type { WritingSource } from './types'
 
 const publishedFiles = import.meta.glob('./published/*.md', {
   eager: true,
@@ -19,12 +19,12 @@ const developmentDraftFiles = includeDevelopmentDrafts
     }) as Record<string, string>)
   : {}
 
-function articleSources(files: Record<string, string>): ArticleSource[] {
+function writingSources(files: Record<string, string>): WritingSource[] {
   return Object.entries(files).map(([path, source]) => ({ path, source }))
 }
 
-export const articleCatalogue = buildArticleCatalogue(
-  [...articleSources(publishedFiles), ...articleSources(developmentDraftFiles)],
+export const writingCatalogue = buildWritingCatalogue(
+  [...writingSources(publishedFiles), ...writingSources(developmentDraftFiles)],
   {
     includeDrafts: includeDevelopmentDrafts,
     validProjectIds: new Set(projectIds),

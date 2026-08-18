@@ -1,11 +1,11 @@
 import { Fragment, createElement, type ReactNode } from 'react'
 import GithubSlugger from 'github-slugger'
 import { marked, type Token } from 'marked'
-import { normalizeCodeLanguage } from '../../content/notes/languages'
-import type { ArticleSegment } from '../../content/notes/types'
+import { normalizeCodeLanguage } from '../../content/writings/languages'
+import type { WritingSegment } from '../../content/writings/types'
 import { CodeBlock } from './CodeBlock'
 import { CodeTabs } from './CodeTabs'
-import styles from './Notes.module.css'
+import styles from './Writings.module.css'
 
 type MarkedToken = Token & { text?: string; tokens?: MarkedToken[] }
 
@@ -166,7 +166,7 @@ function blockTokens(
   })
 }
 
-export function MarkdownArticle({ segments }: { segments: ArticleSegment[] }) {
+export function MarkdownWriting({ segments }: { segments: WritingSegment[] }) {
   const slugger = new GithubSlugger()
   return (
     <div className={styles.markdownBody}>

@@ -12,9 +12,9 @@ Deployment is **not enabled**. The project is prepared for a future GitHub Pages
 - Desktop contextual panel and in-flow mobile contextual details
 - Verified Little Worlds project content
 - Markdown-based technical-writing framework with an intentional published empty state
-- Development-only draft previews, validated frontmatter, article routes, and accessible code examples
+- Development-only draft previews, validated frontmatter, writing routes, active Contents navigation, and accessible code examples
 - Two approved service/engagement cards
-- Lightweight Profile, Projects, Services, and Notes routes
+- Lightweight Profile, Projects, Services, and Writings routes
 - Accessibility behavior, component tests, browser smoke tests, and build-only CI
 
 ## Technology
@@ -26,6 +26,7 @@ Deployment is **not enabled**. The project is prepared for a future GitHub Pages
 - CSS Modules and a small global token layer
 - Local IBM Plex Mono and Inter font packages
 - Lucide React icons
+- Marked, js-yaml, github-slugger, and focused Highlight.js grammars from npm
 - Vitest, React Testing Library, and Playwright Chromium
 - npm
 
@@ -55,10 +56,10 @@ The development server serves the application with the `/tech/` base path. Follo
 | `npm run test` | Run unit and component tests once |
 | `npm run test:watch` | Run Vitest in watch mode |
 | `npm run build` | Type-check and create the production `/tech/` build |
-| `npm run content:check` | Validate every published and draft Markdown note |
+| `npm run content:check` | Validate every published and draft Markdown writing |
 | `npm run preview` | Serve the production output locally |
 | `npm run test:e2e` | Run Playwright Chromium smoke tests against a production preview |
-| `npm run test:notes-preview` | Run the bounded development-only article review and capture screenshots |
+| `npm run test:writings-preview` | Run the bounded development-only writing review and capture screenshots |
 
 ## Routes
 
@@ -68,8 +69,9 @@ The development server serves the application with the `/tech/` base path. Follo
 | `/profile` | `/tech/profile` | Concise profile and core areas |
 | `/projects` | `/tech/projects` | Little Worlds only |
 | `/services` | `/tech/services` | Approved pilot and engagements |
-| `/notes` | `/tech/notes` | Data-driven technical-writing index and published empty state |
-| `/notes/:slug` | `/tech/notes/:slug` | Reusable technical article route or intentional article-not-found state |
+| `/writings` | `/tech/writings` | Canonical data-driven writing index and published empty state |
+| `/writings/:slug` | `/tech/writings/:slug` | Reusable writing route or intentional writing-not-found state |
+| `/notes`, `/notes/:slug` | matching `/tech/writings...` route | Replace-style compatibility redirects preserving slug and hash |
 
 Unknown paths render an intentional in-app 404.
 
@@ -103,7 +105,7 @@ The visual is a curated composition, not a physics simulation.
 - desktop and mobile positions
 - featured, interactive, and compact flags
 
-The current graph includes the central technical identity, Profile, Projects, Simulations, Services, Notes, Little Worlds, Website in 2 Days, More Ways to Work Together, Experiments, and Technical Thinking.
+The current graph includes the central technical identity, Profile, Projects, Simulations, Services, Writings, Little Worlds, Website in 2 Days, More Ways to Work Together, Experiments, and Technical Thinking.
 
 ### Relationship model
 
@@ -138,9 +140,9 @@ Add verified project content to the shared data model, including only approved p
 
 Add a shared service record and an appropriate constellation node if it belongs in the map. Do not add a public action until a verified URL or approved contact path exists.
 
-### Add technical notes
+### Add a writing
 
-Technical articles live as plain Markdown under `src/content/notes/`. YAML frontmatter is runtime-validated, published notes populate `/notes` automatically, and development drafts remain visibly separate and unreachable in production. See [the technical-writing authoring guide](docs/technical-writing.md) for the reusable template, code-tab syntax, supported languages, and draft-to-published workflow.
+Technical writings live as plain Markdown under `src/content/writings/`. YAML frontmatter requires a validated resource `format`, published writings populate `/writings` automatically, and development drafts remain visibly separate and unreachable in production. See [the Writings authoring guide](docs/writings.md) for formats versus tags, the reusable template, code-tab syntax, supported languages, and draft-to-published workflow.
 
 ## Accessibility
 
@@ -157,7 +159,8 @@ Technical articles live as plain Markdown under `src/content/notes/`. YAML front
 - Persistent mobile navigation respects safe-area insets
 - Status text accompanies color indicators
 - `prefers-reduced-motion` removes transitions and animations
-- Article headings have stable direct-link anchors and sticky-header offsets
+- Writing headings have stable direct-link anchors, sticky-header offsets, and active-section tracking
+- The active Contents link uses `aria-current="location"`; mobile readers receive a motion-aware return-to-Contents control only after leaving the TOC
 - Multi-language examples use semantic tabs with arrow, Home, and End navigation
 - Every fenced code block includes an accessible copy action and live feedback
 
@@ -175,9 +178,9 @@ Vitest and React Testing Library cover:
 - approved enquiry action
 - mobile inline context rendering, updating, relationship persistence, and clearing
 - reduced-motion inline-context scrolling
-- notes empty state
+- Writings empty state and legacy Notes redirects
 - foundation and invalid routes
-- article metadata, dates, duplicate slugs, project references, and draft visibility
+- writing format metadata, dates, duplicate slugs, project references, and draft visibility
 - Markdown headings, safe raw-HTML handling, code blocks, language aliases, synchronized tabs, persistence, keyboard navigation, and copy controls
 
 Playwright covers:
@@ -190,8 +193,8 @@ Playwright covers:
 - horizontal-overflow checks
 - navigation visibility
 - mobile bottom-navigation clearance
-- production Notes empty-state, draft exclusion, nested route state, and article-not-found behaviour
-- bounded development-only article review at desktop and mobile sizes
+- production Writings empty-state, draft exclusion, nested route state, legacy redirects, and writing-not-found behaviour
+- bounded development-only writing review, scroll-spy, and mobile Contents behaviour at desktop and mobile sizes
 
 ## Viewport matrix
 
@@ -211,7 +214,7 @@ Responsive smoke checks:
 
 Generated review screenshots belong in the untracked `visual-review/` directory.
 
-Run `npm run test:notes-preview` to reproduce the draft-article review. The bounded harness creates a temporary draft-enabled development build, serves it at `http://127.0.0.1:4174/tech/`, runs the desktop/mobile checks, writes both screenshots, stops the server, and removes the temporary build on success or failure.
+Run `npm run test:writings-preview` to reproduce the draft-writing review. The bounded harness creates a temporary draft-enabled development build, serves it at `http://127.0.0.1:4174/tech/`, runs the desktop/mobile checks, writes review screenshots, stops the server, and removes the temporary build on success or failure.
 
 ## Build-only continuous integration
 
@@ -228,7 +231,7 @@ It does not upload a Pages artifact, request deployment permissions, publish a r
 
 ## Known content gaps
 
-- No technical notes are published yet; the only article file is a development-only framework fixture.
+- No writings are published yet; the only writing file is a development-only framework fixture.
 - Website in 2 Days has no public URL and remains Coming soon.
 - Profile copy is intentionally concise and provisional.
 - Little Worlds is the only approved public project in this slice.
@@ -237,7 +240,7 @@ It does not upload a Pages artifact, request deployment permissions, publish a r
 
 - The constellation uses curated coordinates; new content requires deliberate placement at both layout sizes.
 - Tablet context moves below the visual instead of keeping a compressed three-column arrangement.
-- Article social metadata remains client-rendered with the existing Vite SPA architecture; no deployment or server-rendering layer was added.
+- Writing social metadata remains client-rendered with the existing Vite SPA architecture; no deployment or server-rendering layer was added.
 - GitHub Pages clean-route fallback is prepared but cannot be proven on the real Pages host until deployment is explicitly enabled in a later task.
 
 ## Human review items
@@ -245,4 +248,4 @@ It does not upload a Pages artifact, request deployment permissions, publish a r
 - Refine provisional Profile language if desired.
 - Review final node spacing on the most common physical devices.
 - Confirm when Website in 2 Days is ready for a public URL or revised launch copy.
-- Approve real technical note content before adding any article records.
+- Approve the first real writing before adding any published records.

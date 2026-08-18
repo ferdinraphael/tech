@@ -28,7 +28,7 @@ export type NodeId =
   | 'projects'
   | 'simulations'
   | 'services'
-  | 'notes'
+  | 'writings'
   | 'little-worlds'
   | 'website-in-two-days'
   | 'engagements'
@@ -83,8 +83,8 @@ export interface Relationship {
   to: NodeId
 }
 
-export const notesCopy =
-  'Technical notes are being prepared. This area will cover systems, implementation decisions, experiments, and lessons from building.'
+export const writingsCopy =
+  'Technical articles, concept notes, mental models, worked examples, practice sets, mini-projects, debugging notes, and reference sheets will live here.'
 
 export const profileSummary =
   'Senior full-stack developer and technical consultant with 15+ years of experience across .NET, Angular, Azure, integrations, and product delivery.'
@@ -210,14 +210,14 @@ export const nodes: readonly ConstellationNode[] = [
     interactive: true,
   },
   {
-    id: 'notes',
-    label: 'Notes',
+    id: 'writings',
+    label: 'Writings',
     kind: 'category',
     icon: FileText,
     accent: 'violet',
-    summary: notesCopy,
-    route: '/notes',
-    actions: [{ label: 'View Notes', route: '/notes' }],
+    summary: writingsCopy,
+    route: '/writings',
+    actions: [{ label: 'View Writings', route: '/writings' }],
     desktopPosition: { x: 67, y: 76 },
     mobilePosition: { x: 68, y: 62 },
     interactive: true,
@@ -305,12 +305,12 @@ export const relationships: readonly Relationship[] = [
   { from: 'identity', to: 'projects' },
   { from: 'identity', to: 'simulations' },
   { from: 'identity', to: 'services' },
-  { from: 'identity', to: 'notes' },
+  { from: 'identity', to: 'writings' },
   { from: 'projects', to: 'little-worlds' },
   { from: 'simulations', to: 'little-worlds' },
   { from: 'services', to: 'website-in-two-days' },
   { from: 'services', to: 'engagements' },
-  { from: 'notes', to: 'technical-thinking' },
+  { from: 'writings', to: 'technical-thinking' },
   { from: 'simulations', to: 'experiments' },
 ] as const
 

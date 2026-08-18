@@ -1,12 +1,12 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { preferredLanguageStorageKey } from '../../content/notes/languages'
-import type { ArticleSegment } from '../../content/notes/types'
+import { preferredLanguageStorageKey } from '../../content/writings/languages'
+import type { WritingSegment } from '../../content/writings/types'
 import { LanguagePreferenceProvider } from './LanguagePreference'
-import { MarkdownArticle } from './MarkdownArticle'
+import { MarkdownWriting } from './MarkdownWriting'
 
-const tabSegments: ArticleSegment[] = [
+const tabSegments: WritingSegment[] = [
   {
     type: 'code-tabs',
     samples: [
@@ -24,15 +24,15 @@ const tabSegments: ArticleSegment[] = [
   },
 ]
 
-function renderArticle(segments: ArticleSegment[]) {
+function renderWriting(segments: WritingSegment[]) {
   return render(
     <LanguagePreferenceProvider>
-      <MarkdownArticle segments={segments} />
+      <MarkdownWriting segments={segments} />
     </LanguagePreferenceProvider>,
   )
 }
 
-describe('Markdown article rendering', () => {
+describe('Markdown writing rendering', () => {
   beforeEach(() => {
     window.localStorage.clear()
     vi.restoreAllMocks()
@@ -41,7 +41,7 @@ describe('Markdown article rendering', () => {
   it('renders normal fenced code with highlighting and an independent copy action', async () => {
     const user = userEvent.setup()
     const writeText = vi.spyOn(navigator.clipboard, 'writeText')
-    renderArticle([{ type: 'markdown', source: '```ts\nconst answer: number = 42\n```' }])
+    renderWriting([{ type: 'markdown', source: '```ts\nconst answer: number = 42\n```' }])
     expect(screen.getByText('TypeScript')).toBeInTheDocument()
     expect(screen.getByLabelText('TypeScript code')).toHaveTextContent('const answer: number = 42')
     await user.click(screen.getByRole('button', { name: 'Copy TypeScript code' }))
@@ -52,7 +52,7 @@ describe('Markdown article rendering', () => {
 
   it('uses the first tab by default and synchronizes compatible blocks', async () => {
     const user = userEvent.setup()
-    renderArticle(tabSegments)
+    renderWriting(tabSegments)
     expect(screen.getByRole('tab', { name: 'C#', selected: true })).toBeInTheDocument()
 
     await user.click(screen.getAllByRole('tab', { name: 'Python' })[0])
@@ -62,20 +62,20 @@ describe('Markdown article rendering', () => {
 
   it('restores a persisted preference on a future render', () => {
     window.localStorage.setItem(preferredLanguageStorageKey, 'typescript')
-    renderArticle(tabSegments)
+    renderWriting(tabSegments)
     expect(screen.getAllByRole('tab', { name: 'TypeScript', selected: true })).toHaveLength(2)
   })
 
   it('falls back locally without overwriting an unavailable global preference', () => {
     window.localStorage.setItem(preferredLanguageStorageKey, 'csharp')
-    renderArticle([tabSegments[1]])
+    renderWriting([tabSegments[1]])
     expect(screen.getByRole('tab', { name: 'TypeScript', selected: true })).toBeInTheDocument()
     expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('csharp')
   })
 
   it('supports arrow, Home, and End keyboard tab navigation', async () => {
     const user = userEvent.setup()
-    renderArticle([tabSegments[0]])
+    renderWriting([tabSegments[0]])
     const csharp = screen.getByRole('tab', { name: 'C#' })
     csharp.focus()
     await user.keyboard('{ArrowRight}')
@@ -90,7 +90,7 @@ describe('Markdown article rendering', () => {
   it('copies only the currently selected code-tab language', async () => {
     const user = userEvent.setup()
     const writeText = vi.spyOn(navigator.clipboard, 'writeText')
-    renderArticle([tabSegments[0]])
+    renderWriting([tabSegments[0]])
     await user.click(screen.getByRole('tab', { name: 'Python' }))
     const panel = screen.getByRole('tabpanel')
     await user.click(within(panel).getByRole('button', { name: 'Copy Python code' }))
@@ -98,7 +98,7 @@ describe('Markdown article rendering', () => {
   })
 
   it('renders raw HTML as inert text instead of executable elements', () => {
-    const { container } = renderArticle([
+    const { container } = renderWriting([
       { type: 'markdown', source: '<img src="x" onerror="alert(1)">\n\nSafe paragraph.' },
     ])
     expect(container.querySelector('img')).toBeNull()
@@ -107,7 +107,7 @@ describe('Markdown article rendering', () => {
   })
 
   it('renders GFM structure, safe links, and stable formatted heading anchors', () => {
-    const { container } = renderArticle([{
+    const { container } = renderWriting([{
       type: 'markdown',
       source: [
         '## A **formatted** heading',

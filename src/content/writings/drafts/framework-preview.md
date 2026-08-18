@@ -1,6 +1,7 @@
 ---
 title: "Technical writing framework preview"
 description: "A development-only fixture for reviewing Markdown structure, code presentation, and reader controls."
+format: article
 draft: true
 tags:
   - framework-preview

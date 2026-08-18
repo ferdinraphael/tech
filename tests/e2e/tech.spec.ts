@@ -77,22 +77,24 @@ test('routes, browser back, and clean /tech/ base path work', async ({ page }) =
   await expect(page).toHaveURL(/\/tech\/$/)
 })
 
-test('production Notes remains empty, draft-safe, active, and intentional for unknown slugs', async ({ page }) => {
-  await page.goto('./notes')
-  await expect(page).toHaveURL(/\/tech\/notes$/)
-  await expect(page.getByRole('heading', { name: 'No published articles yet.' })).toBeVisible()
+test('production Writings remains empty, draft-safe, active, canonical, and compatible with legacy routes', async ({ page }) => {
+  await page.goto('./writings')
+  await expect(page).toHaveURL(/\/tech\/writings$/)
+  await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toBeVisible()
   await expect(page.getByText('Technical writing framework preview')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Framework draft previews' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Notes', exact: true }).first()).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('link', { name: 'Writings', exact: true }).first()).toHaveAttribute('aria-current', 'page')
+  await expect(page.locator('a[href^="/notes"], a[href^="/tech/notes"]')).toHaveCount(0)
 
-  await page.goto('./notes/framework-preview')
-  await expect(page.getByRole('heading', { name: 'That technical note is not available.' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Notes', exact: true }).first()).toHaveAttribute('aria-current', 'page')
+  await page.goto('./writings/framework-preview')
+  await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Writings', exact: true }).first()).toHaveAttribute('aria-current', 'page')
 
-  await page.goto('./notes/unknown-article')
-  await expect(page.getByRole('heading', { name: 'That technical note is not available.' })).toBeVisible()
+  await page.goto('./notes/unknown-writing#missing-section')
+  await expect(page).toHaveURL(/\/tech\/writings\/unknown-writing#missing-section$/)
+  await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
   await page.goBack()
-  await expect(page).toHaveURL(/\/tech\/notes\/framework-preview$/)
+  await expect(page).toHaveURL(/\/tech\/writings\/framework-preview$/)
 })
 
 test('captures the primary desktop review states', async ({ page }) => {
@@ -111,7 +113,7 @@ test('captures the primary desktop review states', async ({ page }) => {
   ).toBeVisible()
   await page.screenshot({ path: 'visual-review/1536-little-worlds-selected.png' })
 
-  for (const route of ['profile', 'projects', 'services', 'notes']) {
+  for (const route of ['profile', 'projects', 'services', 'writings']) {
     await page.goto(`./${route}`)
     const heading = page.getByRole('heading', { level: 1 })
     await expect(heading).toBeVisible()
@@ -186,9 +188,9 @@ for (const viewport of [
       expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
     }
 
-    await page.goto('./notes')
+    await page.goto('./writings')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-    await expect(page.getByRole('heading', { name: 'No published articles yet.' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toBeVisible()
     if (viewport.width < 768) {
       const bottomNav = page.getByRole('navigation', { name: 'Mobile primary navigation' })
       const emptyCopy = page.getByText(/The Markdown framework is ready/)

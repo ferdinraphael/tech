@@ -7,8 +7,8 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
-const notesPreview = process.argv.includes('--notes-preview')
-const previewUrl = notesPreview
+const writingsPreview = process.argv.includes('--writings-preview')
+const previewUrl = writingsPreview
   ? 'http://127.0.0.1:4174/tech/'
   : 'http://127.0.0.1:4173/tech/'
 const startupTimeoutMs = 30_000
@@ -97,8 +97,8 @@ async function waitForChild(child, timeoutMs, label) {
   }
 }
 
-async function buildNotesPreview() {
-  const directory = await mkdtemp(join(tmpdir(), 'tech-notes-preview-'))
+async function buildWritingsPreview() {
+  const directory = await mkdtemp(join(tmpdir(), 'tech-writings-preview-'))
   const child = startNode(
     [
       'node_modules/vite/bin/vite.js',
@@ -114,7 +114,7 @@ async function buildNotesPreview() {
     { ...process.env, VITE_INCLUDE_DRAFTS: 'true' },
   )
   try {
-    await waitForChild(child, testTimeoutMs, 'Notes preview build')
+    await waitForChild(child, testTimeoutMs, 'Writings preview build')
     return directory
   } catch (error) {
     await rm(directory, { recursive: true, force: true })
@@ -124,10 +124,10 @@ async function buildNotesPreview() {
 
 async function runTests() {
   const args = ['node_modules/@playwright/test/cli.js', 'test']
-  if (notesPreview) args.push('tests/e2e/notes-dev.spec.ts')
+  if (writingsPreview) args.push('tests/e2e/writings-dev.spec.ts')
   const child = startNode(args, {
     ...process.env,
-    NOTES_DEV_PREVIEW: notesPreview ? '1' : '0',
+    WRITINGS_DEV_PREVIEW: writingsPreview ? '1' : '0',
     PLAYWRIGHT_BASE_URL: previewUrl,
     PLAYWRIGHT_EXECUTABLE_PATH: localBrowserExecutable(),
   })
@@ -135,9 +135,9 @@ async function runTests() {
 }
 
 let preview
-let notesPreviewDirectory
+let writingsPreviewDirectory
 try {
-  notesPreviewDirectory = notesPreview ? await buildNotesPreview() : undefined
+  writingsPreviewDirectory = writingsPreview ? await buildWritingsPreview() : undefined
   preview = startNode(
     [
       'node_modules/vite/bin/vite.js',
@@ -146,8 +146,8 @@ try {
       'runner',
       '--host',
       '127.0.0.1',
-      ...(notesPreview
-        ? ['--port', '4174', '--strictPort', '--outDir', notesPreviewDirectory]
+      ...(writingsPreview
+        ? ['--port', '4174', '--strictPort', '--outDir', writingsPreviewDirectory]
         : []),
     ],
   )
@@ -155,7 +155,7 @@ try {
   await runTests()
 } finally {
   await terminateTree(preview)
-  if (notesPreviewDirectory) {
-    await rm(notesPreviewDirectory, { recursive: true, force: true })
+  if (writingsPreviewDirectory) {
+    await rm(writingsPreviewDirectory, { recursive: true, force: true })
   }
 }

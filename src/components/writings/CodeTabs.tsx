@@ -1,9 +1,9 @@
 import { useId, useRef } from 'react'
-import { codeLanguageLabel } from '../../content/notes/languages'
-import type { CodeSample } from '../../content/notes/types'
+import { codeLanguageLabel } from '../../content/writings/languages'
+import type { CodeSample } from '../../content/writings/types'
 import { CodeBlock } from './CodeBlock'
 import { useLanguagePreference } from './useLanguagePreference'
-import styles from './Notes.module.css'
+import styles from './Writings.module.css'
 
 export function CodeTabs({ samples }: { samples: CodeSample[] }) {
   const { preferredLanguage, selectLanguage } = useLanguagePreference()
