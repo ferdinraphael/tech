@@ -15,4 +15,17 @@ describe('repository technical-writing content', () => {
     expect(preview?.tags).toContain('framework-preview')
     expect(writingCatalogue.published).not.toContain(preview)
   })
+
+  it('publishes the approved workaround architecture article with its editorial date', () => {
+    const writing = writingCatalogue.all.find(
+      ({ slug }) => slug === 'when-the-workaround-becomes-the-architecture',
+    )
+    expect(writing).toEqual(expect.objectContaining({
+      draft: false,
+      format: 'article',
+      publishedAt: '2026-05-10',
+    }))
+    expect(writingCatalogue.published).toContain(writing)
+    expect(writingCatalogue.drafts).not.toContain(writing)
+  })
 })

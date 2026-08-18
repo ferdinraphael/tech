@@ -2,7 +2,8 @@
 title: "When the Workaround Becomes the Architecture"
 description: "How a reasonable fallback can quietly redefine a system's contract—and how AI-assisted development can make that normalization happen faster."
 format: article
-draft: true
+publishedAt: "2026-05-10"
+draft: false
 tags:
   - architecture
   - integration

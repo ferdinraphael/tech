@@ -28,10 +28,17 @@ describe('foundation routes', () => {
     expect(screen.getByRole('link', { name: /Back to overview/ })).toBeInTheDocument()
   })
 
-  it('renders the Writings index with an intentional empty state and separate development drafts', async () => {
+  it('renders the published writing separately from development drafts', async () => {
     renderRoute('/writings')
     expect(await screen.findByRole('heading', { level: 1, name: /writing space is taking shape/i }, { timeout: 5_000 })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'No published writings yet.' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'No published writings yet.' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Latest writings' })).toBeInTheDocument()
+    const publishedCard = screen.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' }).closest('article')
+    expect(publishedCard).not.toBeNull()
+    expect(within(publishedCard!).getByText('Article')).toBeInTheDocument()
+    expect(within(publishedCard!).getByText('Published May 10, 2026')).toBeInTheDocument()
+    expect(within(publishedCard!).queryByText('DRAFT')).not.toBeInTheDocument()
+    expect(within(publishedCard!).getByRole('link', { name: 'Read writing' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Draft previews' })).toBeInTheDocument()
     const frameworkPreviewCard = screen.getByRole('heading', { name: 'Technical writing framework preview' }).closest('article')
     expect(frameworkPreviewCard).not.toBeNull()
@@ -40,6 +47,15 @@ describe('foundation routes', () => {
     expect(within(frameworkPreviewCard!).getByText('Article')).toBeInTheDocument()
     expect(within(frameworkPreviewCard!).getByRole('link', { name: 'Preview draft' })).toBeInTheDocument()
     expect(document.querySelectorAll('a[href^="/notes"]')).toHaveLength(0)
+  })
+
+  it('loads the published writing without draft metadata', async () => {
+    renderRoute('/writings/when-the-workaround-becomes-the-architecture')
+    expect(await screen.findByRole('heading', { level: 1, name: 'When the Workaround Becomes the Architecture' }, { timeout: 5_000 })).toBeInTheDocument()
+    expect(screen.getByText('ARTICLE')).toBeInTheDocument()
+    expect(screen.getByText('Published May 10, 2026')).toBeInTheDocument()
+    expect(screen.queryByText('DRAFT')).not.toBeInTheDocument()
+    expect(screen.queryByText('Unpublished draft')).not.toBeInTheDocument()
   })
 
   it('loads a draft writing directly in development with Writings navigation active', async () => {
@@ -62,6 +78,7 @@ describe('foundation routes', () => {
 
   it.each([
     ['/notes', '/writings'],
+    ['/notes/when-the-workaround-becomes-the-architecture', '/writings/when-the-workaround-becomes-the-architecture'],
     ['/notes/framework-preview?mode=review#equivalent-examples', '/writings/framework-preview?mode=review#equivalent-examples'],
   ])('redirects legacy %s with replace-style canonical location', async (legacy, canonical) => {
     renderRoute(legacy)

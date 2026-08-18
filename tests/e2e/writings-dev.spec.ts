@@ -74,7 +74,9 @@ test('desktop writing tracks active headings, direct hashes, history, tabs, copy
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
   await page.goto('./writings')
-  await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Latest writings' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Draft previews' })).toBeVisible()
   await page.screenshot({ path: 'visual-review/1536-writings-index.png', fullPage: false })
 })
 
@@ -125,7 +127,9 @@ test('mobile Contents control appears only after the TOC, preserves state, and r
   await page.screenshot({ path: 'visual-review/412-writings-code-tabs.png', fullPage: false })
 
   await page.goto('./writings')
-  await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Latest writings' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Draft previews' })).toBeVisible()
   await expect(returnButton).toHaveCount(0)
   await page.screenshot({ path: 'visual-review/412-writings-index.png', fullPage: false })
 })
@@ -147,7 +151,7 @@ test('standalone plaintext uses the article width, wraps visually, and copies ex
     '- flag the workaround explicitly before implementing it.',
   ]
   const articleSource = await readFile(
-    new URL('../../src/content/writings/drafts/when-the-workaround-becomes-the-architecture.md', import.meta.url),
+    new URL('../../src/content/writings/published/when-the-workaround-becomes-the-architecture.md', import.meta.url),
     'utf8',
   )
   const plaintextMatch = articleSource.match(
