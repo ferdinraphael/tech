@@ -5,6 +5,7 @@ import { preferredLanguageStorageKey } from '../../content/writings/languages'
 import type { WritingSegment } from '../../content/writings/types'
 import { LanguagePreferenceProvider } from './LanguagePreference'
 import { MarkdownWriting } from './MarkdownWriting'
+import styles from './Writings.module.css'
 
 const tabSegments: WritingSegment[] = [
   {
@@ -43,11 +44,39 @@ describe('Markdown writing rendering', () => {
     const writeText = vi.spyOn(navigator.clipboard, 'writeText')
     renderWriting([{ type: 'markdown', source: '```ts\nconst answer: number = 42\n```' }])
     expect(screen.getByText('TypeScript')).toBeInTheDocument()
-    expect(screen.getByLabelText('TypeScript code')).toHaveTextContent('const answer: number = 42')
+    const code = screen.getByLabelText('TypeScript code')
+    const figure = code.closest('figure')
+    expect(code).toHaveTextContent('const answer: number = 42')
+    expect(figure).toHaveClass(styles.standaloneCodeBlock)
+    expect(figure).not.toHaveClass(styles.plainTextBlock)
     await user.click(screen.getByRole('button', { name: 'Copy TypeScript code' }))
     expect(writeText).toHaveBeenCalledWith('const answer: number = 42')
     expect(screen.getByRole('button', { name: 'Copy TypeScript code' })).toHaveTextContent('Copied')
     expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBeNull()
+  })
+
+  it('wraps standalone plaintext while copying its exact original content', async () => {
+    const user = userEvent.setup()
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText')
+    const plaintext = 'Keep  two spaces and\ta tab.\n- Preserve this explicit line break.\nA-very-long-prose-like-line'
+    renderWriting([{ type: 'markdown', source: `\`\`\`plaintext\n${plaintext}\n\`\`\`` }])
+
+    const code = screen.getByLabelText('Plain text code')
+    const figure = code.closest('figure')
+    expect(screen.getByText('Plain text')).toBeInTheDocument()
+    expect(code.textContent).toBe(plaintext)
+    expect(figure).toHaveClass(styles.standaloneCodeBlock, styles.plainTextBlock)
+
+    await user.click(screen.getByRole('button', { name: 'Copy Plain text code' }))
+    expect(writeText).toHaveBeenCalledTimes(1)
+    expect(writeText).toHaveBeenCalledWith(plaintext)
+  })
+
+  it('keeps code-tab blocks on the existing non-standalone presentation', () => {
+    renderWriting([tabSegments[0]])
+    const panelFigure = screen.getByRole('tabpanel').querySelector('figure')
+    expect(panelFigure).toHaveClass(styles.codeBlock)
+    expect(panelFigure).not.toHaveClass(styles.standaloneCodeBlock, styles.plainTextBlock)
   })
 
   it('uses the first tab by default and synchronizes compatible blocks', async () => {
