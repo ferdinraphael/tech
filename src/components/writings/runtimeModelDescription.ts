@@ -16,6 +16,22 @@ export function runtimeModelTransitionDescription(
   afterState: RuntimeState,
 ): string {
   const transition = classifyRuntimeTransition(beforeState, afterState)
+  if (transition.kind === 'shared-target-split') {
+    const { before, stableSource, changedSource, originalTargetAfter, newTarget } = transition
+    const labels = `${before.sources[0].label} and ${before.sources[1].label}`
+    const isBinding = before.sources[0].kind === 'name'
+    const event = isBinding ? 'rebinding' : 'reassignment'
+    const beforeSubject = isBinding
+      ? `Before the ${event}, the names ${labels} are bound to the same`
+      : `Before the ${event}, variables ${labels} refer to the same`
+    const beforeMember = possessiveMemberDescription(before.target)
+    const originalMember = compactMemberDescription(originalTargetAfter)
+    const newMember = compactMemberDescription(newTarget)
+    const afterSubject = isBinding
+      ? `After the ${event}, ${stableSource.label} remains bound to the original ${originalTargetAfter.typeLabel} object${originalMember}, while ${changedSource.label} is bound to a new ${newTarget.typeLabel} object${newMember}.`
+      : `After the ${event}, ${stableSource.label} still refers to the original ${originalTargetAfter.typeLabel} object${originalMember}, while ${changedSource.label} refers to a new ${newTarget.typeLabel} object${newMember}.`
+    return `${beforeSubject} ${before.target.typeLabel} object${beforeMember} ${afterSubject}`
+  }
   const { before, after } = transition
   const labels = `${before.sources[0].label} and ${before.sources[1].label}`
   const beforeSubject = before.sources[0].kind === 'name'
@@ -25,6 +41,20 @@ export function runtimeModelTransitionDescription(
     ? `After the mutation, ${labels} are still bound to the same`
     : `After the mutation, ${labels} still refer to the same`
   return `${beforeSubject} ${before.target.typeLabel} object.${memberDescriptions(before.target)} ${afterSubject} ${after.target.typeLabel} object.${memberDescriptions(after.target)}`
+}
+
+function possessiveMemberDescription(object: RuntimeObjectEntity): string {
+  const members = object.members ?? []
+  return members.length > 0
+    ? `, whose ${members.map((member) => `${member.name} ${member.kind} is ${member.value}`).join(' and whose ')}.`
+    : '.'
+}
+
+function compactMemberDescription(object: RuntimeObjectEntity): string {
+  const members = object.members ?? []
+  return members.length > 0
+    ? ` with ${members.map((member) => `${member.name} ${member.value}`).join(' and ')}`
+    : ''
 }
 
 function indefiniteArticle(value: string): 'a' | 'an' {

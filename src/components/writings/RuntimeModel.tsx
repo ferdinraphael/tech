@@ -11,6 +11,7 @@ import {
   classifyRuntimeTopology,
   classifyRuntimeTransition,
 } from '../../content/writings/runtimeModelTopology'
+import type { RuntimeSplitTransition } from '../../content/writings/runtimeModelTopology'
 import { CodeBlock } from './CodeBlock'
 import {
   runtimeModelDescription,
@@ -22,12 +23,19 @@ import styles from './RuntimeModel.module.css'
 function ObjectCard({
   object,
   changedMembers = new Set<string>(),
+  identity,
 }: {
   object: RuntimeObjectEntity
   changedMembers?: Set<string>
+  identity?: 'original' | 'new'
 }) {
   return (
-    <div className={styles.objectCard} data-runtime-entity="object">
+    <div
+      className={styles.objectCard}
+      data-runtime-entity="object"
+      data-runtime-object-identity={identity}
+    >
+      {identity && <p className={styles.objectIdentity}>{identity}</p>}
       <p className={styles.objectType}>{object.typeLabel}</p>
       {object.scalarValue !== undefined ? (
         <p className={styles.scalarValue}>{object.scalarValue}</p>
@@ -69,10 +77,12 @@ function RuntimeModelState({
   state,
   changedMembers,
   described = true,
+  targetIdentity,
 }: {
   state: RuntimeState
   changedMembers?: Set<string>
   described?: boolean
+  targetIdentity?: 'original'
 }) {
   const descriptionId = useId()
   const description = runtimeModelDescription(state)
@@ -116,7 +126,11 @@ function RuntimeModelState({
             <path className={styles.arrowHead} d="M59 42 L72 50 L59 58 Z" />
           </svg>
           <span className={styles.sharedArrowMobile}>↓</span>
-          <ObjectCard object={topology.target} changedMembers={changedMembers} />
+          <ObjectCard
+            object={topology.target}
+            changedMembers={changedMembers}
+            identity={targetIdentity}
+          />
         </div>
         {described && <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>}
       </figure>
@@ -137,11 +151,77 @@ function RuntimeModelState({
   )
 }
 
+function SplitTargetAfterState({
+  state,
+  transition,
+}: {
+  state: RuntimeState
+  transition: RuntimeSplitTransition
+}) {
+  const relationships = new Map(
+    transition.after.relationships.map((relationship) => [relationship.from, relationship]),
+  )
+  const targets = new Map(transition.after.targets.map((target) => [target.id, target]))
+
+  return (
+    <figure className={styles.state}>
+      <figcaption>{state.label}</figcaption>
+      <div className={styles.splitRelationshipModel} data-runtime-topology="split-target" aria-hidden="true">
+        {transition.before.sources.map((source) => {
+          const relationship = relationships.get(source.id)!
+          const target = targets.get(relationship.to)!
+          const membersByName = new Map(target.members!.map((member) => [member.name, member]))
+          const targetForDisplay: RuntimeObjectEntity = {
+            ...target,
+            members: transition.originalTargetBefore.members!.map(
+              ({ name }) => membersByName.get(name)!,
+            ),
+          }
+          const changed = source.id === transition.changedSource.id
+          return (
+            <div
+              key={source.id}
+              className={styles.splitPair}
+              data-runtime-relationship-changed={changed ? 'true' : undefined}
+            >
+              <SourceCard source={source} />
+              <span className={styles.arrow}>→</span>
+              <ObjectCard
+                object={targetForDisplay}
+                identity={target.id === transition.originalTargetAfter.id ? 'original' : 'new'}
+              />
+              {changed && <span className={styles.relationshipChanged}>changed target</span>}
+            </div>
+          )
+        })}
+      </div>
+    </figure>
+  )
+}
+
 function RuntimeModelVariantView({ variant }: { variant: RuntimeModelVariant }) {
   const transitionDescriptionId = useId()
   if (variant.states.length === 2) {
     const [before, after] = variant.states
     const transition = classifyRuntimeTransition(before, after)
+    if (transition.kind === 'shared-target-split') {
+      return (
+        <>
+          <CodeBlock code={variant.code.code} language={variant.code.language} />
+          <div className={styles.transition} aria-describedby={transitionDescriptionId}>
+            <RuntimeModelState state={before} described={false} targetIdentity="original" />
+            <div className={styles.transitionCue} aria-hidden="true">
+              <span>↓</span>
+              <strong>relationship changed</strong>
+            </div>
+            <SplitTargetAfterState state={after} transition={transition} />
+            <p id={transitionDescriptionId} className={styles.visuallyHidden}>
+              {runtimeModelTransitionDescription(before, after)}
+            </p>
+          </div>
+        </>
+      )
+    }
     const changedMembers = new Set(transition.changedMembers.map(({ name }) => name))
     const afterEntities = new Map(after.entities.map((entity) => [entity.id, entity]))
     const afterMembers = new Map(

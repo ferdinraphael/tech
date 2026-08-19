@@ -558,6 +558,169 @@ states:
 
 ::::
 
+## Reassign one variable
+
+::::language-content
+
+:::language csharp
+
+`b = new Counter { Value = 20 };` changes the reference stored in `b`. `a` still refers to the original `Counter`; `b` now refers to a different one.
+
+:::
+
+:::language java
+
+`b = new Counter(20);` replaces the object reference stored in `b`. `a` still refers to the original `Counter`; `b` now refers to a different one.
+
+:::
+
+:::language python
+
+`b = Counter(value=20)` rebinds the name `b` to a new object. The name `a` remains bound to the original `Counter`.
+
+:::
+
+::::
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+var b = a;
+b = new Counter { Value = 20 };
+```
+
+```model
+states:
+  - id: before
+    label: Before reassignment
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "10" }
+    relationships:
+      - { kind: reference, from: a, to: counter-original }
+      - { kind: reference, from: b, to: counter-original }
+  - id: after
+    label: After reassignment
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "10" }
+      - id: counter-new
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "20" }
+    relationships:
+      - { kind: reference, from: a, to: counter-original }
+      - { kind: reference, from: b, to: counter-new }
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+Counter b = a;
+b = new Counter(20);
+```
+
+```model
+states:
+  - id: before
+    label: Before reassignment
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: reference, from: b, to: counter-original }
+      - { kind: reference, from: a, to: counter-original }
+  - id: after
+    label: After reassignment
+    entities:
+      - id: counter-new
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+      - { id: a, kind: variable, label: a }
+    relationships:
+      - { kind: reference, from: b, to: counter-new }
+      - { kind: reference, from: a, to: counter-original }
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+b = a
+b = Counter(value=20)
+```
+
+```model
+states:
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: b, kind: name, label: b }
+      - id: counter-new
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+      - { id: a, kind: name, label: a }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: binding, from: b, to: counter-new }
+      - { kind: binding, from: a, to: counter-original }
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: a, kind: name, label: a }
+      - { id: b, kind: name, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: binding, from: a, to: counter-original }
+      - { kind: binding, from: b, to: counter-original }
+```
+
+:::
+
+::::
+
 ## Keep one stable outline
 
 Only generic headings contribute to this page's Contents list.

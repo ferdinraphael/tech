@@ -157,6 +157,45 @@ function mutationVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
   ]
 }
 
+function splitStates(
+  sourceKind: 'variable' | 'name',
+  member: RuntimeObjectMember,
+): [RuntimeState, RuntimeState] {
+  const relationshipKind = sourceKind === 'name' ? 'binding' : 'reference'
+  return [
+    {
+      ...sharedState(sourceKind, { ...member, value: '10' }),
+      id: 'before',
+      label: sourceKind === 'name' ? 'Before rebinding' : 'Before reassignment',
+    },
+    {
+      id: 'after',
+      label: sourceKind === 'name' ? 'After rebinding' : 'After reassignment',
+      entities: [
+        { id: 'counter-new', kind: 'object', typeLabel: 'Counter', members: [{ ...member, value: '20' }] },
+        { id: 'b', kind: sourceKind, label: 'b' },
+        { id: 'counter', kind: 'object', typeLabel: 'Counter', members: [{ ...member, value: '10' }] },
+        { id: 'a', kind: sourceKind, label: 'a' },
+      ],
+      relationships: [
+        { kind: relationshipKind, from: 'b', to: 'counter-new' },
+        { kind: relationshipKind, from: 'a', to: 'counter' },
+      ],
+    },
+  ]
+}
+
+function splitVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
+  const csharp = splitStates('variable', { name: 'Value', kind: 'property', value: '10' })
+  const java = splitStates('variable', { name: 'value', kind: 'field', value: '10' })
+  const python = splitStates('name', { name: 'value', kind: 'field', value: '10' })
+  return [
+    { language: 'csharp', code: { language: 'csharp', code: 'var b = a;\nb = new Counter { Value = 20 };' }, states: csharp },
+    { language: 'java', code: { language: 'java', code: 'Counter b = a;\nb = new Counter(20);' }, states: java },
+    { language: 'python', code: { language: 'python', code: 'b = a\nb = Counter(value=20)' }, states: python },
+  ]
+}
+
 const runtimeSegments: WritingSegment[] = [
   { type: 'runtime-model', variants: numberVariants() },
   {
@@ -178,6 +217,7 @@ const runtimeSegments: WritingSegment[] = [
   { type: 'runtime-model', variants: objectVariants() },
   { type: 'runtime-model', variants: sharedVariants() },
   { type: 'runtime-model', variants: mutationVariants() },
+  { type: 'runtime-model', variants: splitVariants() },
 ]
 
 function renderRuntimeWriting() {
@@ -217,14 +257,14 @@ describe('RuntimeModel rendering', () => {
     const user = userEvent.setup()
     renderRuntimeWriting()
     await user.click(screen.getByRole('radio', { name: 'Java' }))
-    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(4)
+    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(5)
     expect(screen.getByText('Java prose.')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Java', selected: true })).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
     const pythonModels = screen.getAllByRole('region', { name: 'Python runtime model' })
-    expect(pythonModels).toHaveLength(4)
+    expect(pythonModels).toHaveLength(5)
     expect(screen.getByText('Python prose.')).toBeInTheDocument()
     expect(within(pythonModels[0]).getByText(
       'The name count is bound to an int object representing 10.',
@@ -246,6 +286,39 @@ describe('RuntimeModel rendering', () => {
     expect(within(mutation).getByText('changed')).toBeInTheDocument()
     expect(within(mutation).getByText(
       'Before the mutation, variables a and b refer to the same Counter object. Its Value property is 10. After the mutation, a and b still refer to the same Counter object. Its Value property is 20.',
+    )).toBeInTheDocument()
+  })
+
+  it('renders a shared before state and deterministic two-target split after state', () => {
+    renderRuntimeWriting()
+    const split = screen.getAllByRole('region', { name: 'C# runtime model' })[4]
+    expect(split.querySelectorAll('pre')).toHaveLength(1)
+    expect(split.querySelectorAll('[data-runtime-entity="variable"]')).toHaveLength(4)
+    expect(split.querySelectorAll('[data-runtime-entity="object"]')).toHaveLength(3)
+    const after = split.querySelector('[data-runtime-topology="split-target"]')!
+    expect(after.querySelectorAll('[data-runtime-object-identity="original"]')).toHaveLength(1)
+    expect(after.querySelectorAll('[data-runtime-object-identity="new"]')).toHaveLength(1)
+    expect(after.querySelectorAll('[data-runtime-relationship-changed="true"]')).toHaveLength(1)
+    const pairs = after.querySelectorAll('[data-runtime-entity="variable"]')
+    expect(Array.from(pairs, (source) => source.textContent)).toEqual(['variablea', 'variableb'])
+    const changed = after.querySelector('[data-runtime-relationship-changed="true"]')!
+    expect(changed).toHaveTextContent('b')
+    expect(changed.querySelector('[data-runtime-object-identity="new"]')).toBeInTheDocument()
+    expect(within(split).getByText('relationship changed')).toBeInTheDocument()
+    expect(within(split).getByText('changed target')).toBeInTheDocument()
+    expect(within(split).getByText(
+      'Before the reassignment, variables a and b refer to the same Counter object, whose Value property is 10. After the reassignment, a still refers to the original Counter object with Value 10, while b refers to a new Counter object with Value 20.',
+    )).toBeInTheDocument()
+  })
+
+  it('renders Python split semantics and its generated rebinding description', async () => {
+    const user = userEvent.setup()
+    renderRuntimeWriting()
+    await user.click(screen.getByRole('radio', { name: 'Python' }))
+    const split = screen.getAllByRole('region', { name: 'Python runtime model' })[4]
+    expect(split.querySelectorAll('[data-runtime-entity="name"]')).toHaveLength(4)
+    expect(within(split).getByText(
+      'Before the rebinding, the names a and b are bound to the same Counter object, whose value field is 10. After the rebinding, a remains bound to the original Counter object with value 10, while b is bound to a new Counter object with value 20.',
     )).toBeInTheDocument()
   })
 
@@ -296,14 +369,14 @@ describe('RuntimeModel rendering', () => {
     await user.click(screen.getByRole('radio', { name: 'Compare' }))
 
     expect(screen.getByRole('radio', { name: 'Compare' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(4)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(5)
     expect(screen.queryByRole('region', { name: 'C# runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Java runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(4)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(5)
   })
 })
 
@@ -344,5 +417,29 @@ describe('runtimeModelDescription', () => {
       mutationState('name', 'before', '10'),
       mutationState('name', 'after', '20'),
     )).toBe('Before the mutation, the names a and b are bound to the same Counter object. Its value field is 10. After the mutation, a and b are still bound to the same Counter object. Its value field is 20.')
+  })
+
+  it('describes C#, Java, and Python split transitions with reassignment semantics', () => {
+    const [csharpBefore, csharpAfter] = splitStates(
+      'variable',
+      { name: 'Value', kind: 'property', value: '10' },
+    )
+    const [javaBefore, javaAfter] = splitStates(
+      'variable',
+      { name: 'value', kind: 'field', value: '10' },
+    )
+    const [pythonBefore, pythonAfter] = splitStates(
+      'name',
+      { name: 'value', kind: 'field', value: '10' },
+    )
+    expect(runtimeModelTransitionDescription(csharpBefore, csharpAfter)).toBe(
+      'Before the reassignment, variables a and b refer to the same Counter object, whose Value property is 10. After the reassignment, a still refers to the original Counter object with Value 10, while b refers to a new Counter object with Value 20.',
+    )
+    expect(runtimeModelTransitionDescription(javaBefore, javaAfter)).toBe(
+      'Before the reassignment, variables a and b refer to the same Counter object, whose value field is 10. After the reassignment, a still refers to the original Counter object with value 10, while b refers to a new Counter object with value 20.',
+    )
+    expect(runtimeModelTransitionDescription(pythonBefore, pythonAfter)).toBe(
+      'Before the rebinding, the names a and b are bound to the same Counter object, whose value field is 10. After the rebinding, a remains bound to the original Counter object with value 10, while b is bound to a new Counter object with value 20.',
+    )
   })
 })

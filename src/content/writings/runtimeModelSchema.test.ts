@@ -116,6 +116,46 @@ function transitionModel(
   return `states:\n${state('before', beforeValue)}\n${state('after', afterValue)}`
 }
 
+function splitTransitionModel(
+  sourceKind: 'variable' | 'name' = 'variable',
+  relationshipKind: 'reference' | 'binding' = 'reference',
+  memberKind: 'field' | 'property' = 'field',
+  memberName = 'value',
+) {
+  return `states:
+  - id: before
+    label: Before change
+    entities:
+      - { id: a, kind: ${sourceKind}, label: a }
+      - { id: b, kind: ${sourceKind}, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: ${memberName}, kind: ${memberKind}, value: "10" }
+    relationships:
+      - { kind: ${relationshipKind}, from: a, to: counter }
+      - { kind: ${relationshipKind}, from: b, to: counter }
+  - id: after
+    label: After change
+    entities:
+      - id: counter-new
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: ${memberName}, kind: ${memberKind}, value: "20" }
+      - { id: b, kind: ${sourceKind}, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: ${memberName}, kind: ${memberKind}, value: "10" }
+      - { id: a, kind: ${sourceKind}, label: a }
+    relationships:
+      - { kind: ${relationshipKind}, from: b, to: counter-new }
+      - { kind: ${relationshipKind}, from: a, to: counter }`
+}
+
 function changeAfter(model: string, change: (after: string) => string): string {
   const afterIndex = model.indexOf('  - id: after')
   return model.slice(0, afterIndex) + change(model.slice(afterIndex))
@@ -295,6 +335,49 @@ describe('runtime-model schema', () => {
         changedMembers: [{ name: 'value', beforeValue: '10', afterValue: '20' }],
       })
     }
+  })
+
+  it.each([
+    ['C#', splitTransitionModel('variable', 'reference', 'property', 'Value')],
+    ['Java', splitTransitionModel('variable', 'reference')],
+    ['Python', splitTransitionModel('name', 'binding')],
+  ])('parses and classifies a %s shared-target split', (_language, model) => {
+    const states = runtimeSegment(parseWritingSource(writing(bodyWithModel(model))).segments)
+      .variants[0].states
+    if (states.length !== 2) throw new Error('Expected transition')
+    const transition = classifyRuntimeTransition(states[0], states[1])
+    expect(transition).toMatchObject({
+      kind: 'shared-target-split',
+      before: { sources: [{ id: 'a' }, { id: 'b' }], target: { id: 'counter' } },
+      stableSource: { id: 'a' },
+      changedSource: { id: 'b' },
+      originalTargetBefore: { id: 'counter' },
+      originalTargetAfter: { id: 'counter' },
+      newTarget: { id: 'counter-new' },
+    })
+    if (transition.kind !== 'shared-target-split') throw new Error('Expected split')
+    expect(transition.before.sources.map(({ id }) => id)).toEqual(['a', 'b'])
+    expect(transition.after.relationships.map(({ from }) => from)).toEqual(['b', 'a'])
+  })
+
+  it('discovers the opposite stable source without relying on source IDs', () => {
+    const model = changeAfter(splitTransitionModel(), (after) => after
+      .replace('from: b, to: counter-new', 'from: b, to: counter')
+      .replace('from: a, to: counter }', 'from: a, to: counter-new }'))
+    const states = runtimeSegment(parseWritingSource(writing(bodyWithModel(model))).segments)
+      .variants[0].states
+    if (states.length !== 2) throw new Error('Expected transition')
+    expect(classifyRuntimeTransition(states[0], states[1])).toMatchObject({
+      kind: 'shared-target-split',
+      stableSource: { id: 'b' },
+      changedSource: { id: 'a' },
+    })
+  })
+
+  it('parses split-transition authoring equivalently with LF and CRLF', () => {
+    const lf = writing(bodyWithModel(splitTransitionModel()))
+    expect(parseWritingSource({ ...lf, source: lf.source.replace(/\n/g, '\r\n') }))
+      .toEqual(parseWritingSource(lf))
   })
 
   it('normalizes reversed state order and ignores entity/relationship order', () => {
@@ -569,6 +652,40 @@ describe('runtime-model schema', () => {
     ['member renamed', changeAfter(transitionModel(), (after) => after.replace('name: value', 'name: renamed')), /same member names/],
     ['member kind changes', changeAfter(transitionModel(), (after) => after.replace('kind: field', 'kind: property')), /retain its kind/],
   ])('rejects invalid runtime transitions: %s', (_label, model, expected) => {
+    expect(() => parseWritingSource(writing(bodyWithModel(model)))).toThrow(expected)
+  })
+
+  it('does not accept split-target as a standalone current topology', () => {
+    const after = splitTransitionModel().slice(splitTransitionModel().indexOf('  - id: after'))
+      .replace('  - id: after', '  - id: current')
+    expect(() => parseWritingSource(writing(bodyWithModel(`states:\n${after}`))))
+      .toThrow(/shared-target relationships must target the same object/)
+  })
+
+  it.each([
+    ['before is not shared', splitTransitionModel().replace('to: counter }\n      - { kind: reference, from: b, to: counter }', 'to: counter-new }\n      - { kind: reference, from: b, to: counter }'), /target "counter-new" does not exist|same object/],
+    ['after has one object', changeAfter(splitTransitionModel(), (after) => after.replace(/      - id: counter-new[\s\S]*?          - \{ name: value, kind: field, value: "20" \}\n/, '').replace('to: counter-new', 'to: counter')), /change at least one|same relationship set/],
+    ['after has three objects', changeAfter(splitTransitionModel(), (after) => after.replace('      - { id: a, kind: variable, label: a }', '      - { id: a, kind: variable, label: a }\n      - { id: counter-extra, kind: object, typeLabel: Counter, members: [{ name: value, kind: field, value: "30" }] }')), /unsupported runtime topology|shared-target/],
+    ['after has one source', changeAfter(splitTransitionModel(), (after) => after.replace('      - { id: a, kind: variable, label: a }\n', '').replace('      - { kind: reference, from: a, to: counter }\n', '')), /exactly two sources|source "a" does not exist/],
+    ['after has three sources', changeAfter(splitTransitionModel(), (after) => after.replace('      - { id: a, kind: variable, label: a }', '      - { id: a, kind: variable, label: a }\n      - { id: c, kind: variable, label: c }')), /unsupported runtime topology|shared-target/],
+    ['after has an extra relationship', changeAfter(splitTransitionModel(), (after) => `${after}\n      - { kind: reference, from: a, to: counter-new }`), /exactly two relationships/],
+    ['both still target old', changeAfter(splitTransitionModel(), (after) => after.replace('to: counter-new', 'to: counter')), /target different objects/],
+    ['both target new', changeAfter(splitTransitionModel(), (after) => after.replace('from: a, to: counter', 'from: a, to: counter-new')), /target different objects/],
+    ['changed source has two relationships', changeAfter(splitTransitionModel(), (after) => `${after}\n      - { kind: reference, from: b, to: counter }`), /exactly two relationships/],
+    ['relationship kind changes', changeAfter(splitTransitionModel(), (after) => after.replace('kind: reference, from: b', 'kind: binding, from: b')), /binding relationships must originate from a name/],
+    ['source kind changes', changeAfter(splitTransitionModel(), (after) => after.replace('id: b, kind: variable', 'id: b, kind: name').replace('kind: reference, from: b', 'kind: binding, from: b')), /same semantic kind|retain its kind/],
+    ['source label changes', changeAfter(splitTransitionModel(), (after) => after.replace('id: b, kind: variable, label: b', 'id: b, kind: variable, label: changed')), /retain its label/],
+    ['original target disappears', changeAfter(splitTransitionModel(), (after) => after.replaceAll('counter }', 'counter-other }').replace('id: counter\n', 'id: counter-other\n')), /retain the original target object id/],
+    ['original type changes', changeAfter(splitTransitionModel(), (after) => after.replace('id: counter\n        kind: object\n        typeLabel: Counter', 'id: counter\n        kind: object\n        typeLabel: Other')), /original target object typeLabel/],
+    ['original member mutates', changeAfter(splitTransitionModel(), (after) => after.replace('name: value, kind: field, value: "10"', 'name: value, kind: field, value: "11"')), /must not mutate the original target/],
+    ['original member schema changes', changeAfter(splitTransitionModel(), (after) => after.replace('name: value, kind: field, value: "10"', 'name: renamed, kind: field, value: "10"')), /same member names/],
+    ['new target reuses original id', changeAfter(splitTransitionModel(), (after) => after.replace('id: counter-new', 'id: counter')), /repeats entity id "counter"/],
+    ['new target wrong type', changeAfter(splitTransitionModel(), (after) => after.replace('id: counter-new\n        kind: object\n        typeLabel: Counter', 'id: counter-new\n        kind: object\n        typeLabel: Other')), /new target.*typeLabel/],
+    ['mixed mutation and reassignment', changeAfter(splitTransitionModel(), (after) => after.replace('name: value, kind: field, value: "10"', 'name: value, kind: field, value: "11"')), /must not mutate/],
+    ['extra disconnected entity', changeAfter(splitTransitionModel(), (after) => after.replace('      - { id: a, kind: variable, label: a }', '      - { id: a, kind: variable, label: a }\n      - { id: unused, kind: object, typeLabel: Counter, members: [{ name: value, kind: field, value: "0" }] }')), /unsupported runtime topology|shared-target/],
+    ['source targets non-object', changeAfter(splitTransitionModel(), (after) => after.replace('from: b, to: counter-new', 'from: b, to: a')), /must target an object/],
+    ['object used as source', changeAfter(splitTransitionModel(), (after) => after.replace('from: b, to: counter-new', 'from: counter, to: counter-new')), /must originate from a variable or name/],
+  ])('rejects invalid shared-target splits: %s', (_label, model, expected) => {
     expect(() => parseWritingSource(writing(bodyWithModel(model)))).toThrow(expected)
   })
 })
