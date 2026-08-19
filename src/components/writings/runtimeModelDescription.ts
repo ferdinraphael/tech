@@ -1,11 +1,30 @@
 import type { RuntimeObjectEntity, RuntimeState } from '../../content/writings/types'
-import { classifyRuntimeTopology } from '../../content/writings/runtimeModelTopology'
+import {
+  classifyRuntimeTopology,
+  classifyRuntimeTransition,
+} from '../../content/writings/runtimeModelTopology'
 
 function objectDescription(object: RuntimeObjectEntity): string {
   if (object.scalarValue !== undefined) {
     return ` representing ${object.scalarValue}`
   }
   return ''
+}
+
+export function runtimeModelTransitionDescription(
+  beforeState: RuntimeState,
+  afterState: RuntimeState,
+): string {
+  const transition = classifyRuntimeTransition(beforeState, afterState)
+  const { before, after } = transition
+  const labels = `${before.sources[0].label} and ${before.sources[1].label}`
+  const beforeSubject = before.sources[0].kind === 'name'
+    ? `Before the mutation, the names ${labels} are bound to the same`
+    : `Before the mutation, variables ${labels} refer to the same`
+  const afterSubject = after.sources[0].kind === 'name'
+    ? `After the mutation, ${labels} are still bound to the same`
+    : `After the mutation, ${labels} still refer to the same`
+  return `${beforeSubject} ${before.target.typeLabel} object.${memberDescriptions(before.target)} ${afterSubject} ${after.target.typeLabel} object.${memberDescriptions(after.target)}`
 }
 
 function indefiniteArticle(value: string): 'a' | 'an' {

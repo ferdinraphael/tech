@@ -189,7 +189,9 @@ The `model` fence is parsed as semantic YAML and never displayed as source. Runt
 
 Variables use `reference` relationships and names use `binding` relationships. Shared identity is represented by two ordinary relationships with the same target object: either two variables/references or two names/bindings. Source cards render in entity declaration order regardless of relationship order. Authors describe entities and relationships only; coordinates, styling instructions, and other rendering data are invalid.
 
-Runtime models do not yet support more than two sources, multiple target objects, mutation, reassignment, or before/after states. During Compare, they temporarily render only the retained selected-language variant; code-tabs and language-content keep their full Compare behavior.
+Runtime models may contain either one `current` state or exactly one `before` plus one `after` state. Authored transition order is normalized to before then after. Before/after currently represents mutation of an existing two-source shared target: both states must retain the same entity IDs, source kinds and labels, target object ID and type, and semantic relationship set. The object must retain the same non-empty member names and kinds; only member values may change, and at least one value must change.
+
+Before/after is not supported for direct-value, single-source, or scalar-object models. Runtime models also do not support reassignment, rebinding, replacement target objects, coordinates, or animation. During Compare, they render only the retained selected-language variant, including both mutation states; code-tabs and language-content keep their full Compare behavior.
 
 ## Related projects and series
 

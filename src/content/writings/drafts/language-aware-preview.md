@@ -410,6 +410,154 @@ states:
 
 ::::
 
+## Mutate the shared object
+
+::::language-content
+
+:::language csharp
+
+`b.Value = 20` mutates the shared `Counter`; `a` still refers to that same object and observes `20` too.
+
+:::
+
+:::language java
+
+`b.value = 20` mutates the shared `Counter`; both variables still reference that same object.
+
+:::
+
+:::language python
+
+`b.value = 20` mutates the shared object; `a` and `b` remain bound to it, so either name observes `20`.
+
+:::
+
+::::
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+var b = a;
+b.Value = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "10" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+  - id: after
+    label: After mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "20" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+Counter b = a;
+b.value = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+  - id: after
+    label: After mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+b = a
+b.value = 20
+```
+
+```model
+states:
+  - id: after
+    label: After mutation
+    entities:
+      - { id: b, kind: name, label: b }
+      - { id: a, kind: name, label: a }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+    relationships:
+      - { kind: binding, from: b, to: counter }
+      - { kind: binding, from: a, to: counter }
+  - id: before
+    label: Before mutation
+    entities:
+      - { id: a, kind: name, label: a }
+      - { id: b, kind: name, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: binding, from: a, to: counter }
+      - { kind: binding, from: b, to: counter }
+```
+
+:::
+
+::::
+
 ## Keep one stable outline
 
 Only generic headings contribute to this page's Contents list.

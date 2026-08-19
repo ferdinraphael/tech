@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { classifyRuntimeTopology } from './runtimeModelTopology'
+import { classifyRuntimeTopology, classifyRuntimeTransition } from './runtimeModelTopology'
 import { parseWritingSource } from './schema'
 import type { WritingSegment } from './types'
 
@@ -100,6 +100,30 @@ function sharedObjectModel(
       - kind: ${relationshipKind}
         from: ${relationshipSources[1]}
         to: counter`
+}
+
+function transitionModel(
+  sourceKind: 'variable' | 'name' = 'variable',
+  relationshipKind: 'reference' | 'binding' = 'reference',
+  beforeValue = '10',
+  afterValue = '20',
+) {
+  const state = (id: 'before' | 'after', value: string) => sharedObjectModel(
+    sourceKind,
+    relationshipKind,
+    `members:\n          - name: value\n            kind: field\n            value: "${value}"`,
+  ).replace('states:\n', '').replace('id: current', `id: ${id}`)
+  return `states:\n${state('before', beforeValue)}\n${state('after', afterValue)}`
+}
+
+function changeAfter(model: string, change: (after: string) => string): string {
+  const afterIndex = model.indexOf('  - id: after')
+  return model.slice(0, afterIndex) + change(model.slice(afterIndex))
+}
+
+function twoStates(model: string): string {
+  const state = model.replace('states:\n', '')
+  return `states:\n${state.replace('id: current', 'id: before')}\n${state.replace('id: current', 'id: after')}`
 }
 
 function languageVariant(
@@ -256,6 +280,43 @@ describe('runtime-model schema', () => {
     expect(parseWritingSource(crlf)).toEqual(parseWritingSource(lf))
   })
 
+  it('parses and classifies shared-reference and shared-binding mutations', () => {
+    for (const model of [
+      transitionModel('variable', 'reference'),
+      transitionModel('name', 'binding'),
+    ]) {
+      const states = runtimeSegment(parseWritingSource(writing(bodyWithModel(model))).segments)
+        .variants[0].states
+      expect(states.map(({ id }) => id)).toEqual(['before', 'after'])
+      if (states.length !== 2) throw new Error('Expected transition')
+      expect(classifyRuntimeTransition(states[0], states[1])).toMatchObject({
+        kind: 'shared-target-mutation',
+        before: { sources: [{ id: 'a' }, { id: 'b' }], target: { id: 'counter' } },
+        changedMembers: [{ name: 'value', beforeValue: '10', afterValue: '20' }],
+      })
+    }
+  })
+
+  it('normalizes reversed state order and ignores entity/relationship order', () => {
+    const model = transitionModel('variable', 'reference')
+    const afterIndex = model.indexOf('  - id: after')
+    const before = model.slice('states:\n'.length, afterIndex)
+    const after = model.slice(afterIndex)
+      .replace('from: a', 'from: temporary')
+      .replace('from: b', 'from: a')
+      .replace('from: temporary', 'from: b')
+    const states = runtimeSegment(parseWritingSource(writing(bodyWithModel(
+      `states:\n${after}\n${before}`,
+    ))).segments).variants[0].states
+    expect(states.map(({ id }) => id)).toEqual(['before', 'after'])
+  })
+
+  it('parses transition authoring equivalently with LF and CRLF', () => {
+    const lf = writing(bodyWithModel(transitionModel()))
+    expect(parseWritingSource({ ...lf, source: lf.source.replace(/\n/g, '\r\n') }))
+      .toEqual(parseWritingSource(lf))
+  })
+
   it('parses runtime-model equivalently with LF and CRLF line endings', () => {
     const lf = writing(validRuntimeModelBody())
     const crlf = { ...lf, source: lf.source.replace(/\n/g, '\r\n') }
@@ -337,7 +398,7 @@ describe('runtime-model schema', () => {
     ['malformed YAML', 'states: [', /invalid runtime-model YAML/],
     ['root not mapping', '- states', /model root must be a mapping/],
     ['missing states', '{}', /model root requires states/],
-    ['more than one state', `${directModel}\n  - id: current\n    label: Later\n    entities: []\n    relationships: []`, /exactly one state/],
+    ['two current states', `${directModel}\n${directModel.replace('states:\n', '')}`, /exactly one "before" and one "after"/],
     ['state id not current', directModel.replace('id: current', 'id: later'), /state id must be "current"/],
     ['empty state label', directModel.replace('label: Current', 'label: ""'), /state.label must be a non-empty string/],
     ['duplicate entity id', directModel.replace('    relationships: []', '      - id: count\n        kind: variable\n        label: other\n        directValue:\n          type: int\n          value: "20"\n    relationships: []'), /repeats entity id "count"/],
@@ -476,6 +537,38 @@ describe('runtime-model schema', () => {
       /single-target models require exactly one source and one object/,
     ],
   ])('rejects unsupported shared-target topology: %s', (_label, model, expected) => {
+    expect(() => parseWritingSource(writing(bodyWithModel(model)))).toThrow(expected)
+  })
+
+  it.each([
+    ['zero states', 'states: []', /either one current state or exactly before and after/],
+    ['before only', directModel.replace('id: current', 'id: before'), /single-state.*current/],
+    ['after only', directModel.replace('id: current', 'id: after'), /single-state.*current/],
+    ['current and before', `${directModel}\n${directModel.replace('states:\n', '').replace('id: current', 'id: before')}`, /exactly one "before" and one "after"/],
+    ['duplicate before', transitionModel().replace('id: after', 'id: before'), /exactly one "before" and one "after"/],
+    ['duplicate after', transitionModel().replace('id: before', 'id: after'), /exactly one "before" and one "after"/],
+    ['unknown state', directModel.replace('id: current', 'id: later'), /state id must be/],
+    ['three states', `${transitionModel()}\n${directModel.replace('states:\n', '')}`, /either one current state or exactly before and after/],
+  ])('rejects invalid state sequences: %s', (_label, model, expected) => {
+    expect(() => parseWritingSource(writing(bodyWithModel(model)))).toThrow(expected)
+  })
+
+  it.each([
+    ['direct-value transition', twoStates(directModel), /require shared-target topology/],
+    ['single-target transition', twoStates(objectModel('variable', 'reference', 'field', 'value')), /require shared-target topology/],
+    ['scalar transition', twoStates(sharedObjectModel('variable', 'reference', 'scalarValue: "10"')), /require object members/],
+    ['no changed value', transitionModel('variable', 'reference', '10', '10'), /must change at least one/],
+    ['entity id changes', changeAfter(transitionModel(), (after) => after.replace('      - id: a\n', '      - id: renamed\n')), /source "a" does not exist/],
+    ['source kind changes', changeAfter(transitionModel(), (after) => after.replaceAll('kind: variable', 'kind: name').replaceAll('kind: reference', 'kind: binding')), /must retain its kind/],
+    ['source label changes', changeAfter(transitionModel(), (after) => after.replace('label: a', 'label: changed')), /retain its label/],
+    ['target id changes', changeAfter(transitionModel(), (after) => after.replaceAll('counter', 'counter-2')), /same target object id/],
+    ['target type changes', changeAfter(transitionModel(), (after) => after.replace('typeLabel: Counter', 'typeLabel: Other')), /retain the target object typeLabel/],
+    ['relationship changes', changeAfter(transitionModel(), (after) => after.replace('from: a', 'from: b')), /duplicate relationship|same relationship set/],
+    ['member added', changeAfter(transitionModel(), (after) => after.replace('    relationships:', '          - name: extra\n            kind: field\n            value: "1"\n    relationships:')), /same member names/],
+    ['member removed', changeAfter(transitionModel(), (after) => after.replace('          - name: value\n            kind: field\n            value: "20"\n', '')), /members must be an array/],
+    ['member renamed', changeAfter(transitionModel(), (after) => after.replace('name: value', 'name: renamed')), /same member names/],
+    ['member kind changes', changeAfter(transitionModel(), (after) => after.replace('kind: field', 'kind: property')), /retain its kind/],
+  ])('rejects invalid runtime transitions: %s', (_label, model, expected) => {
     expect(() => parseWritingSource(writing(bodyWithModel(model)))).toThrow(expected)
   })
 })

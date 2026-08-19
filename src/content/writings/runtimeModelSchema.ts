@@ -4,8 +4,10 @@ import type {
   RuntimeObjectMember,
   RuntimeRelationship,
   RuntimeState,
+  RuntimeStateId,
+  RuntimeStateSequence,
 } from './types'
-import { classifyRuntimeTopology } from './runtimeModelTopology'
+import { classifyRuntimeTopology, classifyRuntimeTransition } from './runtimeModelTopology'
 
 type RuntimeModelFailure = (message: string) => never
 
@@ -169,19 +171,13 @@ function parseRelationship(
   }
 }
 
-export function validateRuntimeModel(
-  value: unknown,
-  fail: RuntimeModelFailure,
-): RuntimeState[] {
-  const root = mapping(value, 'model root', fail)
-  allowedKeys(root, ['states'], 'model root', fail)
-  if (root.states === undefined) fail('model root requires states')
-  const rawStates = array(root.states, 'model states', fail)
-  if (rawStates.length !== 1) fail('runtime models require exactly one state')
-
-  const rawState = mapping(rawStates[0], 'state', fail)
+function parseState(value: unknown, fail: RuntimeModelFailure): RuntimeState {
+  const rawState = mapping(value, 'state', fail)
   allowedKeys(rawState, ['id', 'label', 'entities', 'relationships'], 'state', fail)
-  if (rawState.id !== 'current') fail('runtime-model state id must be "current"')
+  if (rawState.id !== 'current' && rawState.id !== 'before' && rawState.id !== 'after') {
+    fail('runtime-model state id must be "current", "before", or "after"')
+  }
+  const id: RuntimeStateId = rawState.id
   const label = nonEmptyString(rawState.label, 'state.label', fail)
   const rawEntities = array(rawState.entities, 'state.entities', fail)
   if (rawEntities.length === 0) fail('state.entities must not be empty')
@@ -195,6 +191,31 @@ export function validateRuntimeModel(
   const relationships = array(rawState.relationships, 'state.relationships', fail)
     .map((relationship, index) => parseRelationship(relationship, index, fail))
 
-  classifyRuntimeTopology({ entities, relationships }, fail)
-  return [{ id: 'current', label, entities, relationships }]
+  return { id, label, entities, relationships }
+}
+
+export function validateRuntimeModel(
+  value: unknown,
+  fail: RuntimeModelFailure,
+): RuntimeStateSequence {
+  const root = mapping(value, 'model root', fail)
+  allowedKeys(root, ['states'], 'model root', fail)
+  if (root.states === undefined) fail('model root requires states')
+  const rawStates = array(root.states, 'model states', fail)
+  if (rawStates.length !== 1 && rawStates.length !== 2) {
+    fail('runtime models require either one current state or exactly before and after states')
+  }
+  const states = rawStates.map((state) => parseState(state, fail))
+  if (states.length === 1) {
+    if (states[0].id !== 'current') fail('single-state runtime models require id "current"')
+    classifyRuntimeTopology(states[0], fail)
+    return [states[0]]
+  }
+  const before = states.find(({ id }) => id === 'before')
+  const after = states.find(({ id }) => id === 'after')
+  if (!before || !after) {
+    fail('two-state runtime models require exactly one "before" and one "after" state')
+  }
+  classifyRuntimeTransition(before, after, fail)
+  return [before, after]
 }

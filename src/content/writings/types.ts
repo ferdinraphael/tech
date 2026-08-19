@@ -101,16 +101,20 @@ export interface RuntimeRelationship {
   to: string
 }
 
+export type RuntimeStateId = 'current' | 'before' | 'after'
+
 export interface RuntimeState {
-  id: 'current'
+  id: RuntimeStateId
   label: string
   entities: RuntimeEntity[]
   relationships: RuntimeRelationship[]
 }
 
+export type RuntimeStateSequence = [RuntimeState] | [RuntimeState, RuntimeState]
+
 export interface RuntimeModelVariant {
   code: CodeSample
-  states: RuntimeState[]
+  states: RuntimeStateSequence
 }
 
 export interface RuntimeModelSegment {

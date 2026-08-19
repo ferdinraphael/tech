@@ -27,6 +27,22 @@ export type RuntimeTopology =
       relationships: [RuntimeRelationship, RuntimeRelationship]
     }
 
+export type SharedTargetTopology = Extract<RuntimeTopology, { kind: 'shared-target' }>
+
+export interface RuntimeMemberChange {
+  name: string
+  kind: 'field' | 'property'
+  beforeValue: string
+  afterValue: string
+}
+
+export interface RuntimeMutationTransition {
+  kind: 'shared-target-mutation'
+  before: SharedTargetTopology
+  after: SharedTargetTopology
+  changedMembers: RuntimeMemberChange[]
+}
+
 function defaultFailure(message: string): never {
   throw new Error(message)
 }
@@ -165,4 +181,75 @@ export function classifyRuntimeTopology(
       relationshipsBySource.get(sources[1].id)!,
     ],
   }
+}
+
+function sameSet(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value) => right.includes(value))
+}
+
+export function classifyRuntimeTransition(
+  beforeState: RuntimeState,
+  afterState: RuntimeState,
+  fail: TopologyFailure = defaultFailure,
+): RuntimeMutationTransition {
+  const before = classifyRuntimeTopology(beforeState, fail)
+  const after = classifyRuntimeTopology(afterState, fail)
+  if (before.kind !== 'shared-target' || after.kind !== 'shared-target') {
+    fail('before/after runtime models require shared-target topology in both states')
+  }
+  if (before.target.id !== after.target.id) {
+    fail('before/after runtime model must retain the same target object id')
+  }
+  if (before.target.typeLabel !== after.target.typeLabel) {
+    fail('before/after runtime model must retain the target object typeLabel')
+  }
+  if (!before.target.members || !after.target.members) {
+    fail('before/after runtime models require object members; scalarValue is unsupported')
+  }
+
+  const beforeIds = beforeState.entities.map(({ id }) => id)
+  const afterIds = afterState.entities.map(({ id }) => id)
+  if (!sameSet(beforeIds, afterIds)) {
+    fail('before/after runtime model must retain the same entity id set')
+  }
+  const afterEntities = new Map(afterState.entities.map((entity) => [entity.id, entity]))
+  for (const beforeEntity of beforeState.entities) {
+    const afterEntity = afterEntities.get(beforeEntity.id)!
+    if (beforeEntity.kind !== afterEntity.kind) {
+      fail(`entity "${beforeEntity.id}" must retain its kind across before/after`)
+    }
+    if (beforeEntity.kind === 'variable' || beforeEntity.kind === 'name') {
+      if (afterEntity.kind !== beforeEntity.kind || beforeEntity.label !== afterEntity.label) {
+        fail(`source "${beforeEntity.id}" must retain its label across before/after`)
+      }
+    }
+  }
+
+  const relationshipKey = ({ kind, from, to }: RuntimeRelationship) => `${kind}\0${from}\0${to}`
+  const beforeRelationships = beforeState.relationships.map(relationshipKey)
+  const afterRelationships = afterState.relationships.map(relationshipKey)
+  if (!sameSet(beforeRelationships, afterRelationships)) {
+    fail('before/after runtime model must retain the same relationship set')
+  }
+
+  const afterMembers = new Map(after.target.members.map((member) => [member.name, member]))
+  if (!sameSet(
+    before.target.members.map(({ name }) => name),
+    after.target.members.map(({ name }) => name),
+  )) {
+    fail('before/after runtime model must retain the same member names')
+  }
+  const changedMembers = before.target.members.flatMap((member): RuntimeMemberChange[] => {
+    const afterMember = afterMembers.get(member.name)!
+    if (member.kind !== afterMember.kind) {
+      fail(`member "${member.name}" must retain its kind across before/after`)
+    }
+    return member.value === afterMember.value
+      ? []
+      : [{ name: member.name, kind: member.kind, beforeValue: member.value, afterValue: afterMember.value }]
+  })
+  if (changedMembers.length === 0) {
+    fail('before/after runtime model must change at least one object member value')
+  }
+  return { kind: 'shared-target-mutation', before, after, changedMembers }
 }

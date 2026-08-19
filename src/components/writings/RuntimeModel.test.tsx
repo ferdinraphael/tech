@@ -10,7 +10,10 @@ import type {
 } from '../../content/writings/types'
 import { LanguagePreferenceProvider } from './LanguagePreference'
 import { MarkdownWriting } from './MarkdownWriting'
-import { runtimeModelDescription } from './runtimeModelDescription'
+import {
+  runtimeModelDescription,
+  runtimeModelTransitionDescription,
+} from './runtimeModelDescription'
 
 function directState(): RuntimeState {
   return {
@@ -138,6 +141,22 @@ function sharedVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
   ]
 }
 
+function mutationState(sourceKind: 'variable' | 'name', id: 'before' | 'after', value: string) {
+  return {
+    ...sharedState(sourceKind, { name: sourceKind === 'variable' ? 'Value' : 'value', kind: sourceKind === 'variable' ? 'property' : 'field', value }),
+    id,
+    label: id === 'before' ? 'Before mutation' : 'After mutation',
+  } satisfies RuntimeState
+}
+
+function mutationVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
+  return [
+    { language: 'csharp', code: { language: 'csharp', code: 'var b = a;\nb.Value = 20;' }, states: [mutationState('variable', 'before', '10'), mutationState('variable', 'after', '20')] },
+    { language: 'java', code: { language: 'java', code: 'Counter b = a;\nb.value = 20;' }, states: [mutationState('variable', 'before', '10'), mutationState('variable', 'after', '20')] },
+    { language: 'python', code: { language: 'python', code: 'b = a\nb.value = 20' }, states: [mutationState('name', 'before', '10'), mutationState('name', 'after', '20')] },
+  ]
+}
+
 const runtimeSegments: WritingSegment[] = [
   { type: 'runtime-model', variants: numberVariants() },
   {
@@ -158,6 +177,7 @@ const runtimeSegments: WritingSegment[] = [
   },
   { type: 'runtime-model', variants: objectVariants() },
   { type: 'runtime-model', variants: sharedVariants() },
+  { type: 'runtime-model', variants: mutationVariants() },
 ]
 
 function renderRuntimeWriting() {
@@ -197,14 +217,14 @@ describe('RuntimeModel rendering', () => {
     const user = userEvent.setup()
     renderRuntimeWriting()
     await user.click(screen.getByRole('radio', { name: 'Java' }))
-    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(3)
+    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(4)
     expect(screen.getByText('Java prose.')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Java', selected: true })).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
     const pythonModels = screen.getAllByRole('region', { name: 'Python runtime model' })
-    expect(pythonModels).toHaveLength(3)
+    expect(pythonModels).toHaveLength(4)
     expect(screen.getByText('Python prose.')).toBeInTheDocument()
     expect(within(pythonModels[0]).getByText(
       'The name count is bound to an int object representing 10.',
@@ -212,6 +232,21 @@ describe('RuntimeModel rendering', () => {
     expect(within(pythonModels[1]).getByText('Counter')).toBeInTheDocument()
     expect(within(pythonModels[1]).getByText('value')).toBeInTheDocument()
     expect(within(pythonModels[1]).getByText('field')).toBeInTheDocument()
+  })
+
+  it('renders one code block and two shared states with a changed after member', () => {
+    renderRuntimeWriting()
+    const mutation = screen.getAllByRole('region', { name: 'C# runtime model' })[3]
+    expect(mutation.querySelectorAll('pre')).toHaveLength(1)
+    expect(within(mutation).getByText('Before mutation')).toBeInTheDocument()
+    expect(within(mutation).getByText('After mutation')).toBeInTheDocument()
+    expect(mutation.querySelectorAll('[data-runtime-entity="object"]')).toHaveLength(2)
+    expect(mutation.querySelectorAll('[data-runtime-entity="variable"]')).toHaveLength(4)
+    expect(mutation.querySelectorAll('[data-runtime-changed="true"]')).toHaveLength(1)
+    expect(within(mutation).getByText('changed')).toBeInTheDocument()
+    expect(within(mutation).getByText(
+      'Before the mutation, variables a and b refer to the same Counter object. Its Value property is 10. After the mutation, a and b still refer to the same Counter object. Its Value property is 20.',
+    )).toBeInTheDocument()
   })
 
   it('renders two declared-order sources converging on one shared object card', () => {
@@ -261,14 +296,14 @@ describe('RuntimeModel rendering', () => {
     await user.click(screen.getByRole('radio', { name: 'Compare' }))
 
     expect(screen.getByRole('radio', { name: 'Compare' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(3)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(4)
     expect(screen.queryByRole('region', { name: 'C# runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Java runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(3)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(4)
   })
 })
 
@@ -298,5 +333,16 @@ describe('runtimeModelDescription', () => {
     expect(runtimeModelDescription(sharedState('variable', undefined, 'int'))).toBe(
       'Variables a and b refer to the same int object representing 10.',
     )
+  })
+
+  it('describes reference and binding mutation continuity', () => {
+    expect(runtimeModelTransitionDescription(
+      mutationState('variable', 'before', '10'),
+      mutationState('variable', 'after', '20'),
+    )).toContain('After the mutation, a and b still refer to the same Counter object')
+    expect(runtimeModelTransitionDescription(
+      mutationState('name', 'before', '10'),
+      mutationState('name', 'after', '20'),
+    )).toBe('Before the mutation, the names a and b are bound to the same Counter object. Its value field is 10. After the mutation, a and b are still bound to the same Counter object. Its value field is 20.')
   })
 })

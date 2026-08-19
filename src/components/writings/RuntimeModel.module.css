@@ -175,6 +175,43 @@
   font-family: var(--font-mono);
 }
 
+.members [data-runtime-changed='true'] {
+  background: rgba(169, 121, 255, 0.12);
+  box-shadow: inset 3px 0 0 var(--color-violet);
+}
+
+.changedLabel {
+  margin-left: 8px;
+  color: var(--color-violet);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.transition {
+  display: grid;
+  gap: 16px;
+}
+
+.transitionCue {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+}
+
+.transitionCue span {
+  font-size: 24px;
+}
+
+.transitionCue strong {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
 .members dt {
   display: flex;
   min-width: 0;

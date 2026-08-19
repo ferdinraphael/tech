@@ -7,13 +7,25 @@ import type {
   RuntimeSourceEntity,
   RuntimeState,
 } from '../../content/writings/types'
-import { classifyRuntimeTopology } from '../../content/writings/runtimeModelTopology'
+import {
+  classifyRuntimeTopology,
+  classifyRuntimeTransition,
+} from '../../content/writings/runtimeModelTopology'
 import { CodeBlock } from './CodeBlock'
-import { runtimeModelDescription } from './runtimeModelDescription'
+import {
+  runtimeModelDescription,
+  runtimeModelTransitionDescription,
+} from './runtimeModelDescription'
 import { useLanguagePreference } from './useLanguagePreference'
 import styles from './RuntimeModel.module.css'
 
-function ObjectCard({ object }: { object: RuntimeObjectEntity }) {
+function ObjectCard({
+  object,
+  changedMembers = new Set<string>(),
+}: {
+  object: RuntimeObjectEntity
+  changedMembers?: Set<string>
+}) {
   return (
     <div className={styles.objectCard} data-runtime-entity="object">
       <p className={styles.objectType}>{object.typeLabel}</p>
@@ -22,12 +34,20 @@ function ObjectCard({ object }: { object: RuntimeObjectEntity }) {
       ) : (
         <dl className={styles.members}>
           {(object.members ?? []).map((member) => (
-            <div key={member.name}>
+            <div
+              key={member.name}
+              data-runtime-changed={changedMembers.has(member.name) ? 'true' : undefined}
+            >
               <dt>
                 {member.name}
                 <span>{member.kind}</span>
               </dt>
-              <dd>{member.value}</dd>
+              <dd>
+                {member.value}
+                {changedMembers.has(member.name) && (
+                  <span className={styles.changedLabel}>changed</span>
+                )}
+              </dd>
             </div>
           ))}
         </dl>
@@ -45,7 +65,15 @@ function SourceCard({ source }: { source: RuntimeSourceEntity }) {
   )
 }
 
-function RuntimeModelState({ state }: { state: RuntimeState }) {
+function RuntimeModelState({
+  state,
+  changedMembers,
+  described = true,
+}: {
+  state: RuntimeState
+  changedMembers?: Set<string>
+  described?: boolean
+}) {
   const descriptionId = useId()
   const description = runtimeModelDescription(state)
   const topology = classifyRuntimeTopology(state)
@@ -53,7 +81,7 @@ function RuntimeModelState({ state }: { state: RuntimeState }) {
   if (topology.kind === 'direct-value') {
     const { source } = topology
     return (
-      <figure className={styles.state} aria-describedby={descriptionId}>
+      <figure className={styles.state} aria-describedby={described ? descriptionId : undefined}>
         <figcaption>{state.label}</figcaption>
         <div className={styles.directModel} aria-hidden="true">
           <p className={styles.sourceLabel}>{source.label}</p>
@@ -62,14 +90,14 @@ function RuntimeModelState({ state }: { state: RuntimeState }) {
             <strong>{source.directValue.value}</strong>
           </div>
         </div>
-        <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>
+        {described && <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>}
       </figure>
     )
   }
 
   if (topology.kind === 'shared-target') {
     return (
-      <figure className={styles.state} aria-describedby={descriptionId}>
+      <figure className={styles.state} aria-describedby={described ? descriptionId : undefined}>
         <figcaption>{state.label}</figcaption>
         <div className={styles.sharedRelationshipModel} aria-hidden="true">
           <div className={styles.sharedSources}>
@@ -88,28 +116,64 @@ function RuntimeModelState({ state }: { state: RuntimeState }) {
             <path className={styles.arrowHead} d="M59 42 L72 50 L59 58 Z" />
           </svg>
           <span className={styles.sharedArrowMobile}>↓</span>
-          <ObjectCard object={topology.target} />
+          <ObjectCard object={topology.target} changedMembers={changedMembers} />
         </div>
-        <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>
+        {described && <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>}
       </figure>
     )
   }
 
   const [source] = topology.sources
   return (
-    <figure className={styles.state} aria-describedby={descriptionId}>
+    <figure className={styles.state} aria-describedby={described ? descriptionId : undefined}>
       <figcaption>{state.label}</figcaption>
       <div className={styles.relationshipModel} aria-hidden="true">
         <SourceCard source={source} />
         <span className={styles.arrow}>→</span>
-        <ObjectCard object={topology.target} />
+        <ObjectCard object={topology.target} changedMembers={changedMembers} />
       </div>
-      <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>
+      {described && <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>}
     </figure>
   )
 }
 
 function RuntimeModelVariantView({ variant }: { variant: RuntimeModelVariant }) {
+  const transitionDescriptionId = useId()
+  if (variant.states.length === 2) {
+    const [before, after] = variant.states
+    const transition = classifyRuntimeTransition(before, after)
+    const changedMembers = new Set(transition.changedMembers.map(({ name }) => name))
+    const afterEntities = new Map(after.entities.map((entity) => [entity.id, entity]))
+    const afterMembers = new Map(
+      transition.after.target.members!.map((member) => [member.name, member]),
+    )
+    const afterForDisplay: RuntimeState = {
+      ...after,
+      entities: [
+        ...transition.before.sources.map((source) => afterEntities.get(source.id)!),
+        {
+          ...transition.after.target,
+          members: transition.before.target.members!.map(({ name }) => afterMembers.get(name)!),
+        },
+      ],
+    }
+    return (
+      <>
+        <CodeBlock code={variant.code.code} language={variant.code.language} />
+        <div className={styles.transition} aria-describedby={transitionDescriptionId}>
+          <RuntimeModelState state={before} described={false} />
+          <div className={styles.transitionCue} aria-hidden="true">
+            <span>↓</span>
+            <strong>object mutated</strong>
+          </div>
+          <RuntimeModelState state={afterForDisplay} changedMembers={changedMembers} described={false} />
+          <p id={transitionDescriptionId} className={styles.visuallyHidden}>
+            {runtimeModelTransitionDescription(before, after)}
+          </p>
+        </div>
+      </>
+    )
+  }
   return (
     <>
       <CodeBlock code={variant.code.code} language={variant.code.language} />
