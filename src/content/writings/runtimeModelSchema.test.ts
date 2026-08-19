@@ -156,6 +156,81 @@ function splitTransitionModel(
       - { kind: ${relationshipKind}, from: a, to: counter }`
 }
 
+function directValuesModel(aValue = '10', bValue = '10') {
+  return `states:
+  - id: current
+    label: Current
+    entities:
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "${aValue}" } }
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "${bValue}" } }
+    relationships: []`
+}
+
+function directValueTransitionModel(afterValue = '20') {
+  return `states:
+  - id: before
+    label: Before assignment
+    entities:
+      - { id: count, kind: variable, label: count, directValue: { type: int, value: "10" } }
+    relationships: []
+  - id: after
+    label: After assignment
+    entities:
+      - { id: count, kind: variable, label: count, directValue: { type: int, value: "${afterValue}" } }
+    relationships: []`
+}
+
+function directValuesTransitionModel(afterB = '20') {
+  return `${directValuesModel().replace('id: current', 'id: before').replace('label: Current', 'label: Before assignment')}
+  - id: after
+    label: After assignment
+    entities:
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "${afterB}" } }
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+    relationships: []`
+}
+
+function singleScalarRebindingModel(afterValue = '20') {
+  return `states:
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: count, kind: name, label: count }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+    relationships:
+      - { kind: binding, from: count, to: int-10 }
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: int-20, kind: object, typeLabel: int, scalarValue: "${afterValue}" }
+      - { id: count, kind: name, label: count }
+    relationships:
+      - { kind: binding, from: count, to: int-20 }`
+}
+
+function scalarSplitModel() {
+  return `states:
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: a, kind: name, label: a }
+      - { id: b, kind: name, label: b }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+    relationships:
+      - { kind: binding, from: b, to: int-10 }
+      - { kind: binding, from: a, to: int-10 }
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: int-20, kind: object, typeLabel: int, scalarValue: "20" }
+      - { id: b, kind: name, label: b }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+      - { id: a, kind: name, label: a }
+    relationships:
+      - { kind: binding, from: b, to: int-20 }
+      - { kind: binding, from: a, to: int-10 }`
+}
+
 function changeAfter(model: string, change: (after: string) => string): string {
   const afterIndex = model.indexOf('  - id: after')
   return model.slice(0, afterIndex) + change(model.slice(afterIndex))
@@ -378,6 +453,53 @@ describe('runtime-model schema', () => {
     const lf = writing(bodyWithModel(splitTransitionModel()))
     expect(parseWritingSource({ ...lf, source: lf.source.replace(/\n/g, '\r\n') }))
       .toEqual(parseWritingSource(lf))
+  })
+
+  it('classifies exactly two independent direct-value variables in declaration order', () => {
+    const state = runtimeSegment(parseWritingSource(writing(bodyWithModel(
+      directValuesModel(),
+    ))).segments).variants[0].states[0]
+    expect(classifyRuntimeTopology(state)).toMatchObject({
+      kind: 'direct-values',
+      sources: [{ id: 'a' }, { id: 'b' }],
+    })
+  })
+
+  it.each([
+    ['one direct value', directValueTransitionModel(), 'direct-value-change'],
+    ['two direct values', directValuesTransitionModel(), 'direct-values-change'],
+    ['single scalar name', singleScalarRebindingModel(), 'single-scalar-rebinding'],
+    ['shared scalar names', scalarSplitModel(), 'shared-target-split'],
+  ])('classifies %s transition semantics', (_label, model, kind) => {
+    const states = runtimeSegment(parseWritingSource(writing(bodyWithModel(model))).segments)
+      .variants[0].states
+    if (states.length !== 2) throw new Error('Expected transition')
+    expect(classifyRuntimeTransition(states[0], states[1])).toMatchObject({ kind })
+  })
+
+  it('derives changed direct-value sources by ID and preserves before display order', () => {
+    const states = runtimeSegment(parseWritingSource(writing(bodyWithModel(
+      directValuesTransitionModel(),
+    ))).segments).variants[0].states
+    if (states.length !== 2) throw new Error('Expected transition')
+    const transition = classifyRuntimeTransition(states[0], states[1])
+    expect(transition).toMatchObject({
+      kind: 'direct-values-change',
+      before: { sources: [{ id: 'a' }, { id: 'b' }] },
+      changedValues: [{ id: 'b', beforeValue: '10', afterValue: '20' }],
+    })
+  })
+
+  it('normalizes reversed scalar transition states and line endings', () => {
+    const model = scalarSplitModel()
+    const afterIndex = model.indexOf('  - id: after')
+    const reversed = `states:\n${model.slice(afterIndex)}\n${model.slice('states:\n'.length, afterIndex)}`
+    const lf = writing(bodyWithModel(reversed))
+    const parsed = parseWritingSource(lf)
+    expect(runtimeSegment(parsed.segments).variants[0].states.map(({ id }) => id))
+      .toEqual(['before', 'after'])
+    expect(parseWritingSource({ ...lf, source: lf.source.replace(/\n/g, '\r\n') }))
+      .toEqual(parsed)
   })
 
   it('normalizes reversed state order and ignores entity/relationship order', () => {
@@ -637,9 +759,9 @@ describe('runtime-model schema', () => {
   })
 
   it.each([
-    ['direct-value transition', twoStates(directModel), /require shared-target topology/],
+    ['direct-value transition', twoStates(directModel), /must change the value/],
     ['single-target transition', twoStates(objectModel('variable', 'reference', 'field', 'value')), /require shared-target topology/],
-    ['scalar transition', twoStates(sharedObjectModel('variable', 'reference', 'scalarValue: "10"')), /require object members/],
+    ['scalar transition', twoStates(sharedObjectModel('variable', 'reference', 'scalarValue: "10"')), /requires object members/],
     ['no changed value', transitionModel('variable', 'reference', '10', '10'), /must change at least one/],
     ['entity id changes', changeAfter(transitionModel(), (after) => after.replace('      - id: a\n', '      - id: renamed\n')), /source "a" does not exist/],
     ['source kind changes', changeAfter(transitionModel(), (after) => after.replaceAll('kind: variable', 'kind: name').replaceAll('kind: reference', 'kind: binding')), /must retain its kind/],
@@ -686,6 +808,34 @@ describe('runtime-model schema', () => {
     ['source targets non-object', changeAfter(splitTransitionModel(), (after) => after.replace('from: b, to: counter-new', 'from: b, to: a')), /must target an object/],
     ['object used as source', changeAfter(splitTransitionModel(), (after) => after.replace('from: b, to: counter-new', 'from: counter, to: counter-new')), /must originate from a variable or name/],
   ])('rejects invalid shared-target splits: %s', (_label, model, expected) => {
+    expect(() => parseWritingSource(writing(bodyWithModel(model)))).toThrow(expected)
+  })
+
+  it.each([
+    ['three direct values', directValuesModel().replace('    relationships: []', '      - { id: c, kind: variable, label: c, directValue: { type: int, value: "10" } }\n    relationships: []'), /one or exactly two direct-value variables/],
+    ['mixed direct value and name', directValuesModel().replace('id: b, kind: variable, label: b, directValue: { type: int, value: "10" }', 'id: b, kind: name, label: b'), /one or exactly two direct-value variables/],
+    ['direct value with relationship', directValuesModel().replace('    relationships: []', '      - { id: value, kind: object, typeLabel: int, scalarValue: "10" }\n    relationships:\n      - { kind: reference, from: a, to: value }'), /direct-value variable cannot also reference/],
+    ['direct variable id changes', changeAfter(directValueTransitionModel(), (after) => after.replace('id: count', 'id: other')), /same variable id/],
+    ['direct variable label changes', changeAfter(directValueTransitionModel(), (after) => after.replace('label: count', 'label: other')), /retain the variable label/],
+    ['direct variable type changes', changeAfter(directValueTransitionModel(), (after) => after.replace('type: int', 'type: long')), /retain the directValue type/],
+    ['direct variable does not change', directValueTransitionModel('10'), /must change the value/],
+    ['two-value id set changes', changeAfter(directValuesTransitionModel(), (after) => after.replace('id: b', 'id: c')), /same variable id set/],
+    ['two-value label changes', changeAfter(directValuesTransitionModel(), (after) => after.replace('label: b', 'label: changed')), /retain its label/],
+    ['two-value type changes', changeAfter(directValuesTransitionModel(), (after) => after.replace('type: int', 'type: long')), /retain its type/],
+    ['two values do not change', directValuesTransitionModel('10'), /change at least one value/],
+    ['scalar source id changes', changeAfter(singleScalarRebindingModel(), (after) => after.replace('id: count', 'id: other').replace('from: count', 'from: other')), /retain the source id/],
+    ['scalar source label changes', changeAfter(singleScalarRebindingModel(), (after) => after.replace('label: count', 'label: other')), /retain the source label/],
+    ['scalar uses variable reference', singleScalarRebindingModel().replaceAll('kind: name', 'kind: variable').replaceAll('kind: binding', 'kind: reference'), /name\/binding scalar rebinding/],
+    ['scalar target type changes', changeAfter(singleScalarRebindingModel(), (after) => after.replace('typeLabel: int', 'typeLabel: long')), /retain the target typeLabel/],
+    ['scalar target id unchanged', changeAfter(singleScalarRebindingModel(), (after) => after.replaceAll('int-20', 'int-10')), /new target object id/],
+    ['scalar value unchanged', singleScalarRebindingModel('10'), /change the scalar value/],
+    ['scalar becomes member-backed', changeAfter(singleScalarRebindingModel(), (after) => after.replace('scalarValue: "20"', 'members: [{ name: value, kind: field, value: "20" }]')), /requires scalarValue targets/],
+    ['scalar split original value changes', changeAfter(scalarSplitModel(), (after) => after.replace('scalarValue: "10"', 'scalarValue: "11"')), /must not change the original scalar value/],
+    ['scalar split original id disappears', changeAfter(scalarSplitModel(), (after) => after.replaceAll('int-10', 'int-11')), /retain the original target object id/],
+    ['scalar split new type changes', changeAfter(scalarSplitModel(), (after) => after.replace('id: int-20, kind: object, typeLabel: int', 'id: int-20, kind: object, typeLabel: long')), /new target.*typeLabel/],
+    ['scalar split both stay original', changeAfter(scalarSplitModel(), (after) => after.replace('from: b, to: int-20', 'from: b, to: int-10')), /target different objects/],
+    ['scalar split mixed relationship', changeAfter(scalarSplitModel(), (after) => after.replace('kind: binding, from: b', 'kind: reference, from: b')), /reference relationships must originate from a variable/],
+  ])('rejects invalid scalar semantics: %s', (_label, model, expected) => {
     expect(() => parseWritingSource(writing(bodyWithModel(model)))).toThrow(expected)
   })
 })

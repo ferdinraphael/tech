@@ -6,6 +6,7 @@ import type {
   RuntimeObjectEntity,
   RuntimeSourceEntity,
   RuntimeState,
+  RuntimeVariableEntity,
 } from '../../content/writings/types'
 import {
   classifyRuntimeTopology,
@@ -73,14 +74,37 @@ function SourceCard({ source }: { source: RuntimeSourceEntity }) {
   )
 }
 
+function DirectValueItem({
+  source,
+  changed = false,
+}: {
+  source: RuntimeVariableEntity & { directValue: { type: string; value: string } }
+  changed?: boolean
+}) {
+  return (
+    <div className={styles.directValueItem} data-runtime-entity="variable">
+      <p className={styles.sourceLabel}>{source.label}</p>
+      <div className={styles.valueCard} data-runtime-changed={changed ? 'true' : undefined}>
+        <span>{source.directValue.type}</span>
+        <strong>
+          {source.directValue.value}
+          {changed && <span className={styles.changedLabel}>changed</span>}
+        </strong>
+      </div>
+    </div>
+  )
+}
+
 function RuntimeModelState({
   state,
   changedMembers,
+  changedValues,
   described = true,
   targetIdentity,
 }: {
   state: RuntimeState
   changedMembers?: Set<string>
+  changedValues?: Set<string>
   described?: boolean
   targetIdentity?: 'original'
 }) {
@@ -94,11 +118,25 @@ function RuntimeModelState({
       <figure className={styles.state} aria-describedby={described ? descriptionId : undefined}>
         <figcaption>{state.label}</figcaption>
         <div className={styles.directModel} aria-hidden="true">
-          <p className={styles.sourceLabel}>{source.label}</p>
-          <div className={styles.valueCard}>
-            <span>{source.directValue.type}</span>
-            <strong>{source.directValue.value}</strong>
-          </div>
+          <DirectValueItem source={source} changed={changedValues?.has(source.id)} />
+        </div>
+        {described && <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>}
+      </figure>
+    )
+  }
+
+  if (topology.kind === 'direct-values') {
+    return (
+      <figure className={styles.state} aria-describedby={described ? descriptionId : undefined}>
+        <figcaption>{state.label}</figcaption>
+        <div className={styles.directValuesModel} data-runtime-topology="direct-values" aria-hidden="true">
+          {topology.sources.map((source) => (
+            <DirectValueItem
+              key={source.id}
+              source={source}
+              changed={changedValues?.has(source.id)}
+            />
+          ))}
         </div>
         {described && <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>}
       </figure>
@@ -170,13 +208,13 @@ function SplitTargetAfterState({
         {transition.before.sources.map((source) => {
           const relationship = relationships.get(source.id)!
           const target = targets.get(relationship.to)!
-          const membersByName = new Map(target.members!.map((member) => [member.name, member]))
-          const targetForDisplay: RuntimeObjectEntity = {
-            ...target,
-            members: transition.originalTargetBefore.members!.map(
-              ({ name }) => membersByName.get(name)!,
-            ),
-          }
+          const targetForDisplay: RuntimeObjectEntity = target.members
+            ? {
+                ...target,
+                members: transition.originalTargetBefore.members!.map(({ name }) =>
+                  target.members!.find((member) => member.name === name)!),
+              }
+            : target
           const changed = source.id === transition.changedSource.id
           return (
             <div
@@ -215,6 +253,57 @@ function RuntimeModelVariantView({ variant }: { variant: RuntimeModelVariant }) 
               <strong>relationship changed</strong>
             </div>
             <SplitTargetAfterState state={after} transition={transition} />
+            <p id={transitionDescriptionId} className={styles.visuallyHidden}>
+              {runtimeModelTransitionDescription(before, after)}
+            </p>
+          </div>
+        </>
+      )
+    }
+    if (
+      transition.kind === 'direct-value-change' ||
+      transition.kind === 'direct-values-change'
+    ) {
+      const changedValues = new Set(transition.changedValues.map(({ id }) => id))
+      const afterEntities = new Map(after.entities.map((entity) => [entity.id, entity]))
+      const afterForDisplay: RuntimeState = transition.kind === 'direct-value-change'
+        ? after
+        : {
+            ...after,
+            entities: transition.before.sources.map((source) => afterEntities.get(source.id)!),
+          }
+      return (
+        <>
+          <CodeBlock code={variant.code.code} language={variant.code.language} />
+          <div className={styles.transition} aria-describedby={transitionDescriptionId}>
+            <RuntimeModelState state={before} described={false} />
+            <div className={styles.transitionCue} aria-hidden="true">
+              <span>↓</span>
+              <strong>value assigned</strong>
+            </div>
+            <RuntimeModelState
+              state={afterForDisplay}
+              changedValues={changedValues}
+              described={false}
+            />
+            <p id={transitionDescriptionId} className={styles.visuallyHidden}>
+              {runtimeModelTransitionDescription(before, after)}
+            </p>
+          </div>
+        </>
+      )
+    }
+    if (transition.kind === 'single-scalar-rebinding') {
+      return (
+        <>
+          <CodeBlock code={variant.code.code} language={variant.code.language} />
+          <div className={styles.transition} aria-describedby={transitionDescriptionId}>
+            <RuntimeModelState state={before} described={false} />
+            <div className={styles.transitionCue} aria-hidden="true">
+              <span>↓</span>
+              <strong>relationship changed</strong>
+            </div>
+            <RuntimeModelState state={after} described={false} />
             <p id={transitionDescriptionId} className={styles.visuallyHidden}>
               {runtimeModelTransitionDescription(before, after)}
             </p>

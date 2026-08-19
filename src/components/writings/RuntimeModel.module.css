@@ -27,10 +27,20 @@
 }
 
 .directModel {
+  max-width: 360px;
+}
+
+.directValuesModel {
   display: grid;
-  grid-template-columns: minmax(100px, 0.7fr) minmax(150px, 1fr);
-  align-items: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
+}
+
+.directValueItem {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.55fr) minmax(120px, 1fr);
+  align-items: center;
+  gap: 14px;
 }
 
 .sourceLabel {
@@ -69,6 +79,15 @@
   font-family: var(--font-mono);
   font-size: 24px;
   font-weight: 400;
+}
+
+.valueCard[data-runtime-changed='true'] {
+  background: rgba(169, 121, 255, 0.12);
+  box-shadow: inset 3px 0 0 var(--color-violet);
+}
+
+.valueCard strong .changedLabel {
+  font-size: 9px;
 }
 
 .relationshipModel {
@@ -287,6 +306,8 @@
   }
 
   .directModel,
+  .directValuesModel,
+  .directValueItem,
   .relationshipModel,
   .sharedRelationshipModel,
   .splitPair {

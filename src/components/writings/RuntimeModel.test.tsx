@@ -196,6 +196,109 @@ function splitVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
   ]
 }
 
+function directChangeStates(): [RuntimeState, RuntimeState] {
+  return [
+    { ...directState(), id: 'before', label: 'Before assignment' },
+    {
+      ...directState(),
+      id: 'after',
+      label: 'After assignment',
+      entities: [{
+        id: 'count',
+        kind: 'variable',
+        label: 'count',
+        directValue: { type: 'int', value: '20' },
+      }],
+    },
+  ]
+}
+
+function singleScalarRebindingStates(): [RuntimeState, RuntimeState] {
+  return [
+    {
+      id: 'before',
+      label: 'Before rebinding',
+      entities: [
+        { id: 'count', kind: 'name', label: 'count' },
+        { id: 'int-10', kind: 'object', typeLabel: 'int', scalarValue: '10' },
+      ],
+      relationships: [{ kind: 'binding', from: 'count', to: 'int-10' }],
+    },
+    {
+      id: 'after',
+      label: 'After rebinding',
+      entities: [
+        { id: 'count', kind: 'name', label: 'count' },
+        { id: 'int-20', kind: 'object', typeLabel: 'int', scalarValue: '20' },
+      ],
+      relationships: [{ kind: 'binding', from: 'count', to: 'int-20' }],
+    },
+  ]
+}
+
+function directValuesStates(): [RuntimeState, RuntimeState] {
+  return [
+    {
+      id: 'before',
+      label: 'Before assignment',
+      entities: [
+        { id: 'a', kind: 'variable', label: 'a', directValue: { type: 'int', value: '10' } },
+        { id: 'b', kind: 'variable', label: 'b', directValue: { type: 'int', value: '10' } },
+      ],
+      relationships: [],
+    },
+    {
+      id: 'after',
+      label: 'After assignment',
+      entities: [
+        { id: 'b', kind: 'variable', label: 'b', directValue: { type: 'int', value: '20' } },
+        { id: 'a', kind: 'variable', label: 'a', directValue: { type: 'int', value: '10' } },
+      ],
+      relationships: [],
+    },
+  ]
+}
+
+function scalarSplitStates(): [RuntimeState, RuntimeState] {
+  return [
+    {
+      ...sharedState('name', undefined, 'int'),
+      id: 'before',
+      label: 'Before rebinding',
+    },
+    {
+      id: 'after',
+      label: 'After rebinding',
+      entities: [
+        { id: 'int-20', kind: 'object', typeLabel: 'int', scalarValue: '20' },
+        { id: 'b', kind: 'name', label: 'b' },
+        { id: 'counter', kind: 'object', typeLabel: 'int', scalarValue: '10' },
+        { id: 'a', kind: 'name', label: 'a' },
+      ],
+      relationships: [
+        { kind: 'binding', from: 'b', to: 'int-20' },
+        { kind: 'binding', from: 'a', to: 'counter' },
+      ],
+    },
+  ]
+}
+
+function scalarChangeVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
+  return [
+    { language: 'csharp', code: { language: 'csharp', code: 'int count = 10;\ncount = 20;' }, states: directChangeStates() },
+    { language: 'java', code: { language: 'java', code: 'int count = 10;\ncount = 20;' }, states: directChangeStates() },
+    { language: 'python', code: { language: 'python', code: 'count = 10\ncount = 20' }, states: singleScalarRebindingStates() },
+  ]
+}
+
+function scalarCopyVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
+  return [
+    { language: 'csharp', code: { language: 'csharp', code: 'int a = 10;\nint b = a;\nb = 20;' }, states: directValuesStates() },
+    { language: 'java', code: { language: 'java', code: 'int a = 10;\nint b = a;\nb = 20;' }, states: directValuesStates() },
+    { language: 'python', code: { language: 'python', code: 'a = 10\nb = a\nb = 20' }, states: scalarSplitStates() },
+  ]
+}
+
 const runtimeSegments: WritingSegment[] = [
   { type: 'runtime-model', variants: numberVariants() },
   {
@@ -218,6 +321,8 @@ const runtimeSegments: WritingSegment[] = [
   { type: 'runtime-model', variants: sharedVariants() },
   { type: 'runtime-model', variants: mutationVariants() },
   { type: 'runtime-model', variants: splitVariants() },
+  { type: 'runtime-model', variants: scalarChangeVariants() },
+  { type: 'runtime-model', variants: scalarCopyVariants() },
 ]
 
 function renderRuntimeWriting() {
@@ -257,14 +362,14 @@ describe('RuntimeModel rendering', () => {
     const user = userEvent.setup()
     renderRuntimeWriting()
     await user.click(screen.getByRole('radio', { name: 'Java' }))
-    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(5)
+    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(7)
     expect(screen.getByText('Java prose.')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Java', selected: true })).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
     const pythonModels = screen.getAllByRole('region', { name: 'Python runtime model' })
-    expect(pythonModels).toHaveLength(5)
+    expect(pythonModels).toHaveLength(7)
     expect(screen.getByText('Python prose.')).toBeInTheDocument()
     expect(within(pythonModels[0]).getByText(
       'The name count is bound to an int object representing 10.',
@@ -322,6 +427,56 @@ describe('RuntimeModel rendering', () => {
     )).toBeInTheDocument()
   })
 
+  it('renders one and two direct-value changes with semantic changed markers', () => {
+    renderRuntimeWriting()
+    const models = screen.getAllByRole('region', { name: 'C# runtime model' })
+    const single = models[5]
+    expect(single.querySelectorAll('pre')).toHaveLength(1)
+    expect(single.querySelectorAll('[data-runtime-changed="true"]')).toHaveLength(1)
+    expect(within(single).getByText('value assigned')).toBeInTheDocument()
+    expect(within(single).getByText(
+      'Variable count directly contains the int value 10 before the assignment. After the assignment, the same variable directly contains the int value 20.',
+    )).toBeInTheDocument()
+
+    const copy = models[6]
+    expect(copy.querySelectorAll('pre')).toHaveLength(1)
+    const directValueStates = copy.querySelectorAll('[data-runtime-topology="direct-values"]')
+    expect(directValueStates).toHaveLength(2)
+    expect(Array.from(directValueStates).every((state) => state.querySelector('svg') === null))
+      .toBe(true)
+    expect(copy.querySelectorAll('[data-runtime-changed="true"]')).toHaveLength(1)
+    const afterVariables = copy.querySelectorAll('[data-runtime-topology="direct-values"]')[1]
+      .querySelectorAll('[data-runtime-entity="variable"]')
+    expect(Array.from(afterVariables, (source) => source.textContent)).toEqual([
+      'aint10',
+      'bint20changed',
+    ])
+    expect(within(copy).getByText(
+      'Before the assignment, variables a and b each directly contain the int value 10. After the assignment, a still contains 10 while b directly contains 20.',
+    )).toBeInTheDocument()
+  })
+
+  it('renders single and shared Python scalar rebinding semantics', async () => {
+    const user = userEvent.setup()
+    renderRuntimeWriting()
+    await user.click(screen.getByRole('radio', { name: 'Python' }))
+    const models = screen.getAllByRole('region', { name: 'Python runtime model' })
+    const single = models[5]
+    expect(single.querySelectorAll('[data-runtime-entity="name"]')).toHaveLength(2)
+    expect(single.querySelectorAll('[data-runtime-entity="object"]')).toHaveLength(2)
+    expect(within(single).getByText(
+      'Before the rebinding, the name count is bound to an int object representing 10. After the rebinding, count is bound to a different int object representing 20.',
+    )).toBeInTheDocument()
+
+    const split = models[6]
+    expect(split.querySelectorAll('[data-runtime-object-identity="original"]')).toHaveLength(2)
+    expect(split.querySelectorAll('[data-runtime-object-identity="new"]')).toHaveLength(1)
+    expect(split.querySelectorAll('[data-runtime-relationship-changed="true"]')).toHaveLength(1)
+    expect(within(split).getByText(
+      'Before the rebinding, the names a and b are bound to the same int object representing 10. After the rebinding, a remains bound to the original int object representing 10, while b is bound to a new int object representing 20.',
+    )).toBeInTheDocument()
+  })
+
   it('renders two declared-order sources converging on one shared object card', () => {
     renderRuntimeWriting()
     const sharedModel = screen.getAllByRole('region', { name: 'C# runtime model' })[2]
@@ -369,14 +524,14 @@ describe('RuntimeModel rendering', () => {
     await user.click(screen.getByRole('radio', { name: 'Compare' }))
 
     expect(screen.getByRole('radio', { name: 'Compare' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(5)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(7)
     expect(screen.queryByRole('region', { name: 'C# runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Java runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(5)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(7)
   })
 })
 
@@ -440,6 +595,27 @@ describe('runtimeModelDescription', () => {
     )
     expect(runtimeModelTransitionDescription(pythonBefore, pythonAfter)).toBe(
       'Before the rebinding, the names a and b are bound to the same Counter object, whose value field is 10. After the rebinding, a remains bound to the original Counter object with value 10, while b is bound to a new Counter object with value 20.',
+    )
+  })
+
+  it('describes current and changing scalar value semantics', () => {
+    expect(runtimeModelDescription(directValuesStates()[0])).toBe(
+      'Variables a and b each directly contain the int value 10.',
+    )
+    expect(runtimeModelDescription(directValuesStates()[1])).toBe(
+      'Variable b directly contains the int value 20, while variable a directly contains the int value 10.',
+    )
+    expect(runtimeModelTransitionDescription(...directChangeStates())).toBe(
+      'Variable count directly contains the int value 10 before the assignment. After the assignment, the same variable directly contains the int value 20.',
+    )
+    expect(runtimeModelTransitionDescription(...directValuesStates())).toBe(
+      'Before the assignment, variables a and b each directly contain the int value 10. After the assignment, a still contains 10 while b directly contains 20.',
+    )
+    expect(runtimeModelTransitionDescription(...singleScalarRebindingStates())).toBe(
+      'Before the rebinding, the name count is bound to an int object representing 10. After the rebinding, count is bound to a different int object representing 20.',
+    )
+    expect(runtimeModelTransitionDescription(...scalarSplitStates())).toBe(
+      'Before the rebinding, the names a and b are bound to the same int object representing 10. After the rebinding, a remains bound to the original int object representing 10, while b is bound to a new int object representing 20.',
     )
   })
 })

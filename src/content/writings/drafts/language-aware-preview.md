@@ -721,6 +721,188 @@ states:
 
 ::::
 
+## Change a scalar value
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int count = 10;
+count = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "10" }
+    relationships: []
+  - id: after
+    label: After assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "20" }
+    relationships: []
+```
+
+:::
+
+:::language java
+
+```java
+int count = 10;
+count = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "10" }
+    relationships: []
+  - id: after
+    label: After assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "20" }
+    relationships: []
+```
+
+:::
+
+:::language python
+
+```python
+count = 10
+count = 20
+```
+
+```model
+states:
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: count, kind: name, label: count }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+    relationships:
+      - { kind: binding, from: count, to: int-10 }
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: count, kind: name, label: count }
+      - { id: int-20, kind: object, typeLabel: int, scalarValue: "20" }
+    relationships:
+      - { kind: binding, from: count, to: int-20 }
+```
+
+:::
+
+::::
+
+## Copy a scalar value
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int a = 10;
+int b = a;
+b = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before assignment
+    entities:
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "10" } }
+    relationships: []
+  - id: after
+    label: After assignment
+    entities:
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "20" } }
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+    relationships: []
+```
+
+:::
+
+:::language java
+
+```java
+int a = 10;
+int b = a;
+b = 20;
+```
+
+```model
+states:
+  - id: after
+    label: After assignment
+    entities:
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "20" } }
+    relationships: []
+  - id: before
+    label: Before assignment
+    entities:
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "10" } }
+    relationships: []
+```
+
+:::
+
+:::language python
+
+```python
+a = 10
+b = a
+b = 20
+```
+
+```model
+states:
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: a, kind: name, label: a }
+      - { id: b, kind: name, label: b }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+    relationships:
+      - { kind: binding, from: b, to: int-10 }
+      - { kind: binding, from: a, to: int-10 }
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: int-20, kind: object, typeLabel: int, scalarValue: "20" }
+      - { id: b, kind: name, label: b }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+      - { id: a, kind: name, label: a }
+    relationships:
+      - { kind: binding, from: b, to: int-20 }
+      - { kind: binding, from: a, to: int-10 }
+```
+
+:::
+
+::::
+
 ## Keep one stable outline
 
 Only generic headings contribute to this page's Contents list.

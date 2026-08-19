@@ -15,6 +15,13 @@ export type RuntimeTopology =
       source: RuntimeVariableEntity & { directValue: RuntimeDirectValue }
     }
   | {
+      kind: 'direct-values'
+      sources: [
+        RuntimeVariableEntity & { directValue: RuntimeDirectValue },
+        RuntimeVariableEntity & { directValue: RuntimeDirectValue },
+      ]
+    }
+  | {
       kind: 'single-target'
       sources: [RuntimeSourceEntity]
       target: RuntimeObjectEntity
@@ -28,6 +35,9 @@ export type RuntimeTopology =
     }
 
 export type SharedTargetTopology = Extract<RuntimeTopology, { kind: 'shared-target' }>
+export type DirectValueTopology = Extract<RuntimeTopology, { kind: 'direct-value' }>
+export type DirectValuesTopology = Extract<RuntimeTopology, { kind: 'direct-values' }>
+export type SingleTargetTopology = Extract<RuntimeTopology, { kind: 'single-target' }>
 
 export interface SplitTargetTopology {
   kind: 'split-target'
@@ -61,7 +71,40 @@ export interface RuntimeSplitTransition {
   newTarget: RuntimeObjectEntity
 }
 
-export type RuntimeTransition = RuntimeMutationTransition | RuntimeSplitTransition
+export interface RuntimeDirectValueChange {
+  id: string
+  label: string
+  type: string
+  beforeValue: string
+  afterValue: string
+}
+
+export interface RuntimeDirectValueTransition {
+  kind: 'direct-value-change'
+  before: DirectValueTopology
+  after: DirectValueTopology
+  changedValues: [RuntimeDirectValueChange]
+}
+
+export interface RuntimeDirectValuesTransition {
+  kind: 'direct-values-change'
+  before: DirectValuesTopology
+  after: DirectValuesTopology
+  changedValues: RuntimeDirectValueChange[]
+}
+
+export interface RuntimeSingleScalarRebindingTransition {
+  kind: 'single-scalar-rebinding'
+  before: SingleTargetTopology
+  after: SingleTargetTopology
+}
+
+export type RuntimeTransition =
+  | RuntimeDirectValueTransition
+  | RuntimeDirectValuesTransition
+  | RuntimeSingleScalarRebindingTransition
+  | RuntimeMutationTransition
+  | RuntimeSplitTransition
 
 function defaultFailure(message: string): never {
   throw new Error(message)
@@ -134,14 +177,17 @@ export function classifyRuntimeTopology(
   const { entities, relationships } = state
 
   if (relationships.length === 0) {
-    const source = entities[0]
-    if (
-      entities.length !== 1 ||
-      !isDirectValueSource(source)
-    ) {
-      fail('unsupported runtime topology: expected one direct-value variable')
+    if (entities.length === 1 && isDirectValueSource(entities[0])) {
+      return { kind: 'direct-value', source: entities[0] }
     }
-    return { kind: 'direct-value', source }
+    if (
+      entities.length === 2 &&
+      isDirectValueSource(entities[0]) &&
+      isDirectValueSource(entities[1])
+    ) {
+      return { kind: 'direct-values', sources: [entities[0], entities[1]] }
+    }
+    fail('unsupported runtime topology: expected one or exactly two direct-value variables')
   }
 
   const entitiesById = new Map(entities.map((entity) => [entity.id, entity]))
@@ -287,11 +333,109 @@ export function classifyRuntimeTransition(
   fail: TopologyFailure = defaultFailure,
 ): RuntimeTransition {
   const before = classifyRuntimeTopology(beforeState, fail)
-  if (before.kind !== 'shared-target') {
-    fail('before/after runtime models require shared-target topology in the before state')
+
+  if (before.kind === 'direct-value') {
+    const after = classifyRuntimeTopology(afterState, fail)
+    if (after.kind !== 'direct-value') {
+      fail('direct-value change requires exactly one direct-value variable in both states')
+    }
+    if (before.source.id !== after.source.id) {
+      fail('direct-value change must retain the same variable id')
+    }
+    if (before.source.label !== after.source.label) {
+      fail('direct-value change must retain the variable label')
+    }
+    if (before.source.directValue.type !== after.source.directValue.type) {
+      fail('direct-value change must retain the directValue type')
+    }
+    if (before.source.directValue.value === after.source.directValue.value) {
+      fail('direct-value change must change the value')
+    }
+    return {
+      kind: 'direct-value-change',
+      before,
+      after,
+      changedValues: [{
+        id: before.source.id,
+        label: before.source.label,
+        type: before.source.directValue.type,
+        beforeValue: before.source.directValue.value,
+        afterValue: after.source.directValue.value,
+      }],
+    }
   }
-  if (!before.target.members) {
-    fail('before/after runtime models require object members; scalarValue is unsupported')
+
+  if (before.kind === 'direct-values') {
+    const after = classifyRuntimeTopology(afterState, fail)
+    if (after.kind !== 'direct-values') {
+      fail('direct-values change requires exactly two direct-value variables in both states')
+    }
+    if (!sameSet(before.sources.map(({ id }) => id), after.sources.map(({ id }) => id))) {
+      fail('direct-values change must retain the same variable id set')
+    }
+    const afterSources = new Map(after.sources.map((source) => [source.id, source]))
+    const changedValues = before.sources.flatMap((source): RuntimeDirectValueChange[] => {
+      const afterSource = afterSources.get(source.id)!
+      if (source.label !== afterSource.label) {
+        fail(`direct-value variable "${source.id}" must retain its label`)
+      }
+      if (source.directValue.type !== afterSource.directValue.type) {
+        fail(`direct-value variable "${source.id}" must retain its type`)
+      }
+      return source.directValue.value === afterSource.directValue.value
+        ? []
+        : [{
+            id: source.id,
+            label: source.label,
+            type: source.directValue.type,
+            beforeValue: source.directValue.value,
+            afterValue: afterSource.directValue.value,
+          }]
+    })
+    if (changedValues.length === 0) {
+      fail('direct-values change must change at least one value')
+    }
+    return { kind: 'direct-values-change', before, after, changedValues }
+  }
+
+  if (before.kind === 'single-target') {
+    const after = classifyRuntimeTopology(afterState, fail)
+    if (after.kind !== 'single-target') {
+      fail('single scalar rebinding requires single-target topology in both states')
+    }
+    const beforeSource = before.sources[0]
+    const afterSource = after.sources[0]
+    if (
+      beforeSource.kind !== 'name' ||
+      afterSource.kind !== 'name' ||
+      before.relationships[0].kind !== 'binding' ||
+      after.relationships[0].kind !== 'binding'
+    ) {
+      fail('before/after runtime models require shared-target topology unless using name/binding scalar rebinding')
+    }
+    if (beforeSource.id !== afterSource.id) {
+      fail('single scalar rebinding must retain the source id')
+    }
+    if (beforeSource.label !== afterSource.label) {
+      fail('single scalar rebinding must retain the source label')
+    }
+    if (before.target.scalarValue === undefined || after.target.scalarValue === undefined) {
+      fail('single scalar rebinding requires scalarValue targets; members are unsupported')
+    }
+    if (before.target.typeLabel !== after.target.typeLabel) {
+      fail('single scalar rebinding must retain the target typeLabel')
+    }
+    if (before.target.id === after.target.id) {
+      fail('single scalar rebinding must use a new target object id')
+    }
+    if (before.target.scalarValue === after.target.scalarValue) {
+      fail('single scalar rebinding must change the scalar value')
+    }
+    return { kind: 'single-scalar-rebinding', before, after }
+  }
+
+  if (before.kind !== 'shared-target') {
+    fail('before/after runtime models require a supported transition topology')
   }
 
   if (afterState.entities.length === 4) {
@@ -328,35 +472,52 @@ export function classifyRuntimeTransition(
     if (newTarget.typeLabel !== before.target.typeLabel) {
       fail('shared-target split new target must retain the original target typeLabel')
     }
-    if (!originalTargetAfter.members || !newTarget.members) {
-      fail('shared-target split requires member-backed objects; scalarValue is unsupported')
-    }
-
-    const assertSameMemberSchema = (
-      left: RuntimeObjectEntity,
-      right: RuntimeObjectEntity,
-      context: string,
-    ) => {
-      const leftMembers = left.members!
-      const rightMembers = right.members!
-      if (!sameSet(leftMembers.map(({ name }) => name), rightMembers.map(({ name }) => name))) {
-        fail(`${context} must retain the same member names`)
+    if (before.target.members) {
+      if (!originalTargetAfter.members || !newTarget.members) {
+        fail('shared-target split must retain the member-backed target representation')
       }
-      const rightByName = new Map(rightMembers.map((member) => [member.name, member]))
-      for (const member of leftMembers) {
-        if (rightByName.get(member.name)!.kind !== member.kind) {
-          fail(`${context} member "${member.name}" must retain its kind`)
+      const assertSameMemberSchema = (
+        left: RuntimeObjectEntity,
+        right: RuntimeObjectEntity,
+        context: string,
+      ) => {
+        const leftMembers = left.members!
+        const rightMembers = right.members!
+        if (!sameSet(leftMembers.map(({ name }) => name), rightMembers.map(({ name }) => name))) {
+          fail(`${context} must retain the same member names`)
+        }
+        const rightByName = new Map(rightMembers.map((member) => [member.name, member]))
+        for (const member of leftMembers) {
+          if (rightByName.get(member.name)!.kind !== member.kind) {
+            fail(`${context} member "${member.name}" must retain its kind`)
+          }
         }
       }
-    }
-    assertSameMemberSchema(before.target, originalTargetAfter, 'original target')
-    assertSameMemberSchema(before.target, newTarget, 'new target')
-    const originalAfterMembers = new Map(
-      originalTargetAfter.members.map((member) => [member.name, member]),
-    )
-    for (const member of before.target.members) {
-      if (originalAfterMembers.get(member.name)!.value !== member.value) {
-        fail('shared-target split must not mutate the original target')
+      assertSameMemberSchema(before.target, originalTargetAfter, 'original target')
+      assertSameMemberSchema(before.target, newTarget, 'new target')
+      const originalAfterMembers = new Map(
+        originalTargetAfter.members.map((member) => [member.name, member]),
+      )
+      for (const member of before.target.members) {
+        if (originalAfterMembers.get(member.name)!.value !== member.value) {
+          fail('shared-target split must not mutate the original target')
+        }
+      }
+    } else {
+      if (
+        before.sources[0].kind !== 'name' ||
+        before.relationships[0].kind !== 'binding' ||
+        originalTargetAfter.scalarValue === undefined ||
+        newTarget.scalarValue === undefined ||
+        before.target.scalarValue === undefined
+      ) {
+        fail('scalar shared-target split requires names, bindings, and scalarValue targets')
+      }
+      if (originalTargetAfter.scalarValue !== before.target.scalarValue) {
+        fail('shared-target split must not change the original scalar value')
+      }
+      if (newTarget.scalarValue === before.target.scalarValue) {
+        fail('scalar shared-target split new target must represent a different value')
       }
     }
 
@@ -403,6 +564,9 @@ export function classifyRuntimeTransition(
   }
   if (before.target.id !== after.target.id) {
     fail('before/after runtime model must retain the same target object id')
+  }
+  if (!before.target.members) {
+    fail('shared-target mutation requires object members; scalarValue is immutable')
   }
   if (before.target.typeLabel !== after.target.typeLabel) {
     fail('before/after runtime model must retain the target object typeLabel')
