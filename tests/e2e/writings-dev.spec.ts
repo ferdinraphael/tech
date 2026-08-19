@@ -4,6 +4,74 @@ import { readFile } from 'node:fs/promises'
 test.skip(process.env.WRITINGS_DEV_PREVIEW !== '1', 'Runs only against the bounded development preview.')
 
 const writingPath = './writings/framework-preview'
+const languageAwareWritingPath = './writings/language-aware-preview'
+
+test('language-aware prose supports single and Compare reading without navigation or overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 864 })
+  await page.goto(languageAwareWritingPath)
+  await page.evaluate(() => window.localStorage.clear())
+  await page.reload()
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Language-aware writing preview' })).toBeVisible()
+  const reader = page.getByRole('group', { name: 'Read this article as' })
+  await expect(reader).toHaveCount(1)
+  await expect(reader.getByRole('radio', { name: 'C#' })).toBeChecked()
+  await expect(page.getByText(/whose value is the integer/)).toBeVisible()
+  await expect(page.getByText(/primitive type/)).toHaveCount(0)
+  await page.screenshot({ path: 'visual-review/1536-language-aware-default.png', fullPage: false })
+
+  const initialUrl = page.url()
+  const java = reader.getByRole('radio', { name: 'Java' })
+  await java.scrollIntoViewIfNeeded()
+  const scrollBeforeJava = await page.evaluate(() => window.scrollY)
+  await java.click()
+  await expect(java).toBeFocused()
+  await expect(java).toBeChecked()
+  await expect(page.getByText(/primitive type/)).toBeVisible()
+  expect(page.url()).toBe(initialUrl)
+  expect(Math.abs((await page.evaluate(() => window.scrollY)) - scrollBeforeJava)).toBeLessThanOrEqual(2)
+  expect(await page.evaluate(() => window.localStorage.getItem('ferdinraphael.tech.preferred-code-language'))).toBe('java')
+
+  await page.reload()
+  await expect(page.getByRole('radio', { name: 'Java' })).toBeChecked()
+  await expect(page.getByText(/primitive type/)).toBeVisible()
+
+  await page.getByRole('radio', { name: 'Python' }).click()
+  await expect(page.getByText(/bound to an integer object/)).toBeVisible()
+  await page.getByRole('radio', { name: 'Compare' }).click()
+  await expect(page.getByRole('radio', { name: 'Compare' })).toBeChecked()
+  const comparisons = page.getByRole('region', { name: 'Language comparison' })
+  await expect(comparisons).toHaveCount(2)
+  await expect(comparisons.first().locator('p').filter({ hasText: /^(C#|Java|Python)$/ })).toHaveText(['C#', 'Java', 'Python'])
+  expect(await page.evaluate(() => window.localStorage.getItem('ferdinraphael.tech.preferred-code-language'))).toBe('python')
+  await page.screenshot({ path: 'visual-review/1536-language-aware-compare.png', fullPage: false })
+
+  await page.getByRole('radio', { name: 'Python' }).click()
+  await expect(page.getByRole('radio', { name: 'Python' })).toBeChecked()
+  await expect(page.getByText(/primitive type/)).toHaveCount(0)
+  expect(page.url()).toBe(initialUrl)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+
+  for (const viewport of [
+    { width: 360, height: 800 },
+    { width: 375, height: 667 },
+    { width: 412, height: 767 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.goto(languageAwareWritingPath)
+    await page.getByRole('radio', { name: 'Compare' }).click()
+    await expect(page.getByRole('region', { name: 'Language comparison' })).toHaveCount(2)
+    await expect(page.getByRole('radio', { name: 'Compare' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await page.screenshot({
+      path: `visual-review/${viewport.width}-language-aware-compare.png`,
+      fullPage: false,
+    })
+  }
+
+  await page.goto('./writings/when-the-workaround-becomes-the-architecture')
+  await expect(page.getByRole('group', { name: 'Read this article as' })).toHaveCount(0)
+})
 
 test('desktop writing tracks active headings, direct hashes, history, tabs, copy, and review states', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], {

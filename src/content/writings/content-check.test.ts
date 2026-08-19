@@ -16,6 +16,20 @@ describe('repository technical-writing content', () => {
     expect(writingCatalogue.published).not.toContain(preview)
   })
 
+  it('keeps the language-aware preview development-only with validated variants', () => {
+    const preview = writingCatalogue.all.find(
+      ({ slug }) => slug === 'language-aware-preview',
+    )
+    expect(preview).toEqual(expect.objectContaining({
+      draft: true,
+      format: 'article',
+      readerLanguages: ['csharp', 'java', 'python'],
+      defaultReaderLanguage: 'csharp',
+    }))
+    expect(preview?.segments.filter(({ type }) => type === 'language-content')).toHaveLength(2)
+    expect(writingCatalogue.published).not.toContain(preview)
+  })
+
   it('publishes the approved workaround architecture article with its editorial date', () => {
     const writing = writingCatalogue.all.find(
       ({ slug }) => slug === 'when-the-workaround-becomes-the-architecture',

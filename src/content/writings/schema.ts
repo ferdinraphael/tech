@@ -2,6 +2,12 @@ import GithubSlugger from 'github-slugger'
 import { load as loadYaml } from 'js-yaml'
 import { marked, type Token } from 'marked'
 import { projectIds, type ProjectId } from '../../data/site'
+import {
+  fenceStart,
+  isFenceClose,
+  scanWritingDirectives,
+  type DirectiveNode,
+} from './directives'
 import { isWritingFormat } from './formats'
 import { normalizeCodeLanguage } from './languages'
 import { isReaderLanguage, type ReaderLanguage } from './readerLanguages'
@@ -13,6 +19,7 @@ import type {
   WritingSegment,
   WritingSource,
   CodeSample,
+  LanguageContentVariant,
 } from './types'
 
 type MarkedToken = Token & { text?: string; tokens?: MarkedToken[] }
@@ -238,98 +245,152 @@ export function splitFrontmatter(
   }
 }
 
-function fenceStart(line: string): { marker: string; language?: string } | null {
-  const match = line.match(/^\s*(`{3,}|~{3,})\s*([^\s`~]+)?\s*$/)
-  return match ? { marker: match[1], language: match[2] } : null
+function parseCodeTabs(node: DirectiveNode, sourcePath: string): WritingSegment {
+  const lines = node.body.split('\n')
+  const samples: CodeSample[] = []
+  const languages = new Set<string>()
+  let index = 0
+
+  while (index < lines.length) {
+    if (lines[index].trim() === '') {
+      index += 1
+      continue
+    }
+    const fence = fenceStart(lines[index])
+    if (!fence?.language) {
+      fail(sourcePath, 'code-tabs groups may contain only labelled fenced code blocks')
+    }
+    const language = normalizeCodeLanguage(fence.language)
+    if (!language) {
+      fail(sourcePath, `unsupported code-tab language "${fence.language}"`)
+    }
+    if (languages.has(language)) {
+      fail(sourcePath, `code-tabs group repeats language "${language}"`)
+    }
+    languages.add(language)
+    index += 1
+    const code: string[] = []
+    while (index < lines.length && !isFenceClose(lines[index], fence.marker)) {
+      code.push(lines[index])
+      index += 1
+    }
+    if (index >= lines.length) {
+      fail(sourcePath, `unclosed ${fence.language} fence in code-tabs group`)
+    }
+    index += 1
+    samples.push({ language, code: code.join('\n').replace(/\s+$/, '') })
+  }
+
+  if (samples.length < 2) {
+    fail(sourcePath, 'code-tabs groups require at least two language blocks')
+  }
+  return { type: 'code-tabs', samples }
 }
 
-function isFenceClose(line: string, marker: string): boolean {
-  const character = marker[0]
-  return new RegExp(`^\\s*${character}{${marker.length},}\\s*$`).test(line)
+function validateRestrictedMarkdown(
+  source: string,
+  sourcePath: string,
+  line: number,
+): void {
+  let tokens: MarkedToken[]
+  try {
+    tokens = marked.lexer(source, { gfm: true }) as MarkedToken[]
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    fail(sourcePath, `line ${line}: language Markdown could not be parsed: ${message}`)
+  }
+  for (const token of tokens) {
+    if (token.type === 'heading') {
+      fail(sourcePath, `line ${line}: headings are not allowed in language-content`)
+    }
+    if (token.type !== 'space' && token.type !== 'paragraph' && token.type !== 'list') {
+      fail(
+        sourcePath,
+        `line ${line}: ${token.type} blocks are not allowed in language-content`,
+      )
+    }
+  }
+}
+
+function parseLanguageContent(
+  node: DirectiveNode,
+  sourcePath: string,
+  declaredLanguages: ReaderLanguage[] | undefined,
+): WritingSegment {
+  if (!declaredLanguages) {
+    fail(
+      sourcePath,
+      `line ${node.startLine}: language-content requires frontmatter readerLanguages`,
+    )
+  }
+
+  const variants: LanguageContentVariant[] = []
+  const seen = new Set<ReaderLanguage>()
+  const declared = new Set(declaredLanguages)
+  for (const child of node.children) {
+    const argument = child.argument?.trim()
+    if (!argument || /\s/.test(argument)) {
+      fail(
+        sourcePath,
+        `line ${child.startLine}: language blocks require exactly one language argument`,
+      )
+    }
+    if (!isReaderLanguage(argument)) {
+      fail(
+        sourcePath,
+        `line ${child.startLine}: unknown reader language "${argument}"`,
+      )
+    }
+    if (!declared.has(argument)) {
+      fail(
+        sourcePath,
+        `line ${child.startLine}: undeclared reader language "${argument}"`,
+      )
+    }
+    if (seen.has(argument)) {
+      fail(
+        sourcePath,
+        `line ${child.startLine}: language-content repeats language "${argument}"`,
+      )
+    }
+    const source = child.body.trim()
+    if (!source) {
+      fail(sourcePath, `line ${child.startLine}: language block cannot be empty`)
+    }
+    validateRestrictedMarkdown(source, sourcePath, child.startLine)
+    seen.add(argument)
+    variants.push({ language: argument, source })
+  }
+
+  for (const language of declaredLanguages) {
+    if (!seen.has(language)) {
+      fail(
+        sourcePath,
+        `line ${node.startLine}: language-content is missing declared language "${language}"`,
+      )
+    }
+  }
+
+  const byLanguage = new Map(variants.map((variant) => [variant.language, variant]))
+  return {
+    type: 'language-content',
+    variants: declaredLanguages.map((language) => byLanguage.get(language)!),
+  }
 }
 
 export function parseWritingSegments(
   body: string,
   sourcePath: string,
+  readerLanguages?: ReaderLanguage[],
 ): WritingSegment[] {
-  const lines = body.replace(/\r\n?/g, '\n').split('\n')
-  const segments: WritingSegment[] = []
-  let markdownStart = 0
-  let index = 0
-
-  while (index < lines.length) {
-    const ordinaryFence = fenceStart(lines[index])
-    if (ordinaryFence) {
-      index += 1
-      while (index < lines.length && !isFenceClose(lines[index], ordinaryFence.marker)) {
-        index += 1
-      }
-      index += 1
-      continue
-    }
-
-    if (!/^\s*:::code-tabs\s*$/.test(lines[index])) {
-      index += 1
-      continue
-    }
-
-    const markdown = lines.slice(markdownStart, index).join('\n').trim()
-    if (markdown) segments.push({ type: 'markdown', source: markdown })
-    index += 1
-    const samples: CodeSample[] = []
-    const languages = new Set<string>()
-    let closed = false
-
-    while (index < lines.length) {
-      if (/^\s*:::\s*$/.test(lines[index])) {
-        closed = true
-        index += 1
-        break
-      }
-      if (lines[index].trim() === '') {
-        index += 1
-        continue
-      }
-
-      const fence = fenceStart(lines[index])
-      if (!fence?.language) {
-        return fail(
-          sourcePath,
-          'code-tabs groups may contain only labelled fenced code blocks',
-        )
-      }
-      const language = normalizeCodeLanguage(fence.language)
-      if (!language) {
-        return fail(sourcePath, `unsupported code-tab language "${fence.language}"`)
-      }
-      if (languages.has(language)) {
-        return fail(sourcePath, `code-tabs group repeats language "${language}"`)
-      }
-      languages.add(language)
-      index += 1
-      const code: string[] = []
-      while (index < lines.length && !isFenceClose(lines[index], fence.marker)) {
-        code.push(lines[index])
-        index += 1
-      }
-      if (index >= lines.length) {
-        return fail(sourcePath, `unclosed ${fence.language} fence in code-tabs group`)
-      }
-      index += 1
-      samples.push({ language, code: code.join('\n').replace(/\s+$/, '') })
-    }
-
-    if (!closed) return fail(sourcePath, 'code-tabs group is missing its closing :::')
-    if (samples.length < 2) {
-      return fail(sourcePath, 'code-tabs groups require at least two language blocks')
-    }
-    segments.push({ type: 'code-tabs', samples })
-    markdownStart = index
-  }
-
-  const remainder = lines.slice(markdownStart).join('\n').trim()
-  if (remainder) segments.push({ type: 'markdown', source: remainder })
-  return segments
+  const parts = scanWritingDirectives(body, (line, message) =>
+    fail(sourcePath, `line ${line}: ${message}`),
+  )
+  return parts.map((part) => {
+    if (part.type === 'markdown') return { type: 'markdown', source: part.source }
+    if (part.node.name === 'code-tabs') return parseCodeTabs(part.node, sourcePath)
+    return parseLanguageContent(part.node, sourcePath, readerLanguages)
+  })
 }
 
 function tokenText(token: MarkedToken): string {
@@ -374,7 +435,7 @@ export function parseWritingSource(
 ): WritingRecord {
   const { frontmatter, body } = splitFrontmatter(input.source, input.path)
   const metadata = parseMetadata(frontmatter, input.path, validProjectIds)
-  const segments = parseWritingSegments(body, input.path)
+  const segments = parseWritingSegments(body, input.path, metadata.readerLanguages)
   return {
     ...metadata,
     slug: slugFromPath(input.path),

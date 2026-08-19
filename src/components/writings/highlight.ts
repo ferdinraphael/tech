@@ -3,6 +3,7 @@ import bash from 'highlight.js/lib/languages/bash'
 import csharp from 'highlight.js/lib/languages/csharp'
 import css from 'highlight.js/lib/languages/css'
 import javascript from 'highlight.js/lib/languages/javascript'
+import java from 'highlight.js/lib/languages/java'
 import json from 'highlight.js/lib/languages/json'
 import powershell from 'highlight.js/lib/languages/powershell'
 import python from 'highlight.js/lib/languages/python'
@@ -15,6 +16,7 @@ highlighter.registerLanguage('bash', bash)
 highlighter.registerLanguage('csharp', csharp)
 highlighter.registerLanguage('css', css)
 highlighter.registerLanguage('javascript', javascript)
+highlighter.registerLanguage('java', java)
 highlighter.registerLanguage('json', json)
 highlighter.registerLanguage('powershell', powershell)
 highlighter.registerLanguage('python', python)

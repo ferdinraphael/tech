@@ -33,6 +33,9 @@ function PreferenceProbe() {
       <button type="button" onClick={() => selectReaderLanguage('python')}>
         Read Python
       </button>
+      <button type="button" onClick={() => selectReaderLanguage('java')}>
+        Read Java
+      </button>
       <button type="button" onClick={selectCompare}>Compare</button>
       <button type="button" onClick={selectSingle}>Single</button>
     </>
@@ -96,6 +99,21 @@ describe('article language preference state', () => {
 
     await user.click(screen.getByRole('button', { name: 'Single' }))
     expect(screen.getByTestId('reading-state')).toHaveTextContent('single:python')
+  })
+
+  it('persists Java through the canonical preference path and restores it after reload', async () => {
+    const user = userEvent.setup()
+    const first = renderReaderProvider()
+
+    await user.click(screen.getByRole('button', { name: 'Read Java' }))
+    expect(screen.getByTestId('preferred-language')).toHaveTextContent('java')
+    expect(screen.getByTestId('reading-state')).toHaveTextContent('single:java')
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('java')
+    first.unmount()
+
+    renderReaderProvider()
+    expect(screen.getByTestId('preferred-language')).toHaveTextContent('java')
+    expect(screen.getByTestId('reading-state')).toHaveTextContent('single:java')
   })
 
   it('preserves ordinary-writing preference behavior and TypeScript support', async () => {

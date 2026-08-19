@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { writingFormatLabel, writingFormats } from './formats'
-import { normalizeCodeLanguage } from './languages'
+import { codeLanguageLabel, normalizeCodeLanguage } from './languages'
+import { highlightCode } from '../../components/writings/highlight'
 import { isReaderLanguage, readerLanguages } from './readerLanguages'
 import {
   WritingValidationError,
@@ -25,6 +26,29 @@ tags:
   - architecture
 technologies:
   - TypeScript`
+
+const readerMetadata = `${publishedMetadata}
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: csharp`
+
+const validLanguageContent = `::::language-content
+
+:::language csharp
+C# uses \`count\` with **strong** emphasis.
+:::
+
+:::language java
+Java uses \`count\` with *emphasis*.
+:::
+
+:::language python
+Python uses \`count\` and a [link](https://example.com).
+:::
+
+::::`
 
 describe('technical-writing schema', () => {
   it('parses valid frontmatter, filename slugs, and stable heading IDs', () => {
@@ -69,6 +93,13 @@ defaultReaderLanguage: csharp`))
     expect(isReaderLanguage('java')).toBe(true)
     expect(isReaderLanguage('typescript')).toBe(false)
     expect(normalizeCodeLanguage('typescript')).toBe('typescript')
+  })
+
+  it('adds Java to the canonical code-language and highlighting registry', () => {
+    expect(normalizeCodeLanguage('java')).toBe('java')
+    expect(codeLanguageLabel('java')).toBe('Java')
+    expect(() => highlightCode('int count = 10;', 'java')).not.toThrow()
+    expect(highlightCode('int count = 10;', 'java')).toContain('hljs-type')
   })
 
   it.each([
@@ -193,6 +224,92 @@ const value = 1
     expect(normalizeCodeLanguage('py')).toBe('python')
     expect(normalizeCodeLanguage('js')).toBe('javascript')
     expect(normalizeCodeLanguage('plaintext')).toBe('text')
+  })
+
+  it('parses ordered language-content variants and excludes their prose from the TOC', () => {
+    const writing = parseWritingSource(writingSource(
+      readerMetadata,
+      `## Stable heading\n\n${validLanguageContent}`,
+    ))
+    expect(writing.segments).toEqual([
+      { type: 'markdown', source: '## Stable heading' },
+      {
+        type: 'language-content',
+        variants: [
+          expect.objectContaining({ language: 'csharp', source: expect.stringContaining('C# uses') }),
+          expect.objectContaining({ language: 'java', source: expect.stringContaining('Java uses') }),
+          expect.objectContaining({ language: 'python', source: expect.stringContaining('Python uses') }),
+        ],
+      },
+    ])
+    expect(writing.headings).toEqual([
+      { depth: 2, text: 'Stable heading', id: 'stable-heading' },
+    ])
+  })
+
+  it.each([
+    [
+      'missing declared language',
+      validLanguageContent.replace(/\n:::language python[\s\S]*?\n:::\n\n::::$/, '\n::::'),
+      /missing declared language "python"/,
+    ],
+    [
+      'duplicate language',
+      validLanguageContent.replace(':::language java', ':::language csharp'),
+      /repeats language "csharp"/,
+    ],
+    [
+      'unknown language',
+      validLanguageContent.replace(':::language java', ':::language ruby'),
+      /unknown reader language "ruby"/,
+    ],
+    [
+      'undeclared language',
+      validLanguageContent.replace(':::language java', ':::language python')
+        .replace(':::language python\nPython', ':::language java\nPython'),
+      /undeclared reader language "java"/,
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - python\ndefaultReaderLanguage: csharp`,
+    ],
+    [
+      'without reader metadata',
+      validLanguageContent,
+      /requires frontmatter readerLanguages/,
+      publishedMetadata,
+    ],
+    [
+      'heading inside a variant',
+      validLanguageContent.replace('Java uses', '## Java heading\n\nJava uses'),
+      /headings are not allowed/,
+    ],
+    [
+      'nested framework directive',
+      validLanguageContent.replace('Java uses', ':::code-tabs\nJava uses'),
+      /nested framework directives/,
+    ],
+    [
+      'missing outer close',
+      validLanguageContent.replace(/\n::::$/, ''),
+      /language-content is missing its closing ::::/,
+    ],
+    [
+      'missing child close',
+      validLanguageContent.replace('Java uses `count` with *emphasis*.\n:::', 'Java uses `count` with *emphasis*.'),
+      /language block is missing its closing :::/,
+    ],
+  ])('rejects invalid language-content: %s', (_label, body, expected, metadata = readerMetadata) => {
+    expect(() => parseWritingSource(writingSource(metadata, body))).toThrow(expected)
+  })
+
+  it('does not mistake directive-looking content in an ordinary code fence for directives', () => {
+    const body = `## Example\n\n\`\`\`text\n::::language-content\n:::language java\n\`\`\``
+    const writing = parseWritingSource(writingSource(readerMetadata, body))
+    expect(writing.segments).toEqual([{ type: 'markdown', source: body }])
+  })
+
+  it('parses language-content equivalently with LF and CRLF line endings', () => {
+    const lf = writingSource(readerMetadata, validLanguageContent)
+    const crlf = { ...lf, source: lf.source.replace(/\n/g, '\r\n') }
+    expect(parseWritingSource(crlf)).toEqual(parseWritingSource(lf))
   })
 
   it.each([

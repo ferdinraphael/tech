@@ -50,9 +50,15 @@ export interface CodeSample {
   code: string
 }
 
+export interface LanguageContentVariant {
+  language: ReaderLanguage
+  source: string
+}
+
 export type WritingSegment =
   | { type: 'markdown'; source: string }
   | { type: 'code-tabs'; samples: CodeSample[] }
+  | { type: 'language-content'; variants: LanguageContentVariant[] }
 
 export interface WritingRecord extends WritingMetadata {
   slug: string
@@ -64,6 +70,7 @@ export interface WritingRecord extends WritingMetadata {
 
 export type CanonicalCodeLanguage =
   | 'csharp'
+  | 'java'
   | 'typescript'
   | 'javascript'
   | 'python'
