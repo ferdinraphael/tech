@@ -5,12 +5,16 @@ import { CodeTabs } from './CodeTabs'
 import { LanguageContent } from './LanguageContent'
 import { MarkdownBlocks } from './MarkdownBlocks'
 import { ReadAsControl } from './ReadAsControl'
+import { RuntimeModel } from './RuntimeModel'
 import styles from './Writings.module.css'
 
 export function MarkdownWriting({ segments }: { segments: WritingSegment[] }) {
   const slugger = new GithubSlugger()
   const firstLanguageAwareContent = segments.findIndex(
-    (segment) => segment.type === 'code-tabs' || segment.type === 'language-content',
+    (segment) =>
+      segment.type === 'code-tabs' ||
+      segment.type === 'language-content' ||
+      segment.type === 'runtime-model',
   )
 
   return (
@@ -22,6 +26,8 @@ export function MarkdownWriting({ segments }: { segments: WritingSegment[] }) {
             <CodeTabs samples={segment.samples} />
           ) : segment.type === 'language-content' ? (
             <LanguageContent variants={segment.variants} segmentIndex={index} />
+          ) : segment.type === 'runtime-model' ? (
+            <RuntimeModel variants={segment.variants} />
           ) : (
             <MarkdownBlocks
               source={segment.source}

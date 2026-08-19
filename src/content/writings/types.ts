@@ -55,10 +55,73 @@ export interface LanguageContentVariant {
   source: string
 }
 
+export type LanguageVariant<T> = T & { language: ReaderLanguage }
+
+export interface RuntimeDirectValue {
+  type: string
+  value: string
+}
+
+export interface RuntimeObjectMember {
+  name: string
+  kind: 'field' | 'property'
+  value: string
+}
+
+export interface RuntimeVariableEntity {
+  id: string
+  kind: 'variable'
+  label: string
+  directValue?: RuntimeDirectValue
+}
+
+export interface RuntimeNameEntity {
+  id: string
+  kind: 'name'
+  label: string
+}
+
+export interface RuntimeObjectEntity {
+  id: string
+  kind: 'object'
+  typeLabel: string
+  scalarValue?: string
+  fields?: RuntimeObjectMember[]
+}
+
+export type RuntimeEntity =
+  | RuntimeVariableEntity
+  | RuntimeNameEntity
+  | RuntimeObjectEntity
+
+export interface RuntimeRelationship {
+  kind: 'reference' | 'binding'
+  from: string
+  to: string
+}
+
+export interface RuntimeState {
+  id: 'current'
+  label: string
+  entities: RuntimeEntity[]
+  relationships: RuntimeRelationship[]
+}
+
+export interface RuntimeModelVariant {
+  code: CodeSample
+  states: RuntimeState[]
+}
+
+export interface RuntimeModelSegment {
+  type: 'runtime-model'
+  variants: LanguageVariant<RuntimeModelVariant>[]
+}
+
 export type WritingSegment =
   | { type: 'markdown'; source: string }
   | { type: 'code-tabs'; samples: CodeSample[] }
   | { type: 'language-content'; variants: LanguageContentVariant[] }
+  | RuntimeModelSegment
 
 export interface WritingRecord extends WritingMetadata {
   slug: string

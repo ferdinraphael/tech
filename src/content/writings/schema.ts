@@ -11,6 +11,7 @@ import {
 import { isWritingFormat } from './formats'
 import { normalizeCodeLanguage } from './languages'
 import { isReaderLanguage, type ReaderLanguage } from './readerLanguages'
+import { validateRuntimeModel } from './runtimeModelSchema'
 import type {
   WritingCatalogue,
   WritingHeading,
@@ -20,6 +21,8 @@ import type {
   WritingSource,
   CodeSample,
   LanguageContentVariant,
+  LanguageVariant,
+  RuntimeModelVariant,
 } from './types'
 
 type MarkedToken = Token & { text?: string; tokens?: MarkedToken[] }
@@ -409,6 +412,142 @@ function parseLanguageContent(
   }
 }
 
+function parseRuntimeModelVariant(
+  child: DirectiveNode,
+  language: ReaderLanguage,
+  sourcePath: string,
+): RuntimeModelVariant {
+  const lines = child.body.split('\n')
+  let code: CodeSample | undefined
+  let states: RuntimeModelVariant['states'] | undefined
+  let index = 0
+
+  while (index < lines.length) {
+    if (lines[index].trim() === '') {
+      index += 1
+      continue
+    }
+    const fenceLine = child.startLine + index + 1
+    const fence = fenceStart(lines[index])
+    if (!fence?.language) {
+      fail(
+        sourcePath,
+        `line ${fenceLine}: runtime-model language variants may contain only labelled code and model fences`,
+      )
+    }
+    index += 1
+    const content: string[] = []
+    while (index < lines.length && !isFenceClose(lines[index], fence.marker)) {
+      content.push(lines[index])
+      index += 1
+    }
+    if (index >= lines.length) {
+      fail(sourcePath, `line ${fenceLine}: ${fence.language} fence is not closed`)
+    }
+    index += 1
+    const source = content.join('\n').replace(/\s+$/, '')
+
+    if (fence.language.toLowerCase() === 'model') {
+      if (states) {
+        fail(sourcePath, `line ${fenceLine}: runtime-model variant repeats its model fence`)
+      }
+      let modelValue: unknown
+      try {
+        modelValue = loadYaml(source)
+      } catch (error) {
+        const message = error instanceof Error ? error.message.split('\n')[0] : String(error)
+        fail(sourcePath, `line ${fenceLine}: invalid runtime-model YAML: ${message}`)
+      }
+      states = validateRuntimeModel(modelValue, (message) =>
+        fail(sourcePath, `line ${fenceLine}: ${message}`),
+      )
+      continue
+    }
+
+    const codeLanguage = normalizeCodeLanguage(fence.language)
+    if (!codeLanguage) {
+      fail(sourcePath, `line ${fenceLine}: unsupported runtime-model code language "${fence.language}"`)
+    }
+    if (code) {
+      fail(sourcePath, `line ${fenceLine}: runtime-model variant repeats its code fence`)
+    }
+    if (codeLanguage !== language) {
+      fail(
+        sourcePath,
+        `line ${fenceLine}: runtime-model code language "${codeLanguage}" does not match variant "${language}"`,
+      )
+    }
+    if (!source) fail(sourcePath, `line ${fenceLine}: runtime-model code fence cannot be empty`)
+    code = { language: codeLanguage, code: source }
+  }
+
+  if (!code) {
+    fail(sourcePath, `line ${child.startLine}: runtime-model variant requires exactly one code fence`)
+  }
+  if (!states) {
+    fail(sourcePath, `line ${child.startLine}: runtime-model variant requires exactly one model fence`)
+  }
+  return { code, states }
+}
+
+function parseRuntimeModel(
+  node: DirectiveNode,
+  sourcePath: string,
+  declaredLanguages: ReaderLanguage[] | undefined,
+): WritingSegment {
+  if (!declaredLanguages) {
+    fail(
+      sourcePath,
+      `line ${node.startLine}: runtime-model requires frontmatter readerLanguages`,
+    )
+  }
+
+  const variants: Array<LanguageVariant<RuntimeModelVariant>> = []
+  const seen = new Set<ReaderLanguage>()
+  const declared = new Set(declaredLanguages)
+  for (const child of node.children) {
+    const argument = child.argument?.trim()
+    if (!argument || /\s/.test(argument)) {
+      fail(
+        sourcePath,
+        `line ${child.startLine}: runtime-model language blocks require exactly one language argument`,
+      )
+    }
+    if (!isReaderLanguage(argument)) {
+      fail(sourcePath, `line ${child.startLine}: unknown reader language "${argument}"`)
+    }
+    if (!declared.has(argument)) {
+      fail(sourcePath, `line ${child.startLine}: undeclared reader language "${argument}"`)
+    }
+    if (seen.has(argument)) {
+      fail(
+        sourcePath,
+        `line ${child.startLine}: runtime-model repeats language "${argument}"`,
+      )
+    }
+    seen.add(argument)
+    variants.push({
+      language: argument,
+      ...parseRuntimeModelVariant(child, argument, sourcePath),
+    })
+  }
+
+  for (const language of declaredLanguages) {
+    if (!seen.has(language)) {
+      fail(
+        sourcePath,
+        `line ${node.startLine}: runtime-model is missing declared language "${language}"`,
+      )
+    }
+  }
+
+  const byLanguage = new Map(variants.map((variant) => [variant.language, variant]))
+  return {
+    type: 'runtime-model',
+    variants: declaredLanguages.map((language) => byLanguage.get(language)!),
+  }
+}
+
 export function parseWritingSegments(
   body: string,
   sourcePath: string,
@@ -422,7 +561,10 @@ export function parseWritingSegments(
     if (part.node.name === 'code-tabs') {
       return parseCodeTabs(part.node, sourcePath, readerLanguages)
     }
-    return parseLanguageContent(part.node, sourcePath, readerLanguages)
+    if (part.node.name === 'language-content') {
+      return parseLanguageContent(part.node, sourcePath, readerLanguages)
+    }
+    return parseRuntimeModel(part.node, sourcePath, readerLanguages)
   })
 }
 

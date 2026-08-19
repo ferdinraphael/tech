@@ -1,4 +1,8 @@
-export type KnownDirectiveName = 'code-tabs' | 'language-content' | 'language'
+export type KnownDirectiveName =
+  | 'code-tabs'
+  | 'language-content'
+  | 'runtime-model'
+  | 'language'
 
 export interface DirectiveNode {
   name: KnownDirectiveName
@@ -136,9 +140,10 @@ function scanLanguageChild(
   failure(openIndex + 1, 'language block is missing its closing :::')
 }
 
-function scanLanguageContent(
+function scanLanguageContainer(
   lines: string[],
   openIndex: number,
+  name: 'language-content' | 'runtime-model',
   failure: DirectiveFailure,
 ): { node: DirectiveNode; nextIndex: number } {
   let index = openIndex + 1
@@ -148,7 +153,7 @@ function scanLanguageContent(
     if (isDirectiveClose(lines[index], 4)) {
       return {
         node: {
-          name: 'language-content',
+          name,
           markerLength: 4,
           startLine: openIndex + 1,
           body: '',
@@ -166,7 +171,7 @@ function scanLanguageContent(
     if (!start || start.markerLength !== 3 || start.name !== 'language') {
       failure(
         index + 1,
-        'language-content may contain only :::language blocks',
+        `${name} may contain only :::language blocks`,
       )
     }
     const child = scanLanguageChild(lines, index, start, failure)
@@ -174,7 +179,7 @@ function scanLanguageContent(
     index = child.nextIndex
   }
 
-  failure(openIndex + 1, 'language-content is missing its closing ::::')
+  failure(openIndex + 1, `${name} is missing its closing ::::`)
 }
 
 export function scanWritingDirectives(
@@ -207,7 +212,9 @@ export function scanWritingDirectives(
       start?.markerLength === 3 && start.name === 'code-tabs' && !start.argument
     const isLanguageContent =
       start?.markerLength === 4 && start.name === 'language-content' && !start.argument
-    if (!isCodeTabs && !isLanguageContent) {
+    const isRuntimeModel =
+      start?.markerLength === 4 && start.name === 'runtime-model' && !start.argument
+    if (!isCodeTabs && !isLanguageContent && !isRuntimeModel) {
       index += 1
       continue
     }
@@ -215,7 +222,12 @@ export function scanWritingDirectives(
     flushMarkdown(index)
     const scanned = isCodeTabs
       ? scanCodeTabs(lines, index, failure)
-      : scanLanguageContent(lines, index, failure)
+      : scanLanguageContainer(
+          lines,
+          index,
+          isLanguageContent ? 'language-content' : 'runtime-model',
+          failure,
+        )
     parts.push({ type: 'directive', node: scanned.node })
     index = scanned.nextIndex
     markdownStart = index

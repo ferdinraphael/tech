@@ -132,6 +132,9 @@ test('production Writings publishes the article while remaining draft-safe and c
   await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Writings', exact: true }).first()).toHaveAttribute('aria-current', 'page')
 
+  await page.goto('./writings/language-aware-preview')
+  await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
+
   await page.goto('./notes/when-the-workaround-becomes-the-architecture')
   await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture$/)
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()

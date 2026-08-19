@@ -28,6 +28,7 @@ describe('repository technical-writing content', () => {
     }))
     expect(preview?.segments.filter(({ type }) => type === 'language-content')).toHaveLength(2)
     expect(preview?.segments.filter(({ type }) => type === 'code-tabs')).toHaveLength(2)
+    expect(preview?.segments.filter(({ type }) => type === 'runtime-model')).toHaveLength(2)
     expect(writingCatalogue.published).not.toContain(preview)
   })
 

@@ -99,6 +99,179 @@ The assignment rebinds the name.
 
 ::::
 
+## Runtime model: number
+
+The code and its conceptual runtime model form one language-aware teaching unit.
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int count = 10;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue:
+          type: int
+          value: "10"
+    relationships: []
+```
+
+:::
+
+:::language java
+
+```java
+int count = 10;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue:
+          type: int
+          value: "10"
+    relationships: []
+```
+
+:::
+
+:::language python
+
+```python
+count = 10
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: name
+        label: count
+      - id: int-10
+        kind: object
+        typeLabel: int
+        scalarValue: "10"
+    relationships:
+      - kind: binding
+        from: count
+        to: int-10
+```
+
+:::
+
+::::
+
+## Runtime model: object
+
+Each language shows one source associated with one `Counter` object.
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        fields:
+          - name: Value
+            kind: property
+            value: "10"
+    relationships:
+      - kind: reference
+        from: a
+        to: counter
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        fields:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: reference
+        from: a
+        to: counter
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: name
+        label: a
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        fields:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: binding
+        from: a
+        to: counter
+```
+
+:::
+
+::::
+
 ## Keep one stable outline
 
 Only generic headings contribute to this page's Contents list.

@@ -151,6 +151,44 @@ defaultReaderLanguage: csharp
 
 Every `:::code-tabs` group in such a writing must contain exactly the declared reader languages once each. In single-language mode, Read As, language-content prose, and every code-tabs group share one selection. Selecting a code tab changes the article-wide reading language. Compare mode renders every code sample in declared language order as labelled code blocks, without tab controls or tab semantics. Writings without `readerLanguages` retain the ordinary independent code-tabs behavior described above.
 
+## Basic runtime models
+
+A `::::runtime-model` is available only in a language-aware writing. It contains exactly one `:::language` variant for every declared reader language, and variants are normalized to `readerLanguages` order. Each variant owns exactly one matching language code fence and one `model` fence:
+
+````markdown
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int count = 10;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue:
+          type: int
+          value: "10"
+    relationships: []
+```
+
+:::
+
+<!-- Add the complete Java and Python variants here. -->
+
+::::
+````
+
+The `model` fence is parsed as semantic YAML and never displayed as source. Stage D supports one state whose ID is `current`, one direct-value variable, or one variable/reference or Python name/binding associated with one object. Objects contain either a scalar value or a non-empty `fields` list whose members are marked as `field` or `property`. Authors describe entities and relationships only; coordinates, styling instructions, and other rendering data are invalid.
+
+Shared targets, multiple source/object pairs, and before/after states are not supported. During Compare, runtime models temporarily render only the retained selected-language variant; code-tabs and language-content keep their full Compare behavior.
+
 ## Related projects and series
 
 Use `relatedProjects` only with verified project IDs from the shared site data. Each valid ID adds contextual project information after the writing. Use `series.name` and a positive `series.order` only when the writing genuinely belongs to an ordered sequence.
