@@ -18,11 +18,27 @@ defaultReaderLanguage: csharp
 featured: false
 ---
 
-This development fixture exercises language-aware prose without changing ordinary Markdown or code tabs.
+This development fixture exercises synchronized language-aware prose and code.
 
 ## Start with a number
 
 The same value can be described through each language's own model.
+
+:::code-tabs
+
+```csharp
+int count = 10;
+```
+
+```java
+int count = 10;
+```
+
+```python
+count = 10
+```
+
+:::
 
 ::::language-content
 
@@ -41,6 +57,22 @@ The name `count` is **bound** to an integer object representing `10`.
 ::::
 
 ## Change the value
+
+:::code-tabs
+
+```csharp
+count = 11;
+```
+
+```java
+count = 11;
+```
+
+```python
+count = 11
+```
+
+:::
 
 ::::language-content
 

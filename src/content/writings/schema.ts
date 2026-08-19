@@ -245,7 +245,11 @@ export function splitFrontmatter(
   }
 }
 
-function parseCodeTabs(node: DirectiveNode, sourcePath: string): WritingSegment {
+function parseCodeTabs(
+  node: DirectiveNode,
+  sourcePath: string,
+  declaredLanguages?: ReaderLanguage[],
+): WritingSegment {
   const lines = node.body.split('\n')
   const samples: CodeSample[] = []
   const languages = new Set<string>()
@@ -284,6 +288,33 @@ function parseCodeTabs(node: DirectiveNode, sourcePath: string): WritingSegment 
   if (samples.length < 2) {
     fail(sourcePath, 'code-tabs groups require at least two language blocks')
   }
+
+  if (declaredLanguages) {
+    const declared = new Set(declaredLanguages)
+    for (const sample of samples) {
+      if (!isReaderLanguage(sample.language) || !declared.has(sample.language)) {
+        fail(
+          sourcePath,
+          `line ${node.startLine}: language-aware code-tabs contains undeclared reader language "${sample.language}"`,
+        )
+      }
+    }
+    for (const language of declaredLanguages) {
+      if (!languages.has(language)) {
+        fail(
+          sourcePath,
+          `line ${node.startLine}: language-aware code-tabs is missing declared language "${language}"`,
+        )
+      }
+    }
+
+    const byLanguage = new Map(samples.map((sample) => [sample.language, sample]))
+    return {
+      type: 'code-tabs',
+      samples: declaredLanguages.map((language) => byLanguage.get(language)!),
+    }
+  }
+
   return { type: 'code-tabs', samples }
 }
 
@@ -388,7 +419,9 @@ export function parseWritingSegments(
   )
   return parts.map((part) => {
     if (part.type === 'markdown') return { type: 'markdown', source: part.source }
-    if (part.node.name === 'code-tabs') return parseCodeTabs(part.node, sourcePath)
+    if (part.node.name === 'code-tabs') {
+      return parseCodeTabs(part.node, sourcePath, readerLanguages)
+    }
     return parseLanguageContent(part.node, sourcePath, readerLanguages)
   })
 }

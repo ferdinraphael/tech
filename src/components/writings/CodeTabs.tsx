@@ -1,21 +1,65 @@
 import { useId, useRef } from 'react'
 import { codeLanguageLabel } from '../../content/writings/languages'
+import { isReaderLanguage } from '../../content/writings/readerLanguages'
 import type { CodeSample } from '../../content/writings/types'
 import { CodeBlock } from './CodeBlock'
 import { useLanguagePreference } from './useLanguagePreference'
 import styles from './Writings.module.css'
 
 export function CodeTabs({ samples }: { samples: CodeSample[] }) {
-  const { preferredLanguage, selectLanguage } = useLanguagePreference()
+  const {
+    preferredLanguage,
+    selectLanguage,
+    readerConfiguration,
+    readingState,
+    selectReaderLanguage,
+  } = useLanguagePreference()
+  const languageAware = Boolean(readerConfiguration && readingState)
+  const selectedLanguage = languageAware ? readingState?.language : preferredLanguage
   const activeSample =
-    samples.find((sample) => sample.language === preferredLanguage) ?? samples[0]
+    samples.find((sample) => sample.language === selectedLanguage) ?? samples[0]
   const id = useId().replaceAll(':', '')
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   function moveSelection(index: number) {
     const sample = samples[index]
-    selectLanguage(sample.language)
+    selectSample(sample)
     tabRefs.current[index]?.focus()
+  }
+
+  function selectSample(sample: CodeSample) {
+    if (languageAware) {
+      if (!isReaderLanguage(sample.language)) {
+        throw new Error(`language-aware code-tabs contains ${sample.language}`)
+      }
+      selectReaderLanguage(sample.language)
+      return
+    }
+    selectLanguage(sample.language)
+  }
+
+  if (languageAware && readingState.mode === 'compare') {
+    return (
+      <section
+        className={styles.codeComparison}
+        aria-label="Equivalent code comparison"
+      >
+        {samples.map((sample) => (
+          <div key={sample.language} className={styles.codeComparisonItem}>
+            <p className={styles.codeComparisonLabel}>
+              {codeLanguageLabel(sample.language)}
+            </p>
+            <CodeBlock
+              code={sample.code}
+              language={sample.language}
+              label={codeLanguageLabel(sample.language)}
+              showLanguageLabel={false}
+              standalone={false}
+            />
+          </div>
+        ))}
+      </section>
+    )
   }
 
   return (
@@ -34,7 +78,7 @@ export function CodeTabs({ samples }: { samples: CodeSample[] }) {
               aria-selected={selected}
               aria-controls={`${id}-panel`}
               tabIndex={selected ? 0 : -1}
-              onClick={() => selectLanguage(sample.language)}
+              onClick={() => selectSample(sample)}
               onKeyDown={(event) => {
                 let nextIndex: number | null = null
                 if (event.key === 'ArrowRight') nextIndex = (index + 1) % samples.length

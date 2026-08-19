@@ -125,6 +125,7 @@ Draft and published files use the same schema. Invalid dates, formats, duplicate
 Ordinary fenced blocks receive syntax highlighting, a language label when recognised, horizontal overflow, and a copy action. Supported aliases include:
 
 - `csharp`, `cs`
+- `java`
 - `typescript`, `ts`
 - `javascript`, `js`
 - `python`, `py`
@@ -137,6 +138,18 @@ Ordinary fenced blocks receive syntax highlighting, a language label when recogn
 - `text`, `plaintext`
 
 A `:::code-tabs` group must contain at least two labelled fenced blocks and cannot repeat a canonical language. Selecting a language stores the preference under `ferdinraphael.tech.preferred-code-language` and synchronises compatible groups. A group without the preferred language falls back to its first example without changing the stored preference.
+
+Language-aware writings declare their supported reading languages and default in frontmatter:
+
+```yaml
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: csharp
+```
+
+Every `:::code-tabs` group in such a writing must contain exactly the declared reader languages once each. In single-language mode, Read As, language-content prose, and every code-tabs group share one selection. Selecting a code tab changes the article-wide reading language. Compare mode renders every code sample in declared language order as labelled code blocks, without tab controls or tab semantics. Writings without `readerLanguages` retain the ordinary independent code-tabs behavior described above.
 
 ## Related projects and series
 

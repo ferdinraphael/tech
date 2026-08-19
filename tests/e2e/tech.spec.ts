@@ -109,9 +109,12 @@ test('production Writings publishes the article while remaining draft-safe and c
   await expect(page.getByText('DRAFT', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Unpublished draft', { exact: true })).toHaveCount(0)
   await expect(page.getByText('FRAMEWORK PREVIEW', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('group', { name: 'Read this article as' })).toHaveCount(0)
   await page.screenshot({ path: 'visual-review/1536-workaround-published-article-top.png', fullPage: false })
 
   await expect(page.getByRole('tab', { name: 'C#' })).toHaveCount(8)
+  await expect(page.getByRole('tab', { name: 'TypeScript' })).toHaveCount(8)
+  await expect(page.getByRole('tab', { name: 'Python' })).toHaveCount(8)
   await page.getByRole('tab', { name: 'TypeScript' }).first().click()
   await expect(page.getByRole('tab', { name: 'TypeScript', selected: true })).toHaveCount(8)
   const firstPanel = page.getByRole('tabpanel').first()

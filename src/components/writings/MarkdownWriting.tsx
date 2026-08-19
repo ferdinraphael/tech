@@ -9,15 +9,15 @@ import styles from './Writings.module.css'
 
 export function MarkdownWriting({ segments }: { segments: WritingSegment[] }) {
   const slugger = new GithubSlugger()
-  const firstLanguageContent = segments.findIndex(
-    (segment) => segment.type === 'language-content',
+  const firstLanguageAwareContent = segments.findIndex(
+    (segment) => segment.type === 'code-tabs' || segment.type === 'language-content',
   )
 
   return (
     <div className={styles.markdownBody}>
       {segments.map((segment, index) => (
         <Fragment key={`${segment.type}-${index}`}>
-          {index === firstLanguageContent ? <ReadAsControl /> : null}
+          {index === firstLanguageAwareContent ? <ReadAsControl /> : null}
           {segment.type === 'code-tabs' ? (
             <CodeTabs samples={segment.samples} />
           ) : segment.type === 'language-content' ? (

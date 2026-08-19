@@ -6,7 +6,7 @@ test.skip(process.env.WRITINGS_DEV_PREVIEW !== '1', 'Runs only against the bound
 const writingPath = './writings/framework-preview'
 const languageAwareWritingPath = './writings/language-aware-preview'
 
-test('language-aware prose supports single and Compare reading without navigation or overflow', async ({ page }) => {
+test('language-aware prose and code stay synchronized in single and Compare reading', async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 864 })
   await page.goto(languageAwareWritingPath)
   await page.evaluate(() => window.localStorage.clear())
@@ -16,51 +16,113 @@ test('language-aware prose supports single and Compare reading without navigatio
   const reader = page.getByRole('group', { name: 'Read this article as' })
   await expect(reader).toHaveCount(1)
   await expect(reader.getByRole('radio', { name: 'C#' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'C#', selected: true })).toHaveCount(2)
+  await expect(page.getByRole('tabpanel').nth(0)).toContainText('int count = 10;')
+  await expect(page.getByRole('tabpanel').nth(1)).toContainText('count = 11;')
   await expect(page.getByText(/whose value is the integer/)).toBeVisible()
   await expect(page.getByText(/primitive type/)).toHaveCount(0)
   await page.screenshot({ path: 'visual-review/1536-language-aware-default.png', fullPage: false })
 
-  const initialUrl = page.url()
-  const java = reader.getByRole('radio', { name: 'Java' })
-  await java.scrollIntoViewIfNeeded()
+  const initialLocation = await page.evaluate(() => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    historyLength: window.history.length,
+  }))
+  const javaTab = page.getByRole('tab', { name: 'Java' }).first()
+  await javaTab.scrollIntoViewIfNeeded()
   const scrollBeforeJava = await page.evaluate(() => window.scrollY)
-  await java.click()
-  await expect(java).toBeFocused()
-  await expect(java).toBeChecked()
+  await javaTab.click()
+  await expect(javaTab).toBeFocused()
+  await expect(reader.getByRole('radio', { name: 'Java' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Java', selected: true })).toHaveCount(2)
+  await expect(page.getByRole('tabpanel').nth(0)).toContainText('int count = 10;')
+  await expect(page.getByRole('tabpanel').nth(1)).toContainText('count = 11;')
   await expect(page.getByText(/primitive type/)).toBeVisible()
-  expect(page.url()).toBe(initialUrl)
   expect(Math.abs((await page.evaluate(() => window.scrollY)) - scrollBeforeJava)).toBeLessThanOrEqual(2)
   expect(await page.evaluate(() => window.localStorage.getItem('ferdinraphael.tech.preferred-code-language'))).toBe('java')
 
   await page.reload()
   await expect(page.getByRole('radio', { name: 'Java' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Java', selected: true })).toHaveCount(2)
   await expect(page.getByText(/primitive type/)).toBeVisible()
 
   await page.getByRole('radio', { name: 'Python' }).click()
+  await expect(reader.getByRole('radio', { name: 'Python' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Python', selected: true })).toHaveCount(2)
+  await expect(page.getByRole('tabpanel').nth(0)).toContainText('count = 10')
+  await expect(page.getByRole('tabpanel').nth(1)).toContainText('count = 11')
   await expect(page.getByText(/bound to an integer object/)).toBeVisible()
+  await page.evaluate(() => {
+    const copied: string[] = []
+    ;(window as typeof window & { __copiedComparedCode?: string[] }).__copiedComparedCode = copied
+    Object.defineProperty(navigator.clipboard, 'writeText', {
+      configurable: true,
+      value: async (text: string) => { copied.push(text) },
+    })
+  })
   await page.getByRole('radio', { name: 'Compare' }).click()
   await expect(page.getByRole('radio', { name: 'Compare' })).toBeChecked()
+  await expect(page.getByRole('tablist')).toHaveCount(0)
+  await expect(page.getByRole('tab')).toHaveCount(0)
+  await expect(page.getByRole('tabpanel')).toHaveCount(0)
+  const codeComparisons = page.getByRole('region', { name: 'Equivalent code comparison' })
+  await expect(codeComparisons).toHaveCount(2)
+  await expect(codeComparisons.first().locator('p')).toHaveText(['C#', 'Java', 'Python'])
+  await expect(codeComparisons.first().locator('code.language-csharp .hljs-number')).toHaveText('10')
+  await expect(codeComparisons.first().locator('code.language-java .hljs-number')).toHaveText('10')
+  await expect(codeComparisons.first().locator('code.language-python .hljs-number')).toHaveText('10')
+  const expectedComparedCode = [
+    ['C#', 'int count = 10;'],
+    ['Java', 'int count = 10;'],
+    ['Python', 'count = 10'],
+    ['C#', 'count = 11;'],
+    ['Java', 'count = 11;'],
+    ['Python', 'count = 11'],
+  ] as const
+  for (const [index, [language, expected]] of expectedComparedCode.entries()) {
+    await codeComparisons.nth(Math.floor(index / 3))
+      .getByRole('button', { name: `Copy ${language} code` })
+      .click()
+    const copied = await page.evaluate(() =>
+      (window as typeof window & { __copiedComparedCode?: string[] }).__copiedComparedCode,
+    )
+    expect(copied?.at(-1)).toBe(expected)
+  }
   const comparisons = page.getByRole('region', { name: 'Language comparison' })
   await expect(comparisons).toHaveCount(2)
   await expect(comparisons.first().locator('p').filter({ hasText: /^(C#|Java|Python)$/ })).toHaveText(['C#', 'Java', 'Python'])
+  await expect(page.getByText(/whose value is the integer/)).toBeVisible()
+  await expect(page.getByText(/primitive type/)).toBeVisible()
+  await expect(page.getByText(/bound to an integer object/)).toBeVisible()
   expect(await page.evaluate(() => window.localStorage.getItem('ferdinraphael.tech.preferred-code-language'))).toBe('python')
   await page.screenshot({ path: 'visual-review/1536-language-aware-compare.png', fullPage: false })
 
   await page.getByRole('radio', { name: 'Python' }).click()
   await expect(page.getByRole('radio', { name: 'Python' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Python', selected: true })).toHaveCount(2)
   await expect(page.getByText(/primitive type/)).toHaveCount(0)
-  expect(page.url()).toBe(initialUrl)
+  expect(await page.evaluate(() => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    historyLength: window.history.length,
+  }))).toEqual(initialLocation)
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
   for (const viewport of [
     { width: 360, height: 800 },
     { width: 375, height: 667 },
     { width: 412, height: 767 },
+    { width: 768, height: 1024 },
   ]) {
     await page.setViewportSize(viewport)
     await page.goto(languageAwareWritingPath)
     await page.getByRole('radio', { name: 'Compare' }).click()
+    await expect(page.getByRole('radio', { name: 'Compare' })).toBeChecked()
     await expect(page.getByRole('region', { name: 'Language comparison' })).toHaveCount(2)
+    await expect(page.getByRole('region', { name: 'Equivalent code comparison' })).toHaveCount(2)
+    await expect(page.getByRole('tab')).toHaveCount(0)
     await expect(page.getByRole('radio', { name: 'Compare' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     await page.screenshot({
@@ -71,6 +133,7 @@ test('language-aware prose supports single and Compare reading without navigatio
 
   await page.goto('./writings/when-the-workaround-becomes-the-architecture')
   await expect(page.getByRole('group', { name: 'Read this article as' })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'TypeScript' }).first()).toBeVisible()
 })
 
 test('desktop writing tracks active headings, direct hashes, history, tabs, copy, and review states', async ({ page, context }) => {

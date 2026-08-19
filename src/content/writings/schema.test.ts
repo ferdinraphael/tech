@@ -226,6 +226,62 @@ const value = 1
     expect(normalizeCodeLanguage('plaintext')).toBe('text')
   })
 
+  it('requires language-aware code tabs to match declared reader languages exactly', () => {
+    const body = `## Examples
+
+:::code-tabs
+
+\`\`\`python
+value = 1
+\`\`\`
+
+\`\`\`cs
+var value = 1;
+\`\`\`
+
+\`\`\`java
+var value = 1;
+\`\`\`
+
+:::`
+    const writing = parseWritingSource(writingSource(readerMetadata, body))
+    const tabs = writing.segments.find((segment) => segment.type === 'code-tabs')
+
+    expect(tabs).toEqual({
+      type: 'code-tabs',
+      samples: [
+        expect.objectContaining({ language: 'csharp' }),
+        expect.objectContaining({ language: 'java' }),
+        expect.objectContaining({ language: 'python' }),
+      ],
+    })
+  })
+
+  it.each([
+    [
+      'missing a declared language',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```java\nb\n```\n\n:::',
+      /missing declared language "python"/,
+    ],
+    [
+      'containing an undeclared language',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```java\nb\n```\n\n```typescript\nc\n```\n\n:::',
+      /undeclared reader language "typescript"/,
+    ],
+    [
+      'repeating a declared language through an alias',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```cs\nb\n```\n\n```java\nc\n```\n\n```python\nd\n```\n\n:::',
+      /repeats language "csharp"/,
+    ],
+    [
+      'containing an unsupported language',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```java\nb\n```\n\n```ruby\nc\n```\n\n:::',
+      /unsupported code-tab language "ruby"/,
+    ],
+  ])('rejects language-aware code tabs %s', (_label, body, expected) => {
+    expect(() => parseWritingSource(writingSource(readerMetadata, body))).toThrow(expected)
+  })
+
   it('parses ordered language-content variants and excludes their prose from the TOC', () => {
     const writing = parseWritingSource(writingSource(
       readerMetadata,

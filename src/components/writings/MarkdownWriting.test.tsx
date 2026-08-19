@@ -45,6 +45,26 @@ const languageSegments: WritingSegment[] = [
   },
 ]
 
+const languageAwareCodeSegments: WritingSegment[] = [
+  {
+    type: 'code-tabs',
+    samples: [
+      { language: 'csharp', code: 'int first = 1;' },
+      { language: 'java', code: 'int first = 1;' },
+      { language: 'python', code: 'first = 1' },
+    ],
+  },
+  ...languageSegments,
+  {
+    type: 'code-tabs',
+    samples: [
+      { language: 'csharp', code: 'int second = 2;' },
+      { language: 'java', code: 'int second = 2;' },
+      { language: 'python', code: 'second = 2' },
+    ],
+  },
+]
+
 function renderWriting(segments: WritingSegment[], languageAware = false) {
   return render(
     <LanguagePreferenceProvider
@@ -245,5 +265,44 @@ describe('Markdown writing rendering', () => {
     renderWriting(languageSegments, true)
     expect(screen.getByRole('radio', { name: 'C#' })).toBeChecked()
     expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('typescript')
+  })
+
+  it('synchronizes language-aware code tabs with Read As and language-content', async () => {
+    const user = userEvent.setup()
+    renderWriting(languageAwareCodeSegments, true)
+
+    expect(screen.getAllByRole('group', { name: 'Read this article as' })).toHaveLength(1)
+    expect(screen.getAllByRole('tab', { name: 'C#', selected: true })).toHaveLength(2)
+    await user.click(screen.getAllByRole('tab', { name: 'Java' })[0])
+
+    expect(screen.getByRole('radio', { name: 'Java' })).toBeChecked()
+    expect(screen.getAllByRole('tab', { name: 'Java', selected: true })).toHaveLength(2)
+    expect(screen.getByText(/Java first uses/)).toBeInTheDocument()
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('java')
+
+    await user.click(screen.getByRole('radio', { name: 'Python' }))
+    expect(screen.getAllByRole('tab', { name: 'Python', selected: true })).toHaveLength(2)
+    expect(screen.getByText(/Python first uses/)).toBeInTheDocument()
+  })
+
+  it('renders every language-aware code sample in Compare without tab semantics', async () => {
+    const user = userEvent.setup()
+    renderWriting(languageAwareCodeSegments, true)
+    await user.click(screen.getByRole('radio', { name: 'Compare' }))
+
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tabpanel')).not.toBeInTheDocument()
+    const comparisons = screen.getAllByRole('region', { name: 'Equivalent code comparison' })
+    expect(comparisons).toHaveLength(2)
+    expect(within(comparisons[0]).getAllByText(/^(C#|Java|Python)$/).map((node) => node.textContent))
+      .toEqual(['C#', 'Java', 'Python'])
+    expect(within(comparisons[0]).getByLabelText('C# code'))
+      .toHaveTextContent('int first = 1;')
+    expect(within(comparisons[0]).getByLabelText('Java code'))
+      .toHaveTextContent('int first = 1;')
+    expect(within(comparisons[0]).getByLabelText('Python code'))
+      .toHaveTextContent('first = 1')
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBeNull()
   })
 })

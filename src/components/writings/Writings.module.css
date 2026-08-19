@@ -746,6 +746,39 @@
   box-shadow: none;
 }
 
+.codeComparison {
+  display: grid;
+  gap: 14px;
+}
+
+.codeComparisonItem {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(53, 215, 255, 0.28);
+  border-radius: var(--radius-md);
+  background: rgba(4, 15, 24, 0.82);
+}
+
+.markdownBody .codeComparisonLabel {
+  margin: 0;
+  padding: 10px 14px;
+  color: var(--color-cyan);
+  background: rgba(8, 25, 37, 0.9);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.codeComparisonItem .codeBlock {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .tabList {
   display: flex;
   min-height: 48px;
