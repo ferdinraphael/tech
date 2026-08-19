@@ -4,8 +4,10 @@ import type {
   LanguageVariant,
   RuntimeModelVariant,
   RuntimeObjectEntity,
+  RuntimeSourceEntity,
   RuntimeState,
 } from '../../content/writings/types'
+import { classifyRuntimeTopology } from '../../content/writings/runtimeModelTopology'
 import { CodeBlock } from './CodeBlock'
 import { runtimeModelDescription } from './runtimeModelDescription'
 import { useLanguagePreference } from './useLanguagePreference'
@@ -13,13 +15,13 @@ import styles from './RuntimeModel.module.css'
 
 function ObjectCard({ object }: { object: RuntimeObjectEntity }) {
   return (
-    <div className={styles.objectCard}>
+    <div className={styles.objectCard} data-runtime-entity="object">
       <p className={styles.objectType}>{object.typeLabel}</p>
       {object.scalarValue !== undefined ? (
         <p className={styles.scalarValue}>{object.scalarValue}</p>
       ) : (
         <dl className={styles.members}>
-          {(object.fields ?? []).map((member) => (
+          {(object.members ?? []).map((member) => (
             <div key={member.name}>
               <dt>
                 {member.name}
@@ -34,23 +36,30 @@ function ObjectCard({ object }: { object: RuntimeObjectEntity }) {
   )
 }
 
+function SourceCard({ source }: { source: RuntimeSourceEntity }) {
+  return (
+    <div className={styles.sourceCard} data-runtime-entity={source.kind}>
+      <span>{source.kind}</span>
+      <strong>{source.label}</strong>
+    </div>
+  )
+}
+
 function RuntimeModelState({ state }: { state: RuntimeState }) {
   const descriptionId = useId()
   const description = runtimeModelDescription(state)
+  const topology = classifyRuntimeTopology(state)
 
-  if (state.relationships.length === 0) {
-    const variable = state.entities.find((entity) => entity.kind === 'variable')
-    if (!variable || variable.kind !== 'variable' || !variable.directValue) {
-      throw new Error('Direct runtime model is missing its value variable')
-    }
+  if (topology.kind === 'direct-value') {
+    const { source } = topology
     return (
       <figure className={styles.state} aria-describedby={descriptionId}>
         <figcaption>{state.label}</figcaption>
         <div className={styles.directModel} aria-hidden="true">
-          <p className={styles.sourceLabel}>{variable.label}</p>
+          <p className={styles.sourceLabel}>{source.label}</p>
           <div className={styles.valueCard}>
-            <span>{variable.directValue.type}</span>
-            <strong>{variable.directValue.value}</strong>
+            <span>{source.directValue.type}</span>
+            <strong>{source.directValue.value}</strong>
           </div>
         </div>
         <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>
@@ -58,25 +67,42 @@ function RuntimeModelState({ state }: { state: RuntimeState }) {
     )
   }
 
-  const relationship = state.relationships[0]
-  const source = state.entities.find((entity) => entity.id === relationship.from)
-  const target = state.entities.find((entity) => entity.id === relationship.to)
-  if (!source || (source.kind !== 'variable' && source.kind !== 'name')) {
-    throw new Error('Runtime model source is missing')
+  if (topology.kind === 'shared-target') {
+    return (
+      <figure className={styles.state} aria-describedby={descriptionId}>
+        <figcaption>{state.label}</figcaption>
+        <div className={styles.sharedRelationshipModel} aria-hidden="true">
+          <div className={styles.sharedSources}>
+            {topology.sources.map((source) => (
+              <SourceCard key={source.id} source={source} />
+            ))}
+          </div>
+          <svg
+            className={styles.sharedConnector}
+            viewBox="0 0 72 100"
+            preserveAspectRatio="none"
+            focusable="false"
+          >
+            <path d="M0 24 H20 Q32 24 32 38 V50 H60" />
+            <path d="M0 76 H20 Q32 76 32 62 V50" />
+            <path className={styles.arrowHead} d="M59 42 L72 50 L59 58 Z" />
+          </svg>
+          <span className={styles.sharedArrowMobile}>↓</span>
+          <ObjectCard object={topology.target} />
+        </div>
+        <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>
+      </figure>
+    )
   }
-  if (!target || target.kind !== 'object') {
-    throw new Error('Runtime model object is missing')
-  }
+
+  const [source] = topology.sources
   return (
     <figure className={styles.state} aria-describedby={descriptionId}>
       <figcaption>{state.label}</figcaption>
       <div className={styles.relationshipModel} aria-hidden="true">
-        <div className={styles.sourceCard}>
-          <span>{source.kind}</span>
-          <strong>{source.label}</strong>
-        </div>
+        <SourceCard source={source} />
         <span className={styles.arrow}>→</span>
-        <ObjectCard object={target} />
+        <ObjectCard object={topology.target} />
       </div>
       <p id={descriptionId} className={styles.visuallyHidden}>{description}</p>
     </figure>
@@ -106,7 +132,7 @@ export function RuntimeModel({
   const variant = variants.find(({ language }) => language === readingState.language)
   if (!variant) throw new Error(`runtime-model is missing ${readingState.language}`)
 
-  // Stage D deliberately retains the selected language during Compare. A later
+  // Runtime models deliberately retain the selected language during Compare. A later
   // stage can add a true multi-language model comparison without changing state.
   return (
     <section

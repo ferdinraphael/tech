@@ -78,6 +78,42 @@
   gap: 14px;
 }
 
+.sharedRelationshipModel {
+  display: grid;
+  grid-template-columns: minmax(105px, 0.65fr) 58px minmax(180px, 1.35fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.sharedSources {
+  display: grid;
+  gap: 12px;
+}
+
+.sharedConnector {
+  width: 58px;
+  height: 100%;
+  min-height: 104px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-violet);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.sharedConnector .arrowHead {
+  fill: var(--color-violet);
+  stroke: none;
+}
+
+.sharedArrowMobile {
+  display: none;
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+  font-size: 24px;
+}
+
 .sourceCard {
   display: grid;
   padding: 14px;
@@ -177,12 +213,22 @@
   }
 
   .directModel,
-  .relationshipModel {
+  .relationshipModel,
+  .sharedRelationshipModel {
     grid-template-columns: 1fr;
   }
 
   .arrow {
     transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .sharedConnector {
+    display: none;
+  }
+
+  .sharedArrowMobile {
+    display: block;
     justify-self: center;
   }
 }

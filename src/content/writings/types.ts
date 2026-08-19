@@ -86,12 +86,13 @@ export interface RuntimeObjectEntity {
   kind: 'object'
   typeLabel: string
   scalarValue?: string
-  fields?: RuntimeObjectMember[]
+  members?: RuntimeObjectMember[]
 }
 
+export type RuntimeSourceEntity = RuntimeVariableEntity | RuntimeNameEntity
+
 export type RuntimeEntity =
-  | RuntimeVariableEntity
-  | RuntimeNameEntity
+  | RuntimeSourceEntity
   | RuntimeObjectEntity
 
 export interface RuntimeRelationship {

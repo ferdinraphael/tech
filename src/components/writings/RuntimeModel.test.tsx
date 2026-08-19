@@ -35,13 +35,46 @@ function objectState(
     label: 'Current',
     entities: [
       { id: 'a', kind: sourceKind, label: 'a' },
-      { id: 'counter', kind: 'object', typeLabel: 'Counter', fields: [member] },
+      { id: 'counter', kind: 'object', typeLabel: 'Counter', members: [member] },
     ],
     relationships: [{
       kind: sourceKind === 'name' ? 'binding' : 'reference',
       from: 'a',
       to: 'counter',
     }],
+  }
+}
+
+function sharedState(
+  sourceKind: 'variable' | 'name',
+  member?: RuntimeObjectMember,
+  typeLabel = 'Counter',
+): RuntimeState {
+  return {
+    id: 'current',
+    label: 'Current',
+    entities: [
+      { id: 'a', kind: sourceKind, label: 'a' },
+      { id: 'b', kind: sourceKind, label: 'b' },
+      {
+        id: 'counter',
+        kind: 'object',
+        typeLabel,
+        ...(member ? { members: [member] } : { scalarValue: '10' }),
+      },
+    ],
+    relationships: [
+      {
+        kind: sourceKind === 'name' ? 'binding' : 'reference',
+        from: 'b',
+        to: 'counter',
+      },
+      {
+        kind: sourceKind === 'name' ? 'binding' : 'reference',
+        from: 'a',
+        to: 'counter',
+      },
+    ],
   }
 }
 
@@ -85,6 +118,26 @@ function objectVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
   ]
 }
 
+function sharedVariants(): Array<LanguageVariant<RuntimeModelVariant>> {
+  return [
+    {
+      language: 'csharp',
+      code: { language: 'csharp', code: 'var a = new Counter { Value = 10 };\nvar b = a;' },
+      states: [sharedState('variable', { name: 'Value', kind: 'property', value: '10' })],
+    },
+    {
+      language: 'java',
+      code: { language: 'java', code: 'Counter a = new Counter(10);\nCounter b = a;' },
+      states: [sharedState('variable', { name: 'value', kind: 'field', value: '10' })],
+    },
+    {
+      language: 'python',
+      code: { language: 'python', code: 'a = Counter(value=10)\nb = a' },
+      states: [sharedState('name', { name: 'value', kind: 'field', value: '10' })],
+    },
+  ]
+}
+
 const runtimeSegments: WritingSegment[] = [
   { type: 'runtime-model', variants: numberVariants() },
   {
@@ -104,6 +157,7 @@ const runtimeSegments: WritingSegment[] = [
     ],
   },
   { type: 'runtime-model', variants: objectVariants() },
+  { type: 'runtime-model', variants: sharedVariants() },
 ]
 
 function renderRuntimeWriting() {
@@ -143,14 +197,14 @@ describe('RuntimeModel rendering', () => {
     const user = userEvent.setup()
     renderRuntimeWriting()
     await user.click(screen.getByRole('radio', { name: 'Java' }))
-    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(2)
+    expect(screen.getAllByRole('region', { name: 'Java runtime model' })).toHaveLength(3)
     expect(screen.getByText('Java prose.')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Java', selected: true })).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
     const pythonModels = screen.getAllByRole('region', { name: 'Python runtime model' })
-    expect(pythonModels).toHaveLength(2)
+    expect(pythonModels).toHaveLength(3)
     expect(screen.getByText('Python prose.')).toBeInTheDocument()
     expect(within(pythonModels[0]).getByText(
       'The name count is bound to an int object representing 10.',
@@ -158,6 +212,37 @@ describe('RuntimeModel rendering', () => {
     expect(within(pythonModels[1]).getByText('Counter')).toBeInTheDocument()
     expect(within(pythonModels[1]).getByText('value')).toBeInTheDocument()
     expect(within(pythonModels[1]).getByText('field')).toBeInTheDocument()
+  })
+
+  it('renders two declared-order sources converging on one shared object card', () => {
+    renderRuntimeWriting()
+    const sharedModel = screen.getAllByRole('region', { name: 'C# runtime model' })[2]
+    const sourceCards = sharedModel.querySelectorAll('[data-runtime-entity="variable"]')
+    expect(Array.from(sourceCards, (source) => source.textContent)).toEqual(['variablea', 'variableb'])
+    expect(sharedModel.querySelectorAll('[data-runtime-entity="object"]')).toHaveLength(1)
+    expect(within(sharedModel).getByText(
+      'Variables a and b refer to the same Counter object. Its Value property is 10.',
+    )).toBeInTheDocument()
+    expect(within(sharedModel).getByText('Value')).toBeInTheDocument()
+    expect(within(sharedModel).getByText('property')).toBeInTheDocument()
+  })
+
+  it('switches shared references and bindings with Read As and code tabs', async () => {
+    const user = userEvent.setup()
+    renderRuntimeWriting()
+    await user.click(screen.getByRole('radio', { name: 'Java' }))
+    const javaShared = screen.getAllByRole('region', { name: 'Java runtime model' })[2]
+    expect(javaShared.querySelectorAll('[data-runtime-entity="variable"]')).toHaveLength(2)
+    expect(within(javaShared).getByText(
+      'Variables a and b refer to the same Counter object. Its value field is 10.',
+    )).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Python' }))
+    const pythonShared = screen.getAllByRole('region', { name: 'Python runtime model' })[2]
+    expect(pythonShared.querySelectorAll('[data-runtime-entity="name"]')).toHaveLength(2)
+    expect(within(pythonShared).getByText(
+      'The names a and b are bound to the same Counter object. Its value field is 10.',
+    )).toBeInTheDocument()
   })
 
   it('copies exact runtime-model code through the shared CodeBlock', async () => {
@@ -176,14 +261,14 @@ describe('RuntimeModel rendering', () => {
     await user.click(screen.getByRole('radio', { name: 'Compare' }))
 
     expect(screen.getByRole('radio', { name: 'Compare' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(2)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(3)
     expect(screen.queryByRole('region', { name: 'C# runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Java runtime model' })).not.toBeInTheDocument()
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('radio', { name: 'Python' }))
     expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
-    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(2)
+    expect(screen.getAllByRole('region', { name: 'Python runtime model' })).toHaveLength(3)
   })
 })
 
@@ -201,5 +286,17 @@ describe('runtimeModelDescription', () => {
     expect(runtimeModelDescription(
       objectState('variable', { name: 'Value', kind: 'property', value: '10' }),
     )).toBe('Variable a refers to a Counter object. Its Value property is 10.')
+  })
+
+  it('describes shared references, bindings, and scalar objects with same-object semantics', () => {
+    expect(runtimeModelDescription(
+      sharedState('variable', { name: 'Value', kind: 'property', value: '10' }),
+    )).toBe('Variables a and b refer to the same Counter object. Its Value property is 10.')
+    expect(runtimeModelDescription(
+      sharedState('name', { name: 'value', kind: 'field', value: '10' }),
+    )).toBe('The names a and b are bound to the same Counter object. Its value field is 10.')
+    expect(runtimeModelDescription(sharedState('variable', undefined, 'int'))).toBe(
+      'Variables a and b refer to the same int object representing 10.',
+    )
   })
 })

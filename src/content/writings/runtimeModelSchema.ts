@@ -5,6 +5,7 @@ import type {
   RuntimeRelationship,
   RuntimeState,
 } from './types'
+import { classifyRuntimeTopology } from './runtimeModelTopology'
 
 type RuntimeModelFailure = (message: string) => never
 
@@ -125,25 +126,25 @@ function parseEntity(
   }
 
   if (entity.kind === 'object') {
-    allowedKeys(entity, ['id', 'kind', 'typeLabel', 'scalarValue', 'fields'], context, fail)
+    allowedKeys(entity, ['id', 'kind', 'typeLabel', 'scalarValue', 'members'], context, fail)
     const scalarValue = entity.scalarValue === undefined
       ? undefined
       : nonEmptyString(entity.scalarValue, `${context}.scalarValue`, fail)
-    const fields = entity.fields === undefined
+    const members = entity.members === undefined
       ? undefined
-      : parseObjectMembers(entity.fields, `${context}.fields`, fail)
-    if (scalarValue !== undefined && fields !== undefined) {
-      fail(`${context} cannot contain both scalarValue and fields in Stage D`)
+      : parseObjectMembers(entity.members, `${context}.members`, fail)
+    if (scalarValue !== undefined && members !== undefined) {
+      fail(`${context} cannot contain both scalarValue and members`)
     }
-    if (scalarValue === undefined && fields === undefined) {
-      fail(`${context} requires scalarValue or fields in Stage D`)
+    if (scalarValue === undefined && members === undefined) {
+      fail(`${context} requires scalarValue or members`)
     }
     return {
       id,
       kind: 'object',
       typeLabel: nonEmptyString(entity.typeLabel, `${context}.typeLabel`, fail),
       ...(scalarValue === undefined ? {} : { scalarValue }),
-      ...(fields === undefined ? {} : { fields }),
+      ...(members === undefined ? {} : { members }),
     }
   }
 
@@ -168,71 +169,6 @@ function parseRelationship(
   }
 }
 
-function validateRelationships(
-  entities: RuntimeEntity[],
-  relationships: RuntimeRelationship[],
-  fail: RuntimeModelFailure,
-): void {
-  const byId = new Map(entities.map((entity) => [entity.id, entity]))
-  const seen = new Set<string>()
-
-  for (const relationship of relationships) {
-    const key = `${relationship.kind}\0${relationship.from}\0${relationship.to}`
-    if (seen.has(key)) fail('state contains a duplicate relationship')
-    seen.add(key)
-    const source = byId.get(relationship.from)
-    const target = byId.get(relationship.to)
-    if (!source) fail(`relationship source "${relationship.from}" does not exist`)
-    if (!target) fail(`relationship target "${relationship.to}" does not exist`)
-    if (relationship.kind === 'reference' && source.kind !== 'variable') {
-      fail('reference relationships must originate from a variable')
-    }
-    if (relationship.kind === 'binding' && source.kind !== 'name') {
-      fail('binding relationships must originate from a name')
-    }
-    if (target.kind !== 'object') {
-      fail(`${relationship.kind} relationships must target an object`)
-    }
-    if (source.kind === 'variable' && source.directValue) {
-      fail('a direct-value variable cannot also reference an object in Stage D')
-    }
-  }
-
-  const targetCounts = new Map<string, number>()
-  for (const relationship of relationships) {
-    targetCounts.set(relationship.to, (targetCounts.get(relationship.to) ?? 0) + 1)
-  }
-  if ([...targetCounts.values()].some((count) => count > 1)) {
-    fail('shared-target relationships are unsupported in Stage D')
-  }
-}
-
-function validateTopology(
-  entities: RuntimeEntity[],
-  relationships: RuntimeRelationship[],
-  fail: RuntimeModelFailure,
-): void {
-  if (relationships.length === 0) {
-    if (
-      entities.length !== 1 ||
-      entities[0].kind !== 'variable' ||
-      !entities[0].directValue
-    ) {
-      fail('unsupported Stage D topology: expected one direct-value variable')
-    }
-    return
-  }
-
-  if (relationships.length !== 1 || entities.length !== 2) {
-    fail('unsupported Stage D topology: expected one source and one object')
-  }
-  const relationship = relationships[0]
-  const entityIds = new Set(entities.map(({ id }) => id))
-  if (!entityIds.has(relationship.from) || !entityIds.has(relationship.to)) {
-    fail('unsupported Stage D topology: unrelated entities are present')
-  }
-}
-
 export function validateRuntimeModel(
   value: unknown,
   fail: RuntimeModelFailure,
@@ -241,11 +177,11 @@ export function validateRuntimeModel(
   allowedKeys(root, ['states'], 'model root', fail)
   if (root.states === undefined) fail('model root requires states')
   const rawStates = array(root.states, 'model states', fail)
-  if (rawStates.length !== 1) fail('Stage D runtime models require exactly one state')
+  if (rawStates.length !== 1) fail('runtime models require exactly one state')
 
   const rawState = mapping(rawStates[0], 'state', fail)
   allowedKeys(rawState, ['id', 'label', 'entities', 'relationships'], 'state', fail)
-  if (rawState.id !== 'current') fail('Stage D state id must be "current"')
+  if (rawState.id !== 'current') fail('runtime-model state id must be "current"')
   const label = nonEmptyString(rawState.label, 'state.label', fail)
   const rawEntities = array(rawState.entities, 'state.entities', fail)
   if (rawEntities.length === 0) fail('state.entities must not be empty')
@@ -259,7 +195,6 @@ export function validateRuntimeModel(
   const relationships = array(rawState.relationships, 'state.relationships', fail)
     .map((relationship, index) => parseRelationship(relationship, index, fail))
 
-  validateRelationships(entities, relationships, fail)
-  validateTopology(entities, relationships, fail)
+  classifyRuntimeTopology({ entities, relationships }, fail)
   return [{ id: 'current', label, entities, relationships }]
 }

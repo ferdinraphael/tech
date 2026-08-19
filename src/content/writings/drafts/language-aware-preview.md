@@ -200,7 +200,7 @@ states:
       - id: counter
         kind: object
         typeLabel: Counter
-        fields:
+        members:
           - name: Value
             kind: property
             value: "10"
@@ -229,7 +229,7 @@ states:
       - id: counter
         kind: object
         typeLabel: Counter
-        fields:
+        members:
           - name: value
             kind: field
             value: "10"
@@ -258,13 +258,151 @@ states:
       - id: counter
         kind: object
         typeLabel: Counter
-        fields:
+        members:
           - name: value
             kind: field
             value: "10"
     relationships:
       - kind: binding
         from: a
+        to: counter
+```
+
+:::
+
+::::
+
+## Copy the object reference
+
+Assigning `a` to `b` makes both sources identify the same `Counter` object.
+
+::::language-content
+
+:::language csharp
+
+The reference value is copied, so both variables refer to the same object.
+
+:::
+
+:::language java
+
+The object reference is copied, so both variables refer to the same object.
+
+:::
+
+:::language python
+
+`b` becomes another name bound to the same object.
+
+:::
+
+::::
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+var b = a;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: b
+        kind: variable
+        label: b
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: Value
+            kind: property
+            value: "10"
+    relationships:
+      - kind: reference
+        from: b
+        to: counter
+      - kind: reference
+        from: a
+        to: counter
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+Counter b = a;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: b
+        kind: variable
+        label: b
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: reference
+        from: a
+        to: counter
+      - kind: reference
+        from: b
+        to: counter
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+b = a
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: name
+        label: a
+      - id: b
+        kind: name
+        label: b
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: binding
+        from: a
+        to: counter
+      - kind: binding
+        from: b
         to: counter
 ```
 

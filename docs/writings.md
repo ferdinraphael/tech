@@ -185,9 +185,11 @@ states:
 ::::
 ````
 
-The `model` fence is parsed as semantic YAML and never displayed as source. Stage D supports one state whose ID is `current`, one direct-value variable, or one variable/reference or Python name/binding associated with one object. Objects contain either a scalar value or a non-empty `fields` list whose members are marked as `field` or `property`. Authors describe entities and relationships only; coordinates, styling instructions, and other rendering data are invalid.
+The `model` fence is parsed as semantic YAML and never displayed as source. Runtime models support one state whose ID is `current`, one direct-value variable, one source associated with one object, or exactly two sources sharing one object. Objects contain either a scalar value or a non-empty `members` list whose entries are marked as `field` or `property`. The old `fields:` property is invalid authoring syntax and fails strict validation.
 
-Shared targets, multiple source/object pairs, and before/after states are not supported. During Compare, runtime models temporarily render only the retained selected-language variant; code-tabs and language-content keep their full Compare behavior.
+Variables use `reference` relationships and names use `binding` relationships. Shared identity is represented by two ordinary relationships with the same target object: either two variables/references or two names/bindings. Source cards render in entity declaration order regardless of relationship order. Authors describe entities and relationships only; coordinates, styling instructions, and other rendering data are invalid.
+
+Runtime models do not yet support more than two sources, multiple target objects, mutation, reassignment, or before/after states. During Compare, they temporarily render only the retained selected-language variant; code-tabs and language-content keep their full Compare behavior.
 
 ## Related projects and series
 
