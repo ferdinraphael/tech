@@ -1,4 +1,5 @@
 import type { ProjectId } from '../../data/site'
+import type { ReaderLanguage } from './readerLanguages'
 
 export type WritingFormat =
   | 'article'
@@ -27,6 +28,15 @@ export interface WritingMetadata {
   series?: WritingSeries
   relatedProjects: ProjectId[]
   featured: boolean
+  readerLanguages?: ReaderLanguage[]
+  defaultReaderLanguage?: ReaderLanguage
+}
+
+export type ReadingMode = 'single' | 'compare'
+
+export interface ReadingState {
+  mode: ReadingMode
+  language: ReaderLanguage
 }
 
 export interface WritingHeading {

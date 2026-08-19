@@ -85,7 +85,11 @@ function WritingView({ writing }: { writing: WritingRecord }) {
         )}
 
         <article className={styles.articleMain}>
-          <LanguagePreferenceProvider>
+          <LanguagePreferenceProvider
+            key={writing.slug}
+            readerLanguages={writing.readerLanguages}
+            defaultReaderLanguage={writing.defaultReaderLanguage}
+          >
             <MarkdownWriting segments={writing.segments} />
           </LanguagePreferenceProvider>
 

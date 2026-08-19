@@ -4,6 +4,7 @@ import { marked, type Token } from 'marked'
 import { projectIds, type ProjectId } from '../../data/site'
 import { isWritingFormat } from './formats'
 import { normalizeCodeLanguage } from './languages'
+import { isReaderLanguage, type ReaderLanguage } from './readerLanguages'
 import type {
   WritingCatalogue,
   WritingHeading,
@@ -73,6 +74,68 @@ function validDate(
   return value
 }
 
+function parseReaderMetadata(
+  readerLanguagesValue: unknown,
+  defaultReaderLanguageValue: unknown,
+  sourcePath: string,
+): Pick<WritingMetadata, 'readerLanguages' | 'defaultReaderLanguage'> {
+  if (readerLanguagesValue === undefined) {
+    if (defaultReaderLanguageValue !== undefined) {
+      fail(
+        sourcePath,
+        'frontmatter field "defaultReaderLanguage" requires "readerLanguages"',
+      )
+    }
+    return {}
+  }
+
+  if (!Array.isArray(readerLanguagesValue) || readerLanguagesValue.length === 0) {
+    fail(
+      sourcePath,
+      'frontmatter field "readerLanguages" must be a non-empty list of supported reader languages',
+    )
+  }
+
+  const readerLanguages: ReaderLanguage[] = []
+  const seen = new Set<ReaderLanguage>()
+  for (const item of readerLanguagesValue) {
+    const language = typeof item === 'string' ? item.trim() : item
+    if (!isReaderLanguage(language)) {
+      fail(sourcePath, `frontmatter field "readerLanguages" contains unsupported reader language "${String(language)}"`)
+    }
+    if (seen.has(language)) {
+      fail(sourcePath, `frontmatter field "readerLanguages" repeats reader language "${language}"`)
+    }
+    seen.add(language)
+    readerLanguages.push(language)
+  }
+
+  if (defaultReaderLanguageValue === undefined) {
+    fail(
+      sourcePath,
+      'frontmatter field "defaultReaderLanguage" is required when "readerLanguages" is present',
+    )
+  }
+  const defaultReaderLanguage =
+    typeof defaultReaderLanguageValue === 'string'
+      ? defaultReaderLanguageValue.trim()
+      : defaultReaderLanguageValue
+  if (!isReaderLanguage(defaultReaderLanguage)) {
+    fail(
+      sourcePath,
+      `frontmatter field "defaultReaderLanguage" must be a supported reader language`,
+    )
+  }
+  if (!seen.has(defaultReaderLanguage)) {
+    fail(
+      sourcePath,
+      'frontmatter field "defaultReaderLanguage" must appear in "readerLanguages"',
+    )
+  }
+
+  return { readerLanguages, defaultReaderLanguage }
+}
+
 function parseMetadata(
   value: unknown,
   sourcePath: string,
@@ -127,6 +190,11 @@ function parseMetadata(
     fail(sourcePath, 'frontmatter field "featured" must be true or false')
   }
   const featured = value.featured === true
+  const readerMetadata = parseReaderMetadata(
+    value.readerLanguages,
+    value.defaultReaderLanguage,
+    sourcePath,
+  )
 
   return {
     title,
@@ -144,6 +212,7 @@ function parseMetadata(
     series,
     relatedProjects: relatedProjects as ProjectId[],
     featured,
+    ...readerMetadata,
   }
 }
 

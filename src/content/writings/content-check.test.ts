@@ -27,5 +27,7 @@ describe('repository technical-writing content', () => {
     }))
     expect(writingCatalogue.published).toContain(writing)
     expect(writingCatalogue.drafts).not.toContain(writing)
+    expect(writing?.readerLanguages).toBeUndefined()
+    expect(writing?.defaultReaderLanguage).toBeUndefined()
   })
 })

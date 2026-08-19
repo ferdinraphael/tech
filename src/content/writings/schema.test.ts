@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { writingFormatLabel, writingFormats } from './formats'
 import { normalizeCodeLanguage } from './languages'
+import { isReaderLanguage, readerLanguages } from './readerLanguages'
 import {
   WritingValidationError,
   buildWritingCatalogue,
@@ -45,11 +46,81 @@ featured: true`,
     expect(writing.format).toBe('article')
     expect(writing.series).toEqual({ name: 'Architecture Smells', order: 2 })
     expect(writing.relatedProjects).toEqual(['little-worlds'])
+    expect(writing.readerLanguages).toBeUndefined()
+    expect(writing.defaultReaderLanguage).toBeUndefined()
     expect(writing.headings.map(({ id }) => id)).toEqual([
       'repeated-heading',
       'detail',
       'repeated-heading-1',
     ])
+  })
+
+  it('parses constrained reader-language metadata without narrowing code languages', () => {
+    const writing = parseWritingSource(writingSource(`${publishedMetadata}
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: csharp`))
+
+    expect(readerLanguages).toEqual(['csharp', 'java', 'python'])
+    expect(writing.readerLanguages).toEqual(['csharp', 'java', 'python'])
+    expect(writing.defaultReaderLanguage).toBe('csharp')
+    expect(isReaderLanguage('java')).toBe(true)
+    expect(isReaderLanguage('typescript')).toBe(false)
+    expect(normalizeCodeLanguage('typescript')).toBe('typescript')
+  })
+
+  it.each([
+    [
+      'empty readerLanguages',
+      `${publishedMetadata}\nreaderLanguages: []\ndefaultReaderLanguage: csharp`,
+      /non-empty list/,
+    ],
+    [
+      'unknown reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - ruby\ndefaultReaderLanguage: csharp`,
+      /unsupported reader language "ruby"/,
+    ],
+    [
+      'duplicate reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - csharp\ndefaultReaderLanguage: csharp`,
+      /repeats reader language "csharp"/,
+    ],
+    [
+      'missing default reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - java`,
+      /defaultReaderLanguage.*required/,
+    ],
+    [
+      'unsupported default reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - java\ndefaultReaderLanguage: typescript`,
+      /defaultReaderLanguage.*supported reader language/,
+    ],
+    [
+      'default reader language is not declared',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - java\ndefaultReaderLanguage: python`,
+      /defaultReaderLanguage.*appear in "readerLanguages"/,
+    ],
+    [
+      'default reader language without readerLanguages',
+      `${publishedMetadata}\ndefaultReaderLanguage: csharp`,
+      /defaultReaderLanguage.*requires "readerLanguages"/,
+    ],
+  ])('rejects invalid reader metadata: %s', (_label, metadata, expected) => {
+    expect(() => parseWritingSource(writingSource(metadata))).toThrow(expected)
+  })
+
+  it('parses reader metadata equivalently from LF and CRLF sources', () => {
+    const lf = writingSource(`${publishedMetadata}
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: python`)
+    const crlf = { ...lf, source: lf.source.replace(/\n/g, '\r\n') }
+
+    expect(parseWritingSource(crlf)).toEqual(parseWritingSource(lf))
   })
 
   it.each([
