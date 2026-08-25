@@ -151,6 +151,28 @@ defaultReaderLanguage: csharp
 
 Every `:::code-tabs` group in such a writing must contain exactly the declared reader languages once each. In single-language mode, Read As, language-content prose, and every code-tabs group share one selection. Selecting a code tab changes the article-wide reading language. Compare mode renders every code sample in declared language order as labelled code blocks, without tab controls or tab semantics. Writings without `readerLanguages` retain the ordinary independent code-tabs behavior described above.
 
+## Language-only sections
+
+Use `::::language-only` when a section itself belongs only to a subset of the writing's declared reader languages. Unlike `language-content`, which supplies different wording for the same conceptual place in a shared outline, `language-only` may contain ordinary Markdown headings and therefore may change the visible outline.
+
+````markdown
+::::language-only python
+
+## Why immutability hides the difference
+
+This section exists only in the Python reading path.
+
+::::
+````
+
+One or more declared reader languages may be listed, for example `::::language-only csharp java`.
+
+In single-language mode the entire block, including its headings, is hidden unless the selected reader language is listed. Its headings are also removed from Contents. In Compare mode the block is shown once with a label naming the languages it applies to, and its headings participate in Contents.
+
+`language-only` requires `readerLanguages`, rejects unknown, undeclared, or repeated language arguments, and cannot be empty. Its body is ordinary Markdown, including headings and fenced code blocks. Framework directives may not be nested inside it.
+
+Use `language-content` when the concept belongs to every reading path but the explanation differs. Use `language-only` only when the concept or detour genuinely should not exist in the other reading paths.
+
 ## Basic runtime models
 
 A `::::runtime-model` is available only in a language-aware writing. It contains exactly one `:::language` variant for every declared reader language, and variants are normalized to `readerLanguages` order. Each variant owns exactly one matching language code fence and one `model` fence:

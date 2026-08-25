@@ -412,6 +412,56 @@ function parseLanguageContent(
   }
 }
 
+function parseLanguageOnly(
+  node: DirectiveNode,
+  sourcePath: string,
+  declaredLanguages: ReaderLanguage[] | undefined,
+): WritingSegment {
+  if (!declaredLanguages) {
+    fail(
+      sourcePath,
+      `line ${node.startLine}: language-only requires frontmatter readerLanguages`,
+    )
+  }
+
+  const argumentsList = node.argument?.trim().split(/\s+/).filter(Boolean) ?? []
+  if (argumentsList.length === 0) {
+    fail(
+      sourcePath,
+      `line ${node.startLine}: language-only requires at least one language argument`,
+    )
+  }
+
+  const declared = new Set(declaredLanguages)
+  const seen = new Set<ReaderLanguage>()
+  const languages: ReaderLanguage[] = []
+
+  for (const argument of argumentsList) {
+    if (!isReaderLanguage(argument)) {
+      fail(sourcePath, `line ${node.startLine}: unknown reader language "${argument}"`)
+    }
+    if (!declared.has(argument)) {
+      fail(sourcePath, `line ${node.startLine}: undeclared reader language "${argument}"`)
+    }
+    if (seen.has(argument)) {
+      fail(sourcePath, `line ${node.startLine}: language-only repeats language "${argument}"`)
+    }
+    seen.add(argument)
+    languages.push(argument)
+  }
+
+  const source = node.body.trim()
+  if (!source) {
+    fail(sourcePath, `line ${node.startLine}: language-only block cannot be empty`)
+  }
+
+  return {
+    type: 'language-only',
+    languages,
+    source,
+  }
+}
+
 function parseRuntimeModelVariant(
   child: DirectiveNode,
   language: ReaderLanguage,
@@ -564,6 +614,9 @@ export function parseWritingSegments(
     if (part.node.name === 'language-content') {
       return parseLanguageContent(part.node, sourcePath, readerLanguages)
     }
+    if (part.node.name === 'language-only') {
+      return parseLanguageOnly(part.node, sourcePath, readerLanguages)
+    }
     return parseRuntimeModel(part.node, sourcePath, readerLanguages)
   })
 }
@@ -581,11 +634,16 @@ function extractHeadings(
   const headings: WritingHeading[] = []
   try {
     for (const segment of segments) {
-      if (segment.type !== 'markdown') continue
+      if (segment.type !== 'markdown' && segment.type !== 'language-only') continue
       for (const token of marked.lexer(segment.source, { gfm: true })) {
         if (token.type !== 'heading' || (token.depth !== 2 && token.depth !== 3)) continue
         const text = tokenText(token).trim()
-        headings.push({ depth: token.depth, text, id: slugger.slug(text) })
+        headings.push({
+          depth: token.depth,
+          text,
+          id: slugger.slug(text),
+          ...(segment.type === 'language-only' ? { languages: segment.languages } : {}),
+        })
       }
     }
   } catch (error) {

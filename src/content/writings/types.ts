@@ -43,6 +43,7 @@ export interface WritingHeading {
   depth: 2 | 3
   id: string
   text: string
+  languages?: ReaderLanguage[]
 }
 
 export interface CodeSample {
@@ -122,10 +123,17 @@ export interface RuntimeModelSegment {
   variants: LanguageVariant<RuntimeModelVariant>[]
 }
 
+export interface LanguageOnlySegment {
+  type: 'language-only'
+  languages: ReaderLanguage[]
+  source: string
+}
+
 export type WritingSegment =
   | { type: 'markdown'; source: string }
   | { type: 'code-tabs'; samples: CodeSample[] }
   | { type: 'language-content'; variants: LanguageContentVariant[] }
+  | LanguageOnlySegment
   | RuntimeModelSegment
 
 export interface WritingRecord extends WritingMetadata {
