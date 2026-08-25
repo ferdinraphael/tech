@@ -1,0 +1,623 @@
+diff --git a/src/content/writings/directives.ts b/src/content/writings/directives.ts
+index 1289c24..0000000 100644
+--- a/src/content/writings/directives.ts
++++ b/src/content/writings/directives.ts
+@@ -2,6 +2,7 @@ export type KnownDirectiveName =
+   | 'code-tabs'
+   | 'language-content'
+   | 'runtime-model'
++  | 'language-only'
+   | 'language'
+
+ export interface DirectiveNode {
+@@ -161,6 +162,51 @@ function scanLanguageContainer(
+   failure(openIndex + 1, `${name} is missing its closing ::::`)
+ }
+
++function scanLanguageOnly(
++  lines: string[],
++  openIndex: number,
++  start: DirectiveStart,
++  failure: DirectiveFailure,
++): { node: DirectiveNode; nextIndex: number } {
++  let index = openIndex + 1
++  const bodyStart = index
++
++  while (index < lines.length) {
++    if (isDirectiveClose(lines[index], 4)) {
++      return {
++        node: {
++          name: 'language-only',
++          markerLength: 4,
++          argument: start.argument,
++          startLine: openIndex + 1,
++          body: lines.slice(bodyStart, index).join('\n'),
++          children: [],
++        },
++        nextIndex: index + 1,
++      }
++    }
++
++    if (fenceStart(lines[index])) {
++      index = skipFence(lines, index, failure)
++      continue
++    }
++
++    const nestedStart = directiveStart(lines[index])
++    if (
++      nestedStart &&
++      (
++        nestedStart.name === 'code-tabs' ||
++        nestedStart.name === 'language-content' ||
++        nestedStart.name === 'runtime-model' ||
++        nestedStart.name === 'language-only' ||
++        nestedStart.name === 'language'
++      )
++    ) {
++      failure(
++        index + 1,
++        'nested framework directives are not allowed in language-only blocks',
++      )
++    }
++    index += 1
++  }
++
++  failure(openIndex + 1, 'language-only block is missing its closing ::::')
++}
++
+ export function scanWritingDirectives(
+   body: string,
+   failure: DirectiveFailure,
+@@ -197,7 +243,10 @@ export function scanWritingDirectives(
+     const isRuntimeModel =
+       start?.markerLength === 4 && start.name === 'runtime-model' && !start.argument
+-    if (!isCodeTabs && !isLanguageContent && !isRuntimeModel) {
++    const isLanguageOnly =
++      start?.markerLength === 4 && start.name === 'language-only'
++    if (!isCodeTabs && !isLanguageContent && !isRuntimeModel && !isLanguageOnly) {
+       index += 1
+       continue
+     }
+@@ -205,7 +254,9 @@ export function scanWritingDirectives(
+
+     flushMarkdown(index)
+     const scanned = isCodeTabs
+       ? scanCodeTabs(lines, index, failure)
++      : isLanguageOnly
++        ? scanLanguageOnly(lines, index, start!, failure)
+       : scanLanguageContainer(
+           lines,
+           index,
+diff --git a/src/content/writings/types.ts b/src/content/writings/types.ts
+index 0eb51bc..0000000 100644
+--- a/src/content/writings/types.ts
++++ b/src/content/writings/types.ts
+@@ -39,6 +39,7 @@ export interface WritingHeading {
+   depth: 2 | 3
+   id: string
+   text: string
++  languages?: ReaderLanguage[]
+ }
+
+ export interface CodeSample {
+@@ -97,10 +98,18 @@ export interface RuntimeModelSegment {
+   variants: LanguageVariant<RuntimeModelVariant>[]
+ }
+
++export interface LanguageOnlySegment {
++  type: 'language-only'
++  languages: ReaderLanguage[]
++  source: string
++  headingTexts: string[]
++}
++
+ export type WritingSegment =
+   | { type: 'markdown'; source: string }
+   | { type: 'code-tabs'; samples: CodeSample[] }
+   | { type: 'language-content'; variants: LanguageContentVariant[] }
++  | LanguageOnlySegment
+   | RuntimeModelSegment
+
+ export interface WritingRecord extends WritingMetadata {
+diff --git a/src/content/writings/schema.ts b/src/content/writings/schema.ts
+index e002f7e..0000000 100644
+--- a/src/content/writings/schema.ts
++++ b/src/content/writings/schema.ts
+@@ -390,6 +390,69 @@ function parseLanguageContent(
+   }
+ }
+
++function markdownHeadingTexts(
++  source: string,
++  sourcePath: string,
++  line: number,
++): string[] {
++  try {
++    return (marked.lexer(source, { gfm: true }) as MarkedToken[])
++      .filter((token) => token.type === 'heading')
++      .map((token) => tokenText(token).trim())
++  } catch (error) {
++    const message = error instanceof Error ? error.message : String(error)
++    fail(sourcePath, `line ${line}: language-only Markdown could not be parsed: ${message}`)
++  }
++}
++
++function parseLanguageOnly(
++  node: DirectiveNode,
++  sourcePath: string,
++  declaredLanguages: ReaderLanguage[] | undefined,
++): WritingSegment {
++  if (!declaredLanguages) {
++    fail(
++      sourcePath,
++      `line ${node.startLine}: language-only requires frontmatter readerLanguages`,
++    )
++  }
++
++  const argumentsList = node.argument?.trim().split(/\s+/).filter(Boolean) ?? []
++  if (argumentsList.length === 0) {
++    fail(
++      sourcePath,
++      `line ${node.startLine}: language-only requires at least one language argument`,
++    )
++  }
++
++  const declared = new Set(declaredLanguages)
++  const seen = new Set<ReaderLanguage>()
++  const languages: ReaderLanguage[] = []
++  for (const argument of argumentsList) {
++    if (!isReaderLanguage(argument)) {
++      fail(sourcePath, `line ${node.startLine}: unknown reader language "${argument}"`)
++    }
++    if (!declared.has(argument)) {
++      fail(sourcePath, `line ${node.startLine}: undeclared reader language "${argument}"`)
++    }
++    if (seen.has(argument)) {
++      fail(sourcePath, `line ${node.startLine}: language-only repeats language "${argument}"`)
++    }
++    seen.add(argument)
++    languages.push(argument)
++  }
++
++  const source = node.body.trim()
++  if (!source) {
++    fail(sourcePath, `line ${node.startLine}: language-only block cannot be empty`)
++  }
++
++  return {
++    type: 'language-only',
++    languages,
++    source,
++    headingTexts: markdownHeadingTexts(source, sourcePath, node.startLine),
++  }
++}
++
+ function parseRuntimeModelVariant(
+   child: DirectiveNode,
+   language: ReaderLanguage,
+@@ -549,6 +612,9 @@ export function parseWritingSegments(
+     if (part.node.name === 'language-content') {
+       return parseLanguageContent(part.node, sourcePath, readerLanguages)
+     }
++    if (part.node.name === 'language-only') {
++      return parseLanguageOnly(part.node, sourcePath, readerLanguages)
++    }
+     return parseRuntimeModel(part.node, sourcePath, readerLanguages)
+   })
+ }
+@@ -565,11 +631,15 @@ function extractHeadings(
+   const headings: WritingHeading[] = []
+   try {
+     for (const segment of segments) {
+-      if (segment.type !== 'markdown') continue
++      if (segment.type !== 'markdown' && segment.type !== 'language-only') continue
+       for (const token of marked.lexer(segment.source, { gfm: true })) {
+         if (token.type !== 'heading' || (token.depth !== 2 && token.depth !== 3)) continue
+         const text = tokenText(token).trim()
+-        headings.push({ depth: token.depth, text, id: slugger.slug(text) })
++        headings.push({
++          depth: token.depth,
++          text,
++          id: slugger.slug(text),
++          ...(segment.type === 'language-only' ? { languages: segment.languages } : {}),
++        })
+       }
+     }
+   } catch (error) {
+diff --git a/src/components/writings/MarkdownWriting.tsx b/src/components/writings/MarkdownWriting.tsx
+index 8e88103..0000000 100644
+--- a/src/components/writings/MarkdownWriting.tsx
++++ b/src/components/writings/MarkdownWriting.tsx
+@@ -1,12 +1,14 @@
+ import { Fragment } from 'react'
+ import GithubSlugger from 'github-slugger'
++import { codeLanguageLabel } from '../../content/writings/languages'
+ import type { WritingSegment } from '../../content/writings/types'
+ import { CodeTabs } from './CodeTabs'
+ import { LanguageContent } from './LanguageContent'
+ import { MarkdownBlocks } from './MarkdownBlocks'
+ import { ReadAsControl } from './ReadAsControl'
+ import { RuntimeModel } from './RuntimeModel'
++import { useLanguagePreference } from './useLanguagePreference'
+ import styles from './Writings.module.css'
+
+ export function MarkdownWriting({ segments }: { segments: WritingSegment[] }) {
+   const slugger = new GithubSlugger()
++  const { readingState } = useLanguagePreference()
+   const firstLanguageAwareContent = segments.findIndex(
+     (segment) =>
+       segment.type === 'code-tabs' ||
+       segment.type === 'language-content' ||
++      segment.type === 'language-only' ||
+       segment.type === 'runtime-model',
+   )
+
+@@ -22,6 +24,31 @@ export function MarkdownWriting({ segments }: { segments: WritingSegment[] }) {
+           ) : segment.type === 'language-content' ? (
+             <LanguageContent variants={segment.variants} segmentIndex={index} />
++          ) : segment.type === 'language-only' ? (
++            (() => {
++              if (!readingState) {
++                throw new Error('language-only requires an article reader configuration')
++              }
++              const visible =
++                readingState.mode === 'compare' ||
++                segment.languages.includes(readingState.language)
++              const blocks = (
++                <MarkdownBlocks
++                  source={segment.source}
++                  keyPrefix={`language-only-${index}`}
++                  slugger={slugger}
++                />
++              )
++
++              if (!visible) return <div hidden>{blocks}</div>
++              if (readingState.mode === 'single') return blocks
++
++              return (
++                <section className={styles.languageComparison} aria-label="Language-specific section">
++                  <div className={styles.languageComparisonItem}>
++                    <p className={styles.languageComparisonLabel}>
++                      {segment.languages.map(codeLanguageLabel).join(' / ')}
++                    </p>
++                    {blocks}
++                  </div>
++                </section>
++              )
++            })()
+           ) : segment.type === 'runtime-model' ? (
+             <RuntimeModel variants={segment.variants} />
+           ) : (
+diff --git a/src/components/writings/visibleWritingHeadings.ts b/src/components/writings/visibleWritingHeadings.ts
+new file mode 100644
+--- /dev/null
++++ b/src/components/writings/visibleWritingHeadings.ts
+@@ -0,0 +1,17 @@
++import type {
++  ReadingState,
++  WritingHeading,
++} from '../../content/writings/types'
++
++export function visibleWritingHeadings(
++  headings: WritingHeading[],
++  readingState: ReadingState | undefined,
++): WritingHeading[] {
++  if (!readingState || readingState.mode === 'compare') return headings
++
++  return headings.filter(
++    (heading) =>
++      !heading.languages ||
++      heading.languages.includes(readingState.language),
++  )
++}
+diff --git a/src/components/writings/WritingPage.tsx b/src/components/writings/WritingPage.tsx
+index 6d2a257..0000000 100644
+--- a/src/components/writings/WritingPage.tsx
++++ b/src/components/writings/WritingPage.tsx
+@@ -9,6 +9,8 @@ import { formatWritingDate } from './writingFormat'
+ import { LanguagePreferenceProvider } from './LanguagePreference'
+ import { MarkdownWriting } from './MarkdownWriting'
+ import { useActiveHeading, useMobileContentsVisibility } from './useWritingNavigation'
++import { useLanguagePreference } from './useLanguagePreference'
++import { visibleWritingHeadings } from './visibleWritingHeadings'
+ import styles from './Writings.module.css'
+
+ function WritingNotFound() {
+@@ -21,10 +23,12 @@ function WritingNotFound() {
+ }
+
+ function WritingView({ writing }: { writing: WritingRecord }) {
+-  const showToc = writing.headings.length >= 3
++  const { readingState } = useLanguagePreference()
++  const headings = visibleWritingHeadings(writing.headings, readingState)
++  const showToc = headings.length >= 3
+   const tocRef = useRef<HTMLElement>(null)
+   const { activeHeading, activateHeading } = useActiveHeading(
+-    writing.headings.map(({ id }) => id),
++    headings.map(({ id }) => id),
+   )
+   const showContentsControl = useMobileContentsVisibility(tocRef, showToc)
+@@ -76,7 +80,7 @@ function WritingView({ writing }: { writing: WritingRecord }) {
+           <nav ref={tocRef} className={styles.toc} aria-label="Contents">
+             <p>CONTENTS</p>
+             <ol>
+-              {writing.headings.map((heading) => (
++              {headings.map((heading) => (
+                 <li key={heading.id} className={heading.depth === 3 ? styles.tocNested : undefined}>
+                   <a
+                     href={`#${heading.id}`}
+@@ -94,14 +98,7 @@ function WritingView({ writing }: { writing: WritingRecord }) {
+         )}
+
+         <article className={styles.articleMain}>
+-          <LanguagePreferenceProvider
+-            key={writing.slug}
+-            readerLanguages={writing.readerLanguages}
+-            defaultReaderLanguage={writing.defaultReaderLanguage}
+-          >
+-            <MarkdownWriting segments={writing.segments} />
+-          </LanguagePreferenceProvider>
++          <MarkdownWriting segments={writing.segments} />
+@@ -149,5 +146,15 @@ export default function WritingPage() {
+   const { slug = '' } = useParams()
+   const writing = writingCatalogue.getBySlug(slug)
+-  return writing ? <WritingView writing={writing} /> : <WritingNotFound />
++  return writing ? (
++    <LanguagePreferenceProvider
++      key={writing.slug}
++      readerLanguages={writing.readerLanguages}
++      defaultReaderLanguage={writing.defaultReaderLanguage}
++    >
++      <WritingView writing={writing} />
++    </LanguagePreferenceProvider>
++  ) : (
++    <WritingNotFound />
++  )
+ }
+diff --git a/src/content/writings/languageOnly.test.ts b/src/content/writings/languageOnly.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/content/writings/languageOnly.test.ts
+@@ -0,0 +1,96 @@
++import { describe, expect, it } from 'vitest'
++import { parseWritingSource, WritingValidationError } from './schema'
++
++function source(body: string) {
++  return `---
++title: "Conditional section"
++description: "Fixture"
++format: article
++draft: true
++readerLanguages:
++  - csharp
++  - java
++  - python
++defaultReaderLanguage: csharp
++---
++
++${body}
++`
++}
++
++describe('language-only authoring', () => {
++  it('parses a language subset and associates its headings with that subset', () => {
++    const writing = parseWritingSource({
++      path: 'src/content/writings/drafts/conditional-section.md',
++      source: source(`
++## Shared section
++
++Shared prose.
++
++::::language-only python
++
++## Python detail
++
++Python-only prose.
++
++::::
++
++## Shared ending
++
++Done.
++`),
++    })
++
++    expect(writing.segments.map(({ type }) => type)).toEqual([
++      'markdown',
++      'language-only',
++      'markdown',
++    ])
++    const conditional = writing.segments[1]
++    expect(conditional.type).toBe('language-only')
++    if (conditional.type !== 'language-only') return
++    expect(conditional.languages).toEqual(['python'])
++    expect(conditional.headingTexts).toEqual(['Python detail'])
++    expect(writing.headings).toEqual([
++      { depth: 2, id: 'shared-section', text: 'Shared section' },
++      { depth: 2, id: 'python-detail', text: 'Python detail', languages: ['python'] },
++      { depth: 2, id: 'shared-ending', text: 'Shared ending' },
++    ])
++  })
++
++  it('supports more than one declared reader language', () => {
++    const writing = parseWritingSource({
++      path: 'src/content/writings/drafts/conditional-section.md',
++      source: source(`::::language-only csharp java
++
++## Static languages
++
++Only C# and Java see this section.
++
++::::`),
++    })
++    const conditional = writing.segments[0]
++    expect(conditional.type).toBe('language-only')
++    if (conditional.type !== 'language-only') return
++    expect(conditional.languages).toEqual(['csharp', 'java'])
++  })
++
++  it.each([
++    ['missing arguments', '::::language-only\nText\n::::'],
++    ['unknown language', '::::language-only ruby\nText\n::::'],
++    ['duplicate language', '::::language-only python python\nText\n::::'],
++  ])('rejects %s', (_name, body) => {
++    expect(() =>
++      parseWritingSource({
++        path: 'src/content/writings/drafts/conditional-section.md',
++        source: source(body),
++      }),
++    ).toThrowError(WritingValidationError)
++  })
++
++  it('rejects nested framework directives', () => {
++    expect(() =>
++      parseWritingSource({
++        path: 'src/content/writings/drafts/conditional-section.md',
++        source: source(`::::language-only python
++:::code-tabs
++\`\`\`python
++print("no")
++\`\`\`
++:::
++::::`),
++      }),
++    ).toThrowError(WritingValidationError)
++  })
++})
+diff --git a/src/components/writings/LanguageOnly.test.tsx b/src/components/writings/LanguageOnly.test.tsx
+new file mode 100644
+--- /dev/null
++++ b/src/components/writings/LanguageOnly.test.tsx
+@@ -0,0 +1,59 @@
++import { render, screen, within } from '@testing-library/react'
++import userEvent from '@testing-library/user-event'
++import { describe, expect, it } from 'vitest'
++import type { WritingSegment } from '../../content/writings/types'
++import { LanguagePreferenceProvider } from './LanguagePreference'
++import { MarkdownWriting } from './MarkdownWriting'
++
++const segments: WritingSegment[] = [
++  { type: 'markdown', source: '## Shared section\n\nShared prose.' },
++  {
++    type: 'language-only',
++    languages: ['python'],
++    source: '## Python detail\n\nPython-only prose.',
++    headingTexts: ['Python detail'],
++  },
++  { type: 'markdown', source: '## Shared ending\n\nDone.' },
++]
++
++function renderWriting() {
++  return render(
++    <LanguagePreferenceProvider
++      readerLanguages={['csharp', 'java', 'python']}
++      defaultReaderLanguage="csharp"
++    >
++      <MarkdownWriting segments={segments} />
++    </LanguagePreferenceProvider>,
++  )
++}
++
++describe('language-only rendering', () => {
++  it('hides a Python-only section in C# and shows it when Python is selected', async () => {
++    const user = userEvent.setup()
++    renderWriting()
++
++    expect(screen.getByRole('heading', { name: 'Shared section' })).toBeInTheDocument()
++    expect(screen.queryByRole('heading', { name: 'Python detail' })).not.toBeInTheDocument()
++
++    await user.click(screen.getByRole('radio', { name: 'Python' }))
++
++    expect(screen.getByRole('heading', { name: 'Python detail' })).toBeInTheDocument()
++    expect(screen.getByText('Python-only prose.')).toBeVisible()
++  })
++
++  it('shows language-only content once and labels it in Compare mode', async () => {
++    const user = userEvent.setup()
++    renderWriting()
++
++    await user.click(screen.getByRole('radio', { name: 'Compare' }))
++
++    expect(screen.getByRole('heading', { name: 'Python detail' })).toBeInTheDocument()
++    expect(screen.getByText('Python')).toBeInTheDocument()
++    expect(screen.getAllByText('Python-only prose.')).toHaveLength(1)
++  })
++})
+diff --git a/src/components/writings/visibleWritingHeadings.test.ts b/src/components/writings/visibleWritingHeadings.test.ts
+new file mode 100644
+--- /dev/null
++++ b/src/components/writings/visibleWritingHeadings.test.ts
+@@ -0,0 +1,42 @@
++import { describe, expect, it } from 'vitest'
++import type { WritingHeading } from '../../content/writings/types'
++import { visibleWritingHeadings } from './visibleWritingHeadings'
++
++const headings: WritingHeading[] = [
++  { depth: 2, id: 'shared', text: 'Shared' },
++  { depth: 2, id: 'python-only', text: 'Python only', languages: ['python'] },
++  { depth: 2, id: 'static-only', text: 'Static only', languages: ['csharp', 'java'] },
++]
++
++describe('visibleWritingHeadings', () => {
++  it('filters language-only headings in single-language mode', () => {
++    expect(
++      visibleWritingHeadings(headings, { mode: 'single', language: 'csharp' })
++        .map(({ id }) => id),
++    ).toEqual(['shared', 'static-only'])
++
++    expect(
++      visibleWritingHeadings(headings, { mode: 'single', language: 'python' })
++        .map(({ id }) => id),
++    ).toEqual(['shared', 'python-only'])
++  })
++
++  it('shows all conditional headings in Compare mode', () => {
++    expect(
++      visibleWritingHeadings(headings, { mode: 'compare', language: 'csharp' })
++        .map(({ id }) => id),
++    ).toEqual(['shared', 'python-only', 'static-only'])
++  })
++
++  it('leaves ordinary writings unchanged', () => {
++    expect(visibleWritingHeadings(headings.slice(0, 1), undefined)).toEqual([
++      { depth: 2, id: 'shared', text: 'Shared' },
++    ])
++  })
++})
+diff --git a/docs/writings.md b/docs/writings.md
+index 1d91142..0000000 100644
+--- a/docs/writings.md
++++ b/docs/writings.md
+@@ -142,6 +142,31 @@ Every `:::code-tabs` group in such a writing must contain exactly the declared r
+
+ Every `:::code-tabs` group in such a writing must contain exactly the declared reader languages once each. In single-language mode, Read As, language-content prose, and every code-tabs group share one selection. Selecting a code tab changes the article-wide reading language. Compare mode renders every code sample in declared language order as labelled code blocks, without tab controls or tab semantics. Writings without `readerLanguages` retain the ordinary independent code-tabs behavior described above.
+
++## Language-only sections
++
++Use `::::language-only` when a section itself belongs only to a subset of the writing's declared reader languages. Unlike `language-content`, which supplies different wording for the same conceptual place in a shared outline, `language-only` may contain ordinary Markdown headings and therefore may change the visible outline.
++
++````markdown
++::::language-only python
++
++## Why immutability hides the difference
++
++This section exists only in the Python reading path.
++
++::::
++````
++
++One or more declared reader languages may be listed:
++
++```text
++::::language-only csharp java
++```
++
++In single-language mode the entire block, including its headings, is hidden unless the selected reader language is listed. Its headings are also removed from Contents. In Compare mode the block is shown once with a label naming the languages it applies to, and its headings participate in Contents.
++
++`language-only` requires `readerLanguages`, rejects unknown, undeclared, or repeated language arguments, and cannot be empty. Its body is ordinary Markdown, including headings and fenced code blocks. Framework directives such as `code-tabs`, `language-content`, `runtime-model`, another `language-only`, or `language` may not be nested inside it.
++
++Use `language-content` when the concept belongs to every reading path but the explanation differs. Use `language-only` only when the concept or detour genuinely should not exist in the other reading paths.
++
+ ## Basic runtime models
+
+ A `::::runtime-model` is available only in a language-aware writing. It contains exactly one `:::language` variant for every declared reader language, and variants are normalized to `readerLanguages` order. Each variant owns exactly one matching language code fence and one `model` fence:

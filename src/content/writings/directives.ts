@@ -2,6 +2,7 @@ export type KnownDirectiveName =
   | 'code-tabs'
   | 'language-content'
   | 'runtime-model'
+  | 'language-only'
   | 'language'
 
 export interface DirectiveNode {
@@ -182,6 +183,58 @@ function scanLanguageContainer(
   failure(openIndex + 1, `${name} is missing its closing ::::`)
 }
 
+function scanLanguageOnly(
+  lines: string[],
+  openIndex: number,
+  start: DirectiveStart,
+  failure: DirectiveFailure,
+): { node: DirectiveNode; nextIndex: number } {
+  let index = openIndex + 1
+  const bodyStart = index
+
+  while (index < lines.length) {
+    if (isDirectiveClose(lines[index], 4)) {
+      return {
+        node: {
+          name: 'language-only',
+          markerLength: 4,
+          argument: start.argument,
+          startLine: openIndex + 1,
+          body: lines.slice(bodyStart, index).join('\n'),
+          children: [],
+        },
+        nextIndex: index + 1,
+      }
+    }
+
+    if (fenceStart(lines[index])) {
+      index = skipFence(lines, index, failure)
+      continue
+    }
+
+    const nestedStart = directiveStart(lines[index])
+    if (
+      nestedStart &&
+      (
+        nestedStart.name === 'code-tabs' ||
+        nestedStart.name === 'language-content' ||
+        nestedStart.name === 'runtime-model' ||
+        nestedStart.name === 'language-only' ||
+        nestedStart.name === 'language'
+      )
+    ) {
+      failure(
+        index + 1,
+        'nested framework directives are not allowed in language-only blocks',
+      )
+    }
+
+    index += 1
+  }
+
+  failure(openIndex + 1, 'language-only block is missing its closing ::::')
+}
+
 export function scanWritingDirectives(
   body: string,
   failure: DirectiveFailure,
@@ -214,7 +267,9 @@ export function scanWritingDirectives(
       start?.markerLength === 4 && start.name === 'language-content' && !start.argument
     const isRuntimeModel =
       start?.markerLength === 4 && start.name === 'runtime-model' && !start.argument
-    if (!isCodeTabs && !isLanguageContent && !isRuntimeModel) {
+    const isLanguageOnly =
+      start?.markerLength === 4 && start.name === 'language-only'
+    if (!isCodeTabs && !isLanguageContent && !isRuntimeModel && !isLanguageOnly) {
       index += 1
       continue
     }
@@ -222,7 +277,9 @@ export function scanWritingDirectives(
     flushMarkdown(index)
     const scanned = isCodeTabs
       ? scanCodeTabs(lines, index, failure)
-      : scanLanguageContainer(
+      : isLanguageOnly
+        ? scanLanguageOnly(lines, index, start!, failure)
+        : scanLanguageContainer(
           lines,
           index,
           isLanguageContent ? 'language-content' : 'runtime-model',
