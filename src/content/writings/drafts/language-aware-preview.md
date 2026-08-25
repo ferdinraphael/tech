@@ -1,0 +1,908 @@
+---
+title: "Language-aware writing preview"
+description: "A development-only fixture for reviewing reader-specific technical prose."
+format: article
+draft: true
+tags:
+  - framework-preview
+  - language-aware
+technologies:
+  - C#
+  - Java
+  - Python
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: csharp
+featured: false
+---
+
+This development fixture exercises synchronized language-aware prose and code.
+
+## Start with a number
+
+The same value can be described through each language's own model.
+
+:::code-tabs
+
+```csharp
+int count = 10;
+```
+
+```java
+int count = 10;
+```
+
+```python
+count = 10
+```
+
+:::
+
+::::language-content
+
+:::language csharp
+`count` is a **local variable** whose value is the integer `10`.
+:::
+
+:::language java
+`count` is a **variable** of primitive type `int`, and its value is `10`.
+:::
+
+:::language python
+The name `count` is **bound** to an integer object representing `10`.
+:::
+
+::::
+
+## Change the value
+
+:::code-tabs
+
+```csharp
+count = 11;
+```
+
+```java
+count = 11;
+```
+
+```python
+count = 11
+```
+
+:::
+
+::::language-content
+
+:::language csharp
+The assignment updates the local variable.
+
+- Read the [assignment](https://learn.microsoft.com/dotnet/csharp/language-reference/operators/assignment-operator) from right to left.
+- Store the result in `count`.
+:::
+
+:::language java
+The assignment updates the primitive variable.
+
+- Evaluate the expression on the right.
+- Store the resulting `int` in `count`.
+:::
+
+:::language python
+The assignment rebinds the name.
+
+- Evaluate the expression on the right.
+- Bind `count` to the resulting object.
+:::
+
+::::
+
+## Runtime model: number
+
+The code and its conceptual runtime model form one language-aware teaching unit.
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int count = 10;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue:
+          type: int
+          value: "10"
+    relationships: []
+```
+
+:::
+
+:::language java
+
+```java
+int count = 10;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue:
+          type: int
+          value: "10"
+    relationships: []
+```
+
+:::
+
+:::language python
+
+```python
+count = 10
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: name
+        label: count
+      - id: int-10
+        kind: object
+        typeLabel: int
+        scalarValue: "10"
+    relationships:
+      - kind: binding
+        from: count
+        to: int-10
+```
+
+:::
+
+::::
+
+## Runtime model: object
+
+Each language shows one source associated with one `Counter` object.
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: Value
+            kind: property
+            value: "10"
+    relationships:
+      - kind: reference
+        from: a
+        to: counter
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: reference
+        from: a
+        to: counter
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: name
+        label: a
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: binding
+        from: a
+        to: counter
+```
+
+:::
+
+::::
+
+## Copy the object reference
+
+Assigning `a` to `b` makes both sources identify the same `Counter` object.
+
+::::language-content
+
+:::language csharp
+
+The reference value is copied, so both variables refer to the same object.
+
+:::
+
+:::language java
+
+The object reference is copied, so both variables refer to the same object.
+
+:::
+
+:::language python
+
+`b` becomes another name bound to the same object.
+
+:::
+
+::::
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+var b = a;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: b
+        kind: variable
+        label: b
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: Value
+            kind: property
+            value: "10"
+    relationships:
+      - kind: reference
+        from: b
+        to: counter
+      - kind: reference
+        from: a
+        to: counter
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+Counter b = a;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: variable
+        label: a
+      - id: b
+        kind: variable
+        label: b
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: reference
+        from: a
+        to: counter
+      - kind: reference
+        from: b
+        to: counter
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+b = a
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: a
+        kind: name
+        label: a
+      - id: b
+        kind: name
+        label: b
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - name: value
+            kind: field
+            value: "10"
+    relationships:
+      - kind: binding
+        from: a
+        to: counter
+      - kind: binding
+        from: b
+        to: counter
+```
+
+:::
+
+::::
+
+## Mutate the shared object
+
+::::language-content
+
+:::language csharp
+
+`b.Value = 20` mutates the shared `Counter`; `a` still refers to that same object and observes `20` too.
+
+:::
+
+:::language java
+
+`b.value = 20` mutates the shared `Counter`; both variables still reference that same object.
+
+:::
+
+:::language python
+
+`b.value = 20` mutates the shared object; `a` and `b` remain bound to it, so either name observes `20`.
+
+:::
+
+::::
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+var b = a;
+b.Value = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "10" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+  - id: after
+    label: After mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "20" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+Counter b = a;
+b.value = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+  - id: after
+    label: After mutation
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+    relationships:
+      - { kind: reference, from: a, to: counter }
+      - { kind: reference, from: b, to: counter }
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+b = a
+b.value = 20
+```
+
+```model
+states:
+  - id: after
+    label: After mutation
+    entities:
+      - { id: b, kind: name, label: b }
+      - { id: a, kind: name, label: a }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+    relationships:
+      - { kind: binding, from: b, to: counter }
+      - { kind: binding, from: a, to: counter }
+  - id: before
+    label: Before mutation
+    entities:
+      - { id: a, kind: name, label: a }
+      - { id: b, kind: name, label: b }
+      - id: counter
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: binding, from: a, to: counter }
+      - { kind: binding, from: b, to: counter }
+```
+
+:::
+
+::::
+
+## Reassign one variable
+
+::::language-content
+
+:::language csharp
+
+`b = new Counter { Value = 20 };` changes the reference stored in `b`. `a` still refers to the original `Counter`; `b` now refers to a different one.
+
+:::
+
+:::language java
+
+`b = new Counter(20);` replaces the object reference stored in `b`. `a` still refers to the original `Counter`; `b` now refers to a different one.
+
+:::
+
+:::language python
+
+`b = Counter(value=20)` rebinds the name `b` to a new object. The name `a` remains bound to the original `Counter`.
+
+:::
+
+::::
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+var a = new Counter { Value = 10 };
+var b = a;
+b = new Counter { Value = 20 };
+```
+
+```model
+states:
+  - id: before
+    label: Before reassignment
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "10" }
+    relationships:
+      - { kind: reference, from: a, to: counter-original }
+      - { kind: reference, from: b, to: counter-original }
+  - id: after
+    label: After reassignment
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "10" }
+      - id: counter-new
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: Value, kind: property, value: "20" }
+    relationships:
+      - { kind: reference, from: a, to: counter-original }
+      - { kind: reference, from: b, to: counter-new }
+```
+
+:::
+
+:::language java
+
+```java
+Counter a = new Counter(10);
+Counter b = a;
+b = new Counter(20);
+```
+
+```model
+states:
+  - id: before
+    label: Before reassignment
+    entities:
+      - { id: a, kind: variable, label: a }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: reference, from: b, to: counter-original }
+      - { kind: reference, from: a, to: counter-original }
+  - id: after
+    label: After reassignment
+    entities:
+      - id: counter-new
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+      - { id: b, kind: variable, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+      - { id: a, kind: variable, label: a }
+    relationships:
+      - { kind: reference, from: b, to: counter-new }
+      - { kind: reference, from: a, to: counter-original }
+```
+
+:::
+
+:::language python
+
+```python
+a = Counter(value=10)
+b = a
+b = Counter(value=20)
+```
+
+```model
+states:
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: b, kind: name, label: b }
+      - id: counter-new
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "20" }
+      - { id: a, kind: name, label: a }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: binding, from: b, to: counter-new }
+      - { kind: binding, from: a, to: counter-original }
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: a, kind: name, label: a }
+      - { id: b, kind: name, label: b }
+      - id: counter-original
+        kind: object
+        typeLabel: Counter
+        members:
+          - { name: value, kind: field, value: "10" }
+    relationships:
+      - { kind: binding, from: a, to: counter-original }
+      - { kind: binding, from: b, to: counter-original }
+```
+
+:::
+
+::::
+
+## Change a scalar value
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int count = 10;
+count = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "10" }
+    relationships: []
+  - id: after
+    label: After assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "20" }
+    relationships: []
+```
+
+:::
+
+:::language java
+
+```java
+int count = 10;
+count = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "10" }
+    relationships: []
+  - id: after
+    label: After assignment
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue: { type: int, value: "20" }
+    relationships: []
+```
+
+:::
+
+:::language python
+
+```python
+count = 10
+count = 20
+```
+
+```model
+states:
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: count, kind: name, label: count }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+    relationships:
+      - { kind: binding, from: count, to: int-10 }
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: count, kind: name, label: count }
+      - { id: int-20, kind: object, typeLabel: int, scalarValue: "20" }
+    relationships:
+      - { kind: binding, from: count, to: int-20 }
+```
+
+:::
+
+::::
+
+## Copy a scalar value
+
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int a = 10;
+int b = a;
+b = 20;
+```
+
+```model
+states:
+  - id: before
+    label: Before assignment
+    entities:
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "10" } }
+    relationships: []
+  - id: after
+    label: After assignment
+    entities:
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "20" } }
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+    relationships: []
+```
+
+:::
+
+:::language java
+
+```java
+int a = 10;
+int b = a;
+b = 20;
+```
+
+```model
+states:
+  - id: after
+    label: After assignment
+    entities:
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "20" } }
+    relationships: []
+  - id: before
+    label: Before assignment
+    entities:
+      - { id: a, kind: variable, label: a, directValue: { type: int, value: "10" } }
+      - { id: b, kind: variable, label: b, directValue: { type: int, value: "10" } }
+    relationships: []
+```
+
+:::
+
+:::language python
+
+```python
+a = 10
+b = a
+b = 20
+```
+
+```model
+states:
+  - id: before
+    label: Before rebinding
+    entities:
+      - { id: a, kind: name, label: a }
+      - { id: b, kind: name, label: b }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+    relationships:
+      - { kind: binding, from: b, to: int-10 }
+      - { kind: binding, from: a, to: int-10 }
+  - id: after
+    label: After rebinding
+    entities:
+      - { id: int-20, kind: object, typeLabel: int, scalarValue: "20" }
+      - { id: b, kind: name, label: b }
+      - { id: int-10, kind: object, typeLabel: int, scalarValue: "10" }
+      - { id: a, kind: name, label: a }
+    relationships:
+      - { kind: binding, from: b, to: int-20 }
+      - { kind: binding, from: a, to: int-10 }
+```
+
+:::
+
+::::
+
+## Keep one stable outline
+
+Only generic headings contribute to this page's Contents list.

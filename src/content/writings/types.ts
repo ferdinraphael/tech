@@ -1,4 +1,5 @@
 import type { ProjectId } from '../../data/site'
+import type { ReaderLanguage } from './readerLanguages'
 
 export type WritingFormat =
   | 'article'
@@ -27,12 +28,22 @@ export interface WritingMetadata {
   series?: WritingSeries
   relatedProjects: ProjectId[]
   featured: boolean
+  readerLanguages?: ReaderLanguage[]
+  defaultReaderLanguage?: ReaderLanguage
+}
+
+export type ReadingMode = 'single' | 'compare'
+
+export interface ReadingState {
+  mode: ReadingMode
+  language: ReaderLanguage
 }
 
 export interface WritingHeading {
   depth: 2 | 3
   id: string
   text: string
+  languages?: ReaderLanguage[]
 }
 
 export interface CodeSample {
@@ -40,9 +51,90 @@ export interface CodeSample {
   code: string
 }
 
+export interface LanguageContentVariant {
+  language: ReaderLanguage
+  source: string
+}
+
+export type LanguageVariant<T> = T & { language: ReaderLanguage }
+
+export interface RuntimeDirectValue {
+  type: string
+  value: string
+}
+
+export interface RuntimeObjectMember {
+  name: string
+  kind: 'field' | 'property'
+  value: string
+}
+
+export interface RuntimeVariableEntity {
+  id: string
+  kind: 'variable'
+  label: string
+  directValue?: RuntimeDirectValue
+}
+
+export interface RuntimeNameEntity {
+  id: string
+  kind: 'name'
+  label: string
+}
+
+export interface RuntimeObjectEntity {
+  id: string
+  kind: 'object'
+  typeLabel: string
+  scalarValue?: string
+  members?: RuntimeObjectMember[]
+}
+
+export type RuntimeSourceEntity = RuntimeVariableEntity | RuntimeNameEntity
+
+export type RuntimeEntity =
+  | RuntimeSourceEntity
+  | RuntimeObjectEntity
+
+export interface RuntimeRelationship {
+  kind: 'reference' | 'binding'
+  from: string
+  to: string
+}
+
+export type RuntimeStateId = 'current' | 'before' | 'after'
+
+export interface RuntimeState {
+  id: RuntimeStateId
+  label: string
+  entities: RuntimeEntity[]
+  relationships: RuntimeRelationship[]
+}
+
+export type RuntimeStateSequence = [RuntimeState] | [RuntimeState, RuntimeState]
+
+export interface RuntimeModelVariant {
+  code: CodeSample
+  states: RuntimeStateSequence
+}
+
+export interface RuntimeModelSegment {
+  type: 'runtime-model'
+  variants: LanguageVariant<RuntimeModelVariant>[]
+}
+
+export interface LanguageOnlySegment {
+  type: 'language-only'
+  languages: ReaderLanguage[]
+  source: string
+}
+
 export type WritingSegment =
   | { type: 'markdown'; source: string }
   | { type: 'code-tabs'; samples: CodeSample[] }
+  | { type: 'language-content'; variants: LanguageContentVariant[] }
+  | LanguageOnlySegment
+  | RuntimeModelSegment
 
 export interface WritingRecord extends WritingMetadata {
   slug: string
@@ -54,6 +146,7 @@ export interface WritingRecord extends WritingMetadata {
 
 export type CanonicalCodeLanguage =
   | 'csharp'
+  | 'java'
   | 'typescript'
   | 'javascript'
   | 'python'

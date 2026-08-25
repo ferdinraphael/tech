@@ -3,6 +3,8 @@ import { LanguagePreferenceContext, type LanguagePreferenceValue } from './Langu
 
 export function useLanguagePreference(): LanguagePreferenceValue {
   const value = useContext(LanguagePreferenceContext)
-  if (!value) throw new Error('CodeTabs must be rendered inside LanguagePreferenceProvider')
+  if (!value) {
+    throw new Error('useLanguagePreference must be used inside LanguagePreferenceProvider')
+  }
   return value
 }

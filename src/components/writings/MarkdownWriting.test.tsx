@@ -25,9 +25,52 @@ const tabSegments: WritingSegment[] = [
   },
 ]
 
-function renderWriting(segments: WritingSegment[]) {
+const languageSegments: WritingSegment[] = [
+  { type: 'markdown', source: '## Start with a number\n\nGeneric introduction.' },
+  {
+    type: 'language-content',
+    variants: [
+      { language: 'csharp', source: 'C# first uses `count` with **strong text**.' },
+      { language: 'java', source: 'Java first uses `count` with *emphasis*.' },
+      { language: 'python', source: 'Python first uses [a link](https://example.com).' },
+    ],
+  },
+  {
+    type: 'language-content',
+    variants: [
+      { language: 'csharp', source: '- C# second one\n- C# second two' },
+      { language: 'java', source: '- Java second one\n- Java second two' },
+      { language: 'python', source: '- Python second one\n- Python second two' },
+    ],
+  },
+]
+
+const languageAwareCodeSegments: WritingSegment[] = [
+  {
+    type: 'code-tabs',
+    samples: [
+      { language: 'csharp', code: 'int first = 1;' },
+      { language: 'java', code: 'int first = 1;' },
+      { language: 'python', code: 'first = 1' },
+    ],
+  },
+  ...languageSegments,
+  {
+    type: 'code-tabs',
+    samples: [
+      { language: 'csharp', code: 'int second = 2;' },
+      { language: 'java', code: 'int second = 2;' },
+      { language: 'python', code: 'second = 2' },
+    ],
+  },
+]
+
+function renderWriting(segments: WritingSegment[], languageAware = false) {
   return render(
-    <LanguagePreferenceProvider>
+    <LanguagePreferenceProvider
+      readerLanguages={languageAware ? ['csharp', 'java', 'python'] : undefined}
+      defaultReaderLanguage={languageAware ? 'csharp' : undefined}
+    >
       <MarkdownWriting segments={segments} />
     </LanguagePreferenceProvider>,
   )
@@ -158,5 +201,108 @@ describe('Markdown writing rendering', () => {
     expect(screen.getByRole('link', { name: 'External' })).toHaveAttribute('rel', 'noopener noreferrer')
     expect(screen.queryByRole('link', { name: 'unsafe' })).not.toBeInTheDocument()
     expect(container.querySelector('[href^="javascript:"]')).toBeNull()
+  })
+
+  it('omits Read As for ordinary writing and renders it once before language prose', () => {
+    renderWriting([{ type: 'markdown', source: 'Ordinary writing.' }])
+    expect(screen.queryByRole('group', { name: 'Read this article as' })).not.toBeInTheDocument()
+
+    renderWriting(languageSegments, true)
+    expect(screen.getAllByRole('group', { name: 'Read this article as' })).toHaveLength(1)
+    expect(screen.getByRole('radio', { name: 'C#' })).toBeChecked()
+    expect(screen.getByText(/C# first uses/)).toBeInTheDocument()
+    expect(screen.getByText('C# second one')).toBeInTheDocument()
+    expect(screen.queryByText(/Java first uses/)).not.toBeInTheDocument()
+  })
+
+  it('switches every language-content block and renders restricted Markdown semantics', async () => {
+    const user = userEvent.setup()
+    renderWriting(languageSegments, true)
+
+    const java = screen.getByRole('radio', { name: 'Java' })
+    await user.click(java)
+    expect(java).toBeChecked()
+    expect(java).toHaveFocus()
+    expect(screen.getByText(/Java first uses/)).toBeInTheDocument()
+    expect(screen.getByText('emphasis').tagName).toBe('EM')
+    expect(screen.getByText('Java second one')).toBeInTheDocument()
+    expect(screen.queryByText('C# second one')).not.toBeInTheDocument()
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('java')
+
+    await user.click(screen.getByRole('radio', { name: 'Python' }))
+    expect(screen.getByText(/Python first uses/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'a link' })).toHaveAttribute('href', 'https://example.com')
+    expect(screen.getByText('Python second one').closest('ul')).toBeInTheDocument()
+  })
+
+  it('renders Compare in declared order without persisting a fake value and returns to the prior language', async () => {
+    const user = userEvent.setup()
+    renderWriting(languageSegments, true)
+    await user.click(screen.getByRole('radio', { name: 'Python' }))
+    await user.click(screen.getByRole('radio', { name: 'Compare' }))
+
+    expect(screen.getByRole('radio', { name: 'Compare' })).toBeChecked()
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('python')
+    const firstComparison = screen.getAllByRole('region', { name: 'Language comparison' })[0]
+    expect(within(firstComparison).getAllByText(/^(C#|Java|Python)$/).map((node) => node.textContent))
+      .toEqual(['C#', 'Java', 'Python'])
+    expect(screen.getByText(/C# first uses/)).toBeInTheDocument()
+    expect(screen.getByText(/Java first uses/)).toBeInTheDocument()
+    expect(screen.getByText(/Python first uses/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('radio', { name: 'Python' }))
+    expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
+    expect(screen.queryByText(/Java first uses/)).not.toBeInTheDocument()
+  })
+
+  it('initializes supported preferences and preserves unsupported TypeScript preferences', () => {
+    window.localStorage.setItem(preferredLanguageStorageKey, 'python')
+    const { unmount } = renderWriting(languageSegments, true)
+    expect(screen.getByRole('radio', { name: 'Python' })).toBeChecked()
+    unmount()
+
+    window.localStorage.setItem(preferredLanguageStorageKey, 'typescript')
+    renderWriting(languageSegments, true)
+    expect(screen.getByRole('radio', { name: 'C#' })).toBeChecked()
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('typescript')
+  })
+
+  it('synchronizes language-aware code tabs with Read As and language-content', async () => {
+    const user = userEvent.setup()
+    renderWriting(languageAwareCodeSegments, true)
+
+    expect(screen.getAllByRole('group', { name: 'Read this article as' })).toHaveLength(1)
+    expect(screen.getAllByRole('tab', { name: 'C#', selected: true })).toHaveLength(2)
+    await user.click(screen.getAllByRole('tab', { name: 'Java' })[0])
+
+    expect(screen.getByRole('radio', { name: 'Java' })).toBeChecked()
+    expect(screen.getAllByRole('tab', { name: 'Java', selected: true })).toHaveLength(2)
+    expect(screen.getByText(/Java first uses/)).toBeInTheDocument()
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBe('java')
+
+    await user.click(screen.getByRole('radio', { name: 'Python' }))
+    expect(screen.getAllByRole('tab', { name: 'Python', selected: true })).toHaveLength(2)
+    expect(screen.getByText(/Python first uses/)).toBeInTheDocument()
+  })
+
+  it('renders every language-aware code sample in Compare without tab semantics', async () => {
+    const user = userEvent.setup()
+    renderWriting(languageAwareCodeSegments, true)
+    await user.click(screen.getByRole('radio', { name: 'Compare' }))
+
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.queryByRole('tabpanel')).not.toBeInTheDocument()
+    const comparisons = screen.getAllByRole('region', { name: 'Equivalent code comparison' })
+    expect(comparisons).toHaveLength(2)
+    expect(within(comparisons[0]).getAllByText(/^(C#|Java|Python)$/).map((node) => node.textContent))
+      .toEqual(['C#', 'Java', 'Python'])
+    expect(within(comparisons[0]).getByLabelText('C# code'))
+      .toHaveTextContent('int first = 1;')
+    expect(within(comparisons[0]).getByLabelText('Java code'))
+      .toHaveTextContent('int first = 1;')
+    expect(within(comparisons[0]).getByLabelText('Python code'))
+      .toHaveTextContent('first = 1')
+    expect(window.localStorage.getItem(preferredLanguageStorageKey)).toBeNull()
   })
 })

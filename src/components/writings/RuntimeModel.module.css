@@ -1,0 +1,334 @@
+.runtimeModel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(169, 121, 255, 0.3);
+  border-radius: var(--radius-md);
+  background: linear-gradient(145deg, rgba(11, 25, 40, 0.88), rgba(5, 15, 25, 0.94));
+}
+
+.runtimeModel > figure:first-child {
+  margin-top: 0;
+}
+
+.state {
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(3, 10, 17, 0.72);
+}
+
+.state figcaption {
+  margin-bottom: 15px;
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.directModel {
+  max-width: 360px;
+}
+
+.directValuesModel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.directValueItem {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.55fr) minmax(120px, 1fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.sourceLabel {
+  margin: 0;
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 18px;
+}
+
+.valueCard,
+.sourceCard,
+.objectCard {
+  min-width: 0;
+  border: 1px solid rgba(53, 215, 255, 0.35);
+  border-radius: 7px;
+  background: rgba(6, 28, 41, 0.72);
+}
+
+.valueCard {
+  display: grid;
+  padding: 14px 16px;
+  gap: 5px;
+}
+
+.valueCard span,
+.sourceCard span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.valueCard strong {
+  color: var(--color-mint);
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.valueCard[data-runtime-changed='true'] {
+  background: rgba(169, 121, 255, 0.12);
+  box-shadow: inset 3px 0 0 var(--color-violet);
+}
+
+.valueCard strong .changedLabel {
+  font-size: 9px;
+}
+
+.relationshipModel {
+  display: grid;
+  grid-template-columns: minmax(105px, 0.65fr) auto minmax(180px, 1.35fr);
+  align-items: center;
+  gap: 14px;
+}
+
+.sharedRelationshipModel {
+  display: grid;
+  grid-template-columns: minmax(105px, 0.65fr) 58px minmax(180px, 1.35fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.sharedSources {
+  display: grid;
+  gap: 12px;
+}
+
+.sharedConnector {
+  width: 58px;
+  height: 100%;
+  min-height: 104px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--color-violet);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.sharedConnector .arrowHead {
+  fill: var(--color-violet);
+  stroke: none;
+}
+
+.sharedArrowMobile {
+  display: none;
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+  font-size: 24px;
+}
+
+.sourceCard {
+  display: grid;
+  padding: 14px;
+  gap: 6px;
+  text-align: center;
+}
+
+.sourceCard strong {
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.arrow {
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+  font-size: 24px;
+}
+
+.objectCard {
+  overflow: hidden;
+}
+
+.objectType,
+.scalarValue {
+  margin: 0;
+  padding: 11px 14px;
+  font-family: var(--font-mono);
+}
+
+.objectIdentity {
+  margin: 0;
+  padding: 7px 14px 0;
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.objectType {
+  color: var(--color-mint);
+  background: rgba(53, 215, 255, 0.07);
+  font-size: 14px;
+}
+
+.scalarValue {
+  color: var(--color-text);
+  font-size: 22px;
+}
+
+.members {
+  margin: 0;
+}
+
+.members > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 10px 14px;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.members dt,
+.members dd {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.members [data-runtime-changed='true'] {
+  background: rgba(169, 121, 255, 0.12);
+  box-shadow: inset 3px 0 0 var(--color-violet);
+}
+
+.changedLabel {
+  margin-left: 8px;
+  color: var(--color-violet);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.transition {
+  display: grid;
+  gap: 16px;
+}
+
+.transitionCue {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+}
+
+.transitionCue span {
+  font-size: 24px;
+}
+
+.transitionCue strong {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.splitRelationshipModel {
+  display: grid;
+  gap: 14px;
+}
+
+.splitPair {
+  display: grid;
+  grid-template-columns: minmax(105px, 0.65fr) auto minmax(180px, 1.35fr) minmax(0, 92px);
+  align-items: center;
+  gap: 14px;
+}
+
+.splitPair[data-runtime-relationship-changed='true'] {
+  padding: 8px;
+  border-left: 3px solid var(--color-violet);
+  border-radius: 5px;
+  background: rgba(169, 121, 255, 0.08);
+}
+
+.relationshipChanged {
+  color: var(--color-violet);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.members dt {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.members dt span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.members dd {
+  color: var(--color-mint);
+  font-size: 15px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 520px) {
+  .runtimeModel {
+    padding: 12px;
+  }
+
+  .directModel,
+  .directValuesModel,
+  .directValueItem,
+  .relationshipModel,
+  .sharedRelationshipModel,
+  .splitPair {
+    grid-template-columns: 1fr;
+  }
+
+  .arrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .relationshipChanged {
+    justify-self: center;
+  }
+
+  .sharedConnector {
+    display: none;
+  }
+
+  .sharedArrowMobile {
+    display: block;
+    justify-self: center;
+  }
+}

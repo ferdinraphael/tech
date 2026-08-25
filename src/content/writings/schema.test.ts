@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { writingFormatLabel, writingFormats } from './formats'
-import { normalizeCodeLanguage } from './languages'
+import { codeLanguageLabel, normalizeCodeLanguage } from './languages'
+import { highlightCode } from '../../components/writings/highlight'
+import { isReaderLanguage, readerLanguages } from './readerLanguages'
 import {
   WritingValidationError,
   buildWritingCatalogue,
@@ -25,6 +27,29 @@ tags:
 technologies:
   - TypeScript`
 
+const readerMetadata = `${publishedMetadata}
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: csharp`
+
+const validLanguageContent = `::::language-content
+
+:::language csharp
+C# uses \`count\` with **strong** emphasis.
+:::
+
+:::language java
+Java uses \`count\` with *emphasis*.
+:::
+
+:::language python
+Python uses \`count\` and a [link](https://example.com).
+:::
+
+::::`
+
 describe('technical-writing schema', () => {
   it('parses valid frontmatter, filename slugs, and stable heading IDs', () => {
     const writing = parseWritingSource(
@@ -45,11 +70,88 @@ featured: true`,
     expect(writing.format).toBe('article')
     expect(writing.series).toEqual({ name: 'Architecture Smells', order: 2 })
     expect(writing.relatedProjects).toEqual(['little-worlds'])
+    expect(writing.readerLanguages).toBeUndefined()
+    expect(writing.defaultReaderLanguage).toBeUndefined()
     expect(writing.headings.map(({ id }) => id)).toEqual([
       'repeated-heading',
       'detail',
       'repeated-heading-1',
     ])
+  })
+
+  it('parses constrained reader-language metadata without narrowing code languages', () => {
+    const writing = parseWritingSource(writingSource(`${publishedMetadata}
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: csharp`))
+
+    expect(readerLanguages).toEqual(['csharp', 'java', 'python'])
+    expect(writing.readerLanguages).toEqual(['csharp', 'java', 'python'])
+    expect(writing.defaultReaderLanguage).toBe('csharp')
+    expect(isReaderLanguage('java')).toBe(true)
+    expect(isReaderLanguage('typescript')).toBe(false)
+    expect(normalizeCodeLanguage('typescript')).toBe('typescript')
+  })
+
+  it('adds Java to the canonical code-language and highlighting registry', () => {
+    expect(normalizeCodeLanguage('java')).toBe('java')
+    expect(codeLanguageLabel('java')).toBe('Java')
+    expect(() => highlightCode('int count = 10;', 'java')).not.toThrow()
+    expect(highlightCode('int count = 10;', 'java')).toContain('hljs-type')
+  })
+
+  it.each([
+    [
+      'empty readerLanguages',
+      `${publishedMetadata}\nreaderLanguages: []\ndefaultReaderLanguage: csharp`,
+      /non-empty list/,
+    ],
+    [
+      'unknown reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - ruby\ndefaultReaderLanguage: csharp`,
+      /unsupported reader language "ruby"/,
+    ],
+    [
+      'duplicate reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - csharp\ndefaultReaderLanguage: csharp`,
+      /repeats reader language "csharp"/,
+    ],
+    [
+      'missing default reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - java`,
+      /defaultReaderLanguage.*required/,
+    ],
+    [
+      'unsupported default reader language',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - java\ndefaultReaderLanguage: typescript`,
+      /defaultReaderLanguage.*supported reader language/,
+    ],
+    [
+      'default reader language is not declared',
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - java\ndefaultReaderLanguage: python`,
+      /defaultReaderLanguage.*appear in "readerLanguages"/,
+    ],
+    [
+      'default reader language without readerLanguages',
+      `${publishedMetadata}\ndefaultReaderLanguage: csharp`,
+      /defaultReaderLanguage.*requires "readerLanguages"/,
+    ],
+  ])('rejects invalid reader metadata: %s', (_label, metadata, expected) => {
+    expect(() => parseWritingSource(writingSource(metadata))).toThrow(expected)
+  })
+
+  it('parses reader metadata equivalently from LF and CRLF sources', () => {
+    const lf = writingSource(`${publishedMetadata}
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: python`)
+    const crlf = { ...lf, source: lf.source.replace(/\n/g, '\r\n') }
+
+    expect(parseWritingSource(crlf)).toEqual(parseWritingSource(lf))
   })
 
   it.each([
@@ -122,6 +224,148 @@ const value = 1
     expect(normalizeCodeLanguage('py')).toBe('python')
     expect(normalizeCodeLanguage('js')).toBe('javascript')
     expect(normalizeCodeLanguage('plaintext')).toBe('text')
+  })
+
+  it('requires language-aware code tabs to match declared reader languages exactly', () => {
+    const body = `## Examples
+
+:::code-tabs
+
+\`\`\`python
+value = 1
+\`\`\`
+
+\`\`\`cs
+var value = 1;
+\`\`\`
+
+\`\`\`java
+var value = 1;
+\`\`\`
+
+:::`
+    const writing = parseWritingSource(writingSource(readerMetadata, body))
+    const tabs = writing.segments.find((segment) => segment.type === 'code-tabs')
+
+    expect(tabs).toEqual({
+      type: 'code-tabs',
+      samples: [
+        expect.objectContaining({ language: 'csharp' }),
+        expect.objectContaining({ language: 'java' }),
+        expect.objectContaining({ language: 'python' }),
+      ],
+    })
+  })
+
+  it.each([
+    [
+      'missing a declared language',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```java\nb\n```\n\n:::',
+      /missing declared language "python"/,
+    ],
+    [
+      'containing an undeclared language',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```java\nb\n```\n\n```typescript\nc\n```\n\n:::',
+      /undeclared reader language "typescript"/,
+    ],
+    [
+      'repeating a declared language through an alias',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```cs\nb\n```\n\n```java\nc\n```\n\n```python\nd\n```\n\n:::',
+      /repeats language "csharp"/,
+    ],
+    [
+      'containing an unsupported language',
+      ':::code-tabs\n\n```csharp\na\n```\n\n```java\nb\n```\n\n```ruby\nc\n```\n\n:::',
+      /unsupported code-tab language "ruby"/,
+    ],
+  ])('rejects language-aware code tabs %s', (_label, body, expected) => {
+    expect(() => parseWritingSource(writingSource(readerMetadata, body))).toThrow(expected)
+  })
+
+  it('parses ordered language-content variants and excludes their prose from the TOC', () => {
+    const writing = parseWritingSource(writingSource(
+      readerMetadata,
+      `## Stable heading\n\n${validLanguageContent}`,
+    ))
+    expect(writing.segments).toEqual([
+      { type: 'markdown', source: '## Stable heading' },
+      {
+        type: 'language-content',
+        variants: [
+          expect.objectContaining({ language: 'csharp', source: expect.stringContaining('C# uses') }),
+          expect.objectContaining({ language: 'java', source: expect.stringContaining('Java uses') }),
+          expect.objectContaining({ language: 'python', source: expect.stringContaining('Python uses') }),
+        ],
+      },
+    ])
+    expect(writing.headings).toEqual([
+      { depth: 2, text: 'Stable heading', id: 'stable-heading' },
+    ])
+  })
+
+  it.each([
+    [
+      'missing declared language',
+      validLanguageContent.replace(/\n:::language python[\s\S]*?\n:::\n\n::::$/, '\n::::'),
+      /missing declared language "python"/,
+    ],
+    [
+      'duplicate language',
+      validLanguageContent.replace(':::language java', ':::language csharp'),
+      /repeats language "csharp"/,
+    ],
+    [
+      'unknown language',
+      validLanguageContent.replace(':::language java', ':::language ruby'),
+      /unknown reader language "ruby"/,
+    ],
+    [
+      'undeclared language',
+      validLanguageContent.replace(':::language java', ':::language python')
+        .replace(':::language python\nPython', ':::language java\nPython'),
+      /undeclared reader language "java"/,
+      `${publishedMetadata}\nreaderLanguages:\n  - csharp\n  - python\ndefaultReaderLanguage: csharp`,
+    ],
+    [
+      'without reader metadata',
+      validLanguageContent,
+      /requires frontmatter readerLanguages/,
+      publishedMetadata,
+    ],
+    [
+      'heading inside a variant',
+      validLanguageContent.replace('Java uses', '## Java heading\n\nJava uses'),
+      /headings are not allowed/,
+    ],
+    [
+      'nested framework directive',
+      validLanguageContent.replace('Java uses', ':::code-tabs\nJava uses'),
+      /nested framework directives/,
+    ],
+    [
+      'missing outer close',
+      validLanguageContent.replace(/\n::::$/, ''),
+      /language-content is missing its closing ::::/,
+    ],
+    [
+      'missing child close',
+      validLanguageContent.replace('Java uses `count` with *emphasis*.\n:::', 'Java uses `count` with *emphasis*.'),
+      /language block is missing its closing :::/,
+    ],
+  ])('rejects invalid language-content: %s', (_label, body, expected, metadata = readerMetadata) => {
+    expect(() => parseWritingSource(writingSource(metadata, body))).toThrow(expected)
+  })
+
+  it('does not mistake directive-looking content in an ordinary code fence for directives', () => {
+    const body = `## Example\n\n\`\`\`text\n::::language-content\n:::language java\n\`\`\``
+    const writing = parseWritingSource(writingSource(readerMetadata, body))
+    expect(writing.segments).toEqual([{ type: 'markdown', source: body }])
+  })
+
+  it('parses language-content equivalently with LF and CRLF line endings', () => {
+    const lf = writingSource(readerMetadata, validLanguageContent)
+    const crlf = { ...lf, source: lf.source.replace(/\n/g, '\r\n') }
+    expect(parseWritingSource(crlf)).toEqual(parseWritingSource(lf))
   })
 
   it.each([

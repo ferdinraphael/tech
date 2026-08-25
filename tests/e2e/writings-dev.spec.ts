@@ -4,6 +4,326 @@ import { readFile } from 'node:fs/promises'
 test.skip(process.env.WRITINGS_DEV_PREVIEW !== '1', 'Runs only against the bounded development preview.')
 
 const writingPath = './writings/framework-preview'
+const languageAwareWritingPath = './writings/language-aware-preview'
+
+test('language-aware prose and code stay synchronized in single and Compare reading', async ({ page }) => {
+  await page.setViewportSize({ width: 1536, height: 864 })
+  await page.goto(languageAwareWritingPath)
+  await page.evaluate(() => window.localStorage.clear())
+  await page.reload()
+
+  await expect(page.getByRole('heading', { level: 1, name: 'Language-aware writing preview' })).toBeVisible()
+  const reader = page.getByRole('group', { name: 'Read this article as' })
+  await expect(reader).toHaveCount(1)
+  await expect(reader.getByRole('radio', { name: 'C#' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'C#', selected: true })).toHaveCount(2)
+  await expect(page.getByRole('tabpanel').nth(0)).toContainText('int count = 10;')
+  await expect(page.getByRole('tabpanel').nth(1)).toContainText('count = 11;')
+  const csharpModels = page.getByRole('region', { name: 'C# runtime model' })
+  await expect(csharpModels).toHaveCount(7)
+  await expect(page.getByText('Variable count directly contains the int value 10.'))
+    .toBeAttached()
+  await expect(page.getByText(
+    'Variables a and b refer to the same Counter object. Its Value property is 10.',
+    { exact: true },
+  )).toBeAttached()
+  await expect(csharpModels.nth(2).locator('[data-runtime-entity="variable"]')).toHaveCount(2)
+  await expect(csharpModels.nth(2).locator('[data-runtime-entity="object"]')).toHaveCount(1)
+  await expect(csharpModels.nth(3).getByText('Before mutation')).toBeVisible()
+  await expect(csharpModels.nth(3).getByText('After mutation')).toBeVisible()
+  await expect(csharpModels.nth(3).locator('[data-runtime-changed="true"]')).toHaveCount(1)
+  await expect(csharpModels.nth(4).locator('[data-runtime-topology="split-target"]')).toHaveCount(1)
+  await expect(csharpModels.nth(4).locator('[data-runtime-relationship-changed="true"]')).toHaveCount(1)
+  await expect(csharpModels.nth(5).locator('[data-runtime-changed="true"]')).toHaveCount(1)
+  await expect(csharpModels.nth(6).locator('[data-runtime-topology="direct-values"]')).toHaveCount(2)
+  await expect(page.getByText(/whose value is the integer/)).toBeVisible()
+  await expect(page.getByText(/primitive type/)).toHaveCount(0)
+  await page.screenshot({ path: 'visual-review/1536-language-aware-default.png', fullPage: false })
+
+  const initialLocation = await page.evaluate(() => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    historyLength: window.history.length,
+  }))
+  const javaTab = page.getByRole('tab', { name: 'Java' }).first()
+  await javaTab.scrollIntoViewIfNeeded()
+  const scrollBeforeJava = await page.evaluate(() => window.scrollY)
+  await javaTab.click()
+  await expect(javaTab).toBeFocused()
+  await expect(reader.getByRole('radio', { name: 'Java' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Java', selected: true })).toHaveCount(2)
+  await expect(page.getByRole('tabpanel').nth(0)).toContainText('int count = 10;')
+  await expect(page.getByRole('tabpanel').nth(1)).toContainText('count = 11;')
+  await expect(page.getByText(/primitive type/)).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Java runtime model' })).toHaveCount(7)
+  await expect(page.getByText(
+    'Variables a and b refer to the same Counter object. Its value field is 10.',
+    { exact: true },
+  )).toBeAttached()
+  await expect(page.getByRole('region', { name: 'Java runtime model' }).nth(4)
+    .getByText(/After the reassignment, a still refers to the original Counter object/))
+    .toBeAttached()
+  await expect(page.getByRole('region', { name: 'Java runtime model' }).nth(6)
+    .getByText(/a still contains 10 while b directly contains 20/))
+    .toBeAttached()
+  expect(Math.abs((await page.evaluate(() => window.scrollY)) - scrollBeforeJava)).toBeLessThanOrEqual(2)
+  expect(await page.evaluate(() => window.localStorage.getItem('ferdinraphael.tech.preferred-code-language'))).toBe('java')
+
+  await page.reload()
+  await expect(page.getByRole('radio', { name: 'Java' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Java', selected: true })).toHaveCount(2)
+  await expect(page.getByText(/primitive type/)).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Java runtime model' })).toHaveCount(7)
+
+  await page.getByRole('radio', { name: 'Python' }).click()
+  await expect(reader.getByRole('radio', { name: 'Python' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Python', selected: true })).toHaveCount(2)
+  await expect(page.getByRole('tabpanel').nth(0)).toContainText('count = 10')
+  await expect(page.getByRole('tabpanel').nth(1)).toContainText('count = 11')
+  await expect(page.getByText(/bound to an integer object/)).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Python runtime model' })).toHaveCount(7)
+  await expect(page.getByText(
+    'The name count is bound to an int object representing 10.',
+    { exact: true },
+  ))
+    .toBeAttached()
+  await expect(page.getByText(
+    'The names a and b are bound to the same Counter object. Its value field is 10.',
+    { exact: true },
+  )).toBeAttached()
+  await expect(page.getByText(/After the mutation, a and b are still bound to the same Counter object/))
+    .toBeAttached()
+  await expect(page.getByText(/After the rebinding, a remains bound to the original Counter object/))
+    .toBeAttached()
+  await expect(page.getByRole('region', { name: 'Python runtime model' }).nth(5)
+    .getByText(/count is bound to a different int object representing 20/))
+    .toBeAttached()
+  await expect(page.getByRole('region', { name: 'Python runtime model' }).nth(6)
+    .getByText(/a remains bound to the original int object representing 10/))
+    .toBeAttached()
+  await page.evaluate(() => {
+    const copied: string[] = []
+    ;(window as typeof window & { __copiedComparedCode?: string[] }).__copiedComparedCode = copied
+    Object.defineProperty(navigator.clipboard, 'writeText', {
+      configurable: true,
+      value: async (text: string) => { copied.push(text) },
+    })
+  })
+  await page.getByRole('radio', { name: 'Compare' }).click()
+  await expect(page.getByRole('radio', { name: 'Compare' })).toBeChecked()
+  await expect(page.getByRole('tablist')).toHaveCount(0)
+  await expect(page.getByRole('tab')).toHaveCount(0)
+  await expect(page.getByRole('tabpanel')).toHaveCount(0)
+  const codeComparisons = page.getByRole('region', { name: 'Equivalent code comparison' })
+  await expect(codeComparisons).toHaveCount(2)
+  await expect(codeComparisons.first().locator('p')).toHaveText(['C#', 'Java', 'Python'])
+  await expect(codeComparisons.first().locator('code.language-csharp .hljs-number')).toHaveText('10')
+  await expect(codeComparisons.first().locator('code.language-java .hljs-number')).toHaveText('10')
+  await expect(codeComparisons.first().locator('code.language-python .hljs-number')).toHaveText('10')
+  const expectedComparedCode = [
+    ['C#', 'int count = 10;'],
+    ['Java', 'int count = 10;'],
+    ['Python', 'count = 10'],
+    ['C#', 'count = 11;'],
+    ['Java', 'count = 11;'],
+    ['Python', 'count = 11'],
+  ] as const
+  for (const [index, [language, expected]] of expectedComparedCode.entries()) {
+    await codeComparisons.nth(Math.floor(index / 3))
+      .getByRole('button', { name: `Copy ${language} code` })
+      .click()
+    const copied = await page.evaluate(() =>
+      (window as typeof window & { __copiedComparedCode?: string[] }).__copiedComparedCode,
+    )
+    expect(copied?.at(-1)).toBe(expected)
+  }
+  const comparisons = page.getByRole('region', { name: 'Language comparison' })
+  await expect(comparisons).toHaveCount(5)
+  await expect(comparisons.first().locator('p').filter({ hasText: /^(C#|Java|Python)$/ })).toHaveText(['C#', 'Java', 'Python'])
+  await expect(page.getByText(/whose value is the integer/)).toBeVisible()
+  await expect(page.getByText(/primitive type/)).toBeVisible()
+  await expect(page.getByText(/bound to an integer object/)).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Python runtime model' })).toHaveCount(7)
+  await expect(page.getByRole('region', { name: 'C# runtime model' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Java runtime model' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Python runtime model' }).first()
+    .getByLabel('Python code', { exact: true })).toContainText('count = 10')
+  const retainedSplit = page.getByRole('region', { name: 'Python runtime model' }).nth(4)
+  await expect(retainedSplit.getByText('Before rebinding')).toBeVisible()
+  await expect(retainedSplit.getByText('After rebinding')).toBeVisible()
+  await expect(retainedSplit.locator('[data-runtime-object-identity="new"]')).toHaveCount(1)
+  const retainedScalarCopy = page.getByRole('region', { name: 'Python runtime model' }).nth(6)
+  await expect(retainedScalarCopy.getByText('Before rebinding')).toBeVisible()
+  await expect(retainedScalarCopy.getByText('After rebinding')).toBeVisible()
+  expect(await page.evaluate(() => window.localStorage.getItem('ferdinraphael.tech.preferred-code-language'))).toBe('python')
+  await page.screenshot({ path: 'visual-review/1536-language-aware-compare.png', fullPage: false })
+
+  await page.getByRole('radio', { name: 'Python' }).click()
+  await expect(page.getByRole('radio', { name: 'Python' })).toBeChecked()
+  await expect(page.getByRole('tab', { name: 'Python', selected: true })).toHaveCount(2)
+  await expect(page.getByRole('region', { name: 'Python runtime model' })).toHaveCount(7)
+  await expect(page.getByText(/primitive type/)).toHaveCount(0)
+  expect(await page.evaluate(() => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+    historyLength: window.history.length,
+  }))).toEqual(initialLocation)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+
+  for (const viewport of [
+    { width: 360, height: 800 },
+    { width: 375, height: 667 },
+    { width: 412, height: 767 },
+    { width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.goto(languageAwareWritingPath)
+    await page.getByRole('radio', { name: 'Compare' }).click()
+    await expect(page.getByRole('radio', { name: 'Compare' })).toBeChecked()
+    await expect(page.getByRole('region', { name: 'Language comparison' })).toHaveCount(5)
+    await expect(page.getByRole('region', { name: 'Equivalent code comparison' })).toHaveCount(2)
+    await expect(page.getByRole('region', { name: 'Python runtime model' })).toHaveCount(7)
+    await expect(page.getByRole('tab')).toHaveCount(0)
+    await expect(page.getByRole('radio', { name: 'Compare' })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await page.screenshot({
+      path: `visual-review/${viewport.width}-language-aware-compare.png`,
+      fullPage: false,
+    })
+  }
+
+  await page.goto('./writings/when-the-workaround-becomes-the-architecture')
+  await expect(page.getByRole('group', { name: 'Read this article as' })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: /runtime model/ })).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: 'TypeScript' }).first()).toBeVisible()
+})
+
+test('runtime models including mutation and reassignment remain readable and bounded', async ({ page }) => {
+  for (const viewport of [
+    { width: 1536, height: 864, suffix: 'desktop' },
+    { width: 375, height: 667, suffix: '375' },
+    { width: 360, height: 800 },
+    { width: 412, height: 767 },
+    { width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize(viewport)
+    await page.goto(languageAwareWritingPath)
+    await page.getByRole('radio', { name: 'C#' }).click()
+    const models = page.getByRole('region', { name: 'C# runtime model' })
+    await expect(models).toHaveCount(7)
+    await models.first().scrollIntoViewIfNeeded()
+    await expect(models.first().getByText('count', { exact: true })).toBeVisible()
+    await expect(models.first().getByText('int', { exact: true }).last()).toBeVisible()
+    await expect(models.first().getByText('10', { exact: true }).last()).toBeVisible()
+    await expect(models.nth(1).getByText('Counter', { exact: true }).last()).toBeVisible()
+    await expect(models.nth(1).locator('dt')).toContainText('Value')
+    await expect(models.nth(1).locator('dt')).toContainText('property')
+    const sharedModel = models.nth(2)
+    await expect(sharedModel.locator('[data-runtime-entity="variable"]')).toHaveCount(2)
+    await expect(sharedModel.locator('[data-runtime-entity="object"]')).toHaveCount(1)
+    await expect(sharedModel.locator('[data-runtime-entity="variable"]').nth(0)).toContainText('a')
+    await expect(sharedModel.locator('[data-runtime-entity="variable"]').nth(1)).toContainText('b')
+    await expect(sharedModel.locator('dt')).toContainText('Value')
+    await expect(sharedModel.locator('dd')).toHaveText('10')
+    await expect(page.getByText(
+      'Variable a refers to a Counter object. Its Value property is 10.',
+    )).toBeAttached()
+    await expect(page.getByText(
+      'Variables a and b refer to the same Counter object. Its Value property is 10.',
+      { exact: true },
+    )).toBeAttached()
+    expect(await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )).toBe(false)
+    expect(await sharedModel.getByLabel('C# code', { exact: true }).evaluate((element) =>
+      getComputedStyle(element).overflowX,
+    )).toBe('auto')
+    if (viewport.suffix) {
+      const csharpCapture = viewport.width === 375 ? sharedModel.locator('figure').last() : sharedModel
+      await csharpCapture.screenshot({
+        path: `visual-review/runtime-model-shared-csharp-${viewport.suffix}.png`,
+      })
+    }
+
+    const mutationModel = models.nth(3)
+    await expect(mutationModel.locator('[data-runtime-entity="object"]')).toHaveCount(2)
+    await expect(mutationModel.locator('[data-runtime-entity="variable"]')).toHaveCount(4)
+    await expect(mutationModel.locator('[data-runtime-changed="true"]')).toHaveCount(1)
+    await expect(mutationModel.getByText('object mutated')).toBeVisible()
+    await expect(mutationModel.getByText(/still refer to the same Counter object/)).toBeAttached()
+    if (viewport.suffix) {
+      await mutationModel.screenshot({
+        path: `visual-review/runtime-model-mutation-csharp-${viewport.suffix}.png`,
+      })
+    }
+
+    const splitModel = models.nth(4)
+    const splitAfter = splitModel.locator('[data-runtime-topology="split-target"]')
+    await expect(splitModel.locator('[data-runtime-entity="object"]')).toHaveCount(3)
+    await expect(splitAfter.locator('[data-runtime-object-identity="original"]')).toHaveCount(1)
+    await expect(splitAfter.locator('[data-runtime-object-identity="new"]')).toHaveCount(1)
+    await expect(splitAfter.locator('[data-runtime-relationship-changed="true"]')).toHaveCount(1)
+    await expect(splitModel.getByText('relationship changed')).toBeVisible()
+    await expect(splitModel.getByText('changed target')).toBeVisible()
+    await expect(splitModel.getByText(/a still refers to the original Counter object/)).toBeAttached()
+    if (viewport.suffix) {
+      await splitModel.screenshot({
+        path: `visual-review/runtime-model-reassignment-csharp-${viewport.suffix}.png`,
+      })
+    }
+
+    const scalarChange = models.nth(5)
+    await expect(scalarChange.locator('[data-runtime-changed="true"]')).toHaveCount(1)
+    await expect(scalarChange.getByText(/same variable directly contains the int value 20/))
+      .toBeAttached()
+    const scalarCopy = models.nth(6)
+    await expect(scalarCopy.locator('[data-runtime-topology="direct-values"]')).toHaveCount(2)
+    await expect(scalarCopy.locator('[data-runtime-changed="true"]')).toHaveCount(1)
+    await expect(scalarCopy.getByText(/a still contains 10 while b directly contains 20/))
+      .toBeAttached()
+    if (viewport.suffix) {
+      await scalarCopy.screenshot({
+        path: `visual-review/runtime-model-scalar-copy-csharp-${viewport.suffix}.png`,
+      })
+    }
+
+    await page.getByRole('radio', { name: 'Python' }).click()
+    const pythonShared = page.getByRole('region', { name: 'Python runtime model' }).nth(2)
+    await expect(pythonShared.locator('[data-runtime-entity="name"]')).toHaveCount(2)
+    await expect(pythonShared.locator('[data-runtime-entity="object"]')).toHaveCount(1)
+    await expect(pythonShared.locator('dd')).toHaveText('10')
+    await expect(page.getByText(
+      'The names a and b are bound to the same Counter object. Its value field is 10.',
+      { exact: true },
+    )).toBeAttached()
+    expect(await page.evaluate(() =>
+      document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )).toBe(false)
+    if (viewport.suffix) {
+      const pythonCapture = viewport.width === 375 ? pythonShared.locator('figure').last() : pythonShared
+      await pythonCapture.screenshot({
+        path: `visual-review/runtime-model-shared-python-${viewport.suffix}.png`,
+      })
+      await page.getByRole('region', { name: 'Python runtime model' }).nth(3).screenshot({
+        path: `visual-review/runtime-model-mutation-python-${viewport.suffix}.png`,
+      })
+      const pythonSplit = page.getByRole('region', { name: 'Python runtime model' }).nth(4)
+      await expect(pythonSplit.locator('[data-runtime-entity="name"]')).toHaveCount(4)
+      await expect(pythonSplit.getByText(/a remains bound to the original Counter object/)).toBeAttached()
+      await pythonSplit.screenshot({
+        path: `visual-review/runtime-model-rebinding-python-${viewport.suffix}.png`,
+      })
+      const pythonScalarCopy = page.getByRole('region', { name: 'Python runtime model' }).nth(6)
+      await expect(pythonScalarCopy.locator('[data-runtime-object-identity="original"]')).toHaveCount(2)
+      await expect(pythonScalarCopy.locator('[data-runtime-object-identity="new"]')).toHaveCount(1)
+      await pythonScalarCopy.screenshot({
+        path: `visual-review/runtime-model-scalar-copy-python-${viewport.suffix}.png`,
+      })
+    }
+  }
+})
 
 test('desktop writing tracks active headings, direct hashes, history, tabs, copy, and review states', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], {

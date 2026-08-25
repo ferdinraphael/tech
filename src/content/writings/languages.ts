@@ -6,6 +6,7 @@ export const preferredLanguageStorageKey =
 const aliases: Record<string, CanonicalCodeLanguage> = {
   csharp: 'csharp',
   cs: 'csharp',
+  java: 'java',
   typescript: 'typescript',
   ts: 'typescript',
   javascript: 'javascript',
@@ -26,6 +27,7 @@ const aliases: Record<string, CanonicalCodeLanguage> = {
 
 const labels: Record<CanonicalCodeLanguage, string> = {
   csharp: 'C#',
+  java: 'Java',
   typescript: 'TypeScript',
   javascript: 'JavaScript',
   python: 'Python',

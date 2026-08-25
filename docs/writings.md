@@ -125,6 +125,7 @@ Draft and published files use the same schema. Invalid dates, formats, duplicate
 Ordinary fenced blocks receive syntax highlighting, a language label when recognised, horizontal overflow, and a copy action. Supported aliases include:
 
 - `csharp`, `cs`
+- `java`
 - `typescript`, `ts`
 - `javascript`, `js`
 - `python`, `py`
@@ -137,6 +138,89 @@ Ordinary fenced blocks receive syntax highlighting, a language label when recogn
 - `text`, `plaintext`
 
 A `:::code-tabs` group must contain at least two labelled fenced blocks and cannot repeat a canonical language. Selecting a language stores the preference under `ferdinraphael.tech.preferred-code-language` and synchronises compatible groups. A group without the preferred language falls back to its first example without changing the stored preference.
+
+Language-aware writings declare their supported reading languages and default in frontmatter:
+
+```yaml
+readerLanguages:
+  - csharp
+  - java
+  - python
+defaultReaderLanguage: csharp
+```
+
+Every `:::code-tabs` group in such a writing must contain exactly the declared reader languages once each. In single-language mode, Read As, language-content prose, and every code-tabs group share one selection. Selecting a code tab changes the article-wide reading language. Compare mode renders every code sample in declared language order as labelled code blocks, without tab controls or tab semantics. Writings without `readerLanguages` retain the ordinary independent code-tabs behavior described above.
+
+## Language-only sections
+
+Use `::::language-only` when a section itself belongs only to a subset of the writing's declared reader languages. Unlike `language-content`, which supplies different wording for the same conceptual place in a shared outline, `language-only` may contain ordinary Markdown headings and therefore may change the visible outline.
+
+````markdown
+::::language-only python
+
+## Why immutability hides the difference
+
+This section exists only in the Python reading path.
+
+::::
+````
+
+One or more declared reader languages may be listed, for example `::::language-only csharp java`.
+
+In single-language mode the entire block, including its headings, is hidden unless the selected reader language is listed. Its headings are also removed from Contents. In Compare mode the block is shown once with a label naming the languages it applies to, and its headings participate in Contents.
+
+`language-only` requires `readerLanguages`, rejects unknown, undeclared, or repeated language arguments, and cannot be empty. Its body is ordinary Markdown, including headings and fenced code blocks. Framework directives may not be nested inside it.
+
+Use `language-content` when the concept belongs to every reading path but the explanation differs. Use `language-only` only when the concept or detour genuinely should not exist in the other reading paths.
+
+## Basic runtime models
+
+A `::::runtime-model` is available only in a language-aware writing. It contains exactly one `:::language` variant for every declared reader language, and variants are normalized to `readerLanguages` order. Each variant owns exactly one matching language code fence and one `model` fence:
+
+````markdown
+::::runtime-model
+
+:::language csharp
+
+```csharp
+int count = 10;
+```
+
+```model
+states:
+  - id: current
+    label: Current
+    entities:
+      - id: count
+        kind: variable
+        label: count
+        directValue:
+          type: int
+          value: "10"
+    relationships: []
+```
+
+:::
+
+<!-- Add the complete Java and Python variants here. -->
+
+::::
+````
+
+The `model` fence is parsed as semantic YAML and never displayed as source. Runtime models support one state whose ID is `current`, one direct-value variable, one source associated with one object, or exactly two sources sharing one object. Objects contain either a scalar value or a non-empty `members` list whose entries are marked as `field` or `property`. The old `fields:` property is invalid authoring syntax and fails strict validation.
+
+Variables use `reference` relationships and names use `binding` relationships. Shared identity is represented by two ordinary relationships with the same target object: either two variables/references or two names/bindings. Source cards render in entity declaration order regardless of relationship order. Authors describe entities and relationships only; coordinates, styling instructions, and other rendering data are invalid.
+
+Runtime models may contain either one `current` state or exactly one `before` plus one `after` state. Authored transition order is normalized to before then after. Before/after supports two deliberately narrow transitions:
+
+- A shared-target mutation retains the same two sources, target identity, source semantics, and relationship set. The member-backed object retains its member names and kinds, at least one member value changes, and the changed members are derived from the state difference.
+- A shared-target split starts with the same Stage E topology, then contains exactly the same two sources, the unchanged original target, one new same-type target with a new ID and matching representation, and exactly two relationships. Exactly one source keeps its relationship to the original target while the other changes only its target to the new object. Source IDs, kinds, labels, and relationship semantics remain unchanged; validation derives the stable and changed sources rather than accepting authored transition hints.
+
+A split cannot mutate the original object at the same time, and a split after-state is not accepted as a standalone `current` topology. Other direct-value, single-source, and scalar-object transition shapes remain unsupported. Runtime models do not support arbitrary multiple-object graphs, disconnected or unreachable objects, de-emphasis, garbage-collection semantics, coordinates, or animation. During Compare, they render only the retained selected-language variant, including both transition states; code-tabs and language-content keep their full Compare behavior.
+
+Scalar runtime models add a deliberately narrow set of value semantics. A `current` state may contain exactly two independent variables with `directValue`; they render as separate value cards with no relationship connector. Before/after may change one direct-value variable or one or both variables in an exact-two direct-value model, while retaining variable IDs, labels, and value types. Arbitrary three-or-more-variable value layouts are unsupported.
+
+A single name may rebind between two scalar objects represented with `scalarValue`, and a two-name shared scalar target may split so one name remains bound to the unchanged original scalar object while the other binds to one new same-type scalar object. Direct-value variables use `directValue`; scalar objects use `scalarValue`, never members. Omitting the previous scalar object from a rebinding after-state makes no claim about lifetime or garbage collection. Runtime models continue to retain only the selected language during Compare.
 
 ## Related projects and series
 
