@@ -77,6 +77,96 @@ test('routes, browser back, and clean /tech/ base path work', async ({ page }) =
   await expect(page).toHaveURL(/\/tech\/$/)
 })
 
+test('launch information architecture is public and durable', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 })
+  await page.goto('./')
+  const navigation = page.getByRole('navigation', { name: 'Primary navigation' })
+  await expect(navigation.getByRole('link')).toHaveText([
+    'Overview',
+    'Projects',
+    'Built & Published',
+    'Services',
+    'Writings',
+  ])
+  await expect(navigation.getByRole('link', { name: 'Profile' })).toHaveCount(0)
+  await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0)
+  await expect(page.getByText(/preparing writings/i)).toHaveCount(0)
+  const latestWriting = page.getByRole('region', { name: 'Latest Writing' })
+  await expect(latestWriting.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
+  await expect(latestWriting.getByRole('link', { name: /Read article/ })).toHaveAttribute(
+    'href',
+    '/tech/writings/when-the-workaround-becomes-the-architecture',
+  )
+  const books = page.getByRole('region', { name: 'Books' })
+  const recentTools = page.getByRole('region', { name: 'Recent Tools' })
+  await expect(books.getByRole('article')).toHaveCount(2)
+  await expect(books.getByRole('link', { name: /View on Amazon/ })).toHaveCount(2)
+  await expect(recentTools.getByRole('article')).toHaveCount(2)
+  await expect(recentTools.getByRole('link', { name: /View EnvGuard/ })).toHaveAttribute('href', 'https://payhip.com/b/KJzvD')
+  await expect(recentTools.getByRole('link', { name: /View on itch.io/ })).toHaveAttribute(
+    'href',
+    'https://ferdinraphael.itch.io/rpg-data-forge',
+  )
+  await expect(recentTools.getByRole('link', { name: /Pro version/ })).toHaveCount(0)
+  await expect(page.getByText(/Variables Are Simple/i)).toHaveCount(0)
+
+  await page.goto('./projects')
+  await expect(page.getByText('Deterministic simulation worlds')).toBeVisible()
+  await expect(page.getByText(/Evolving microbes with observable behaviour/)).toBeVisible()
+  await expect(page.getByText(/Interactive browser-based simulation/)).toBeVisible()
+  await expect(page.getByText(/Smaller finished tools and publications/).getByRole('link', { name: 'Built & Published' })).toHaveAttribute(
+    'href',
+    '/tech/built-and-published',
+  )
+
+  await page.goto('./built-and-published')
+  await expect(page.getByRole('heading', { name: 'Bookshelf' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Tool Shelf' })).toBeVisible()
+  const csharpBook = page.getByRole('article').filter({ has: page.getByRole('heading', { name: /C# Debugging Drills/ }) })
+  const sqlBook = page.getByRole('article').filter({ has: page.getByRole('heading', { name: /SQL Data Cleaning Cookbook/ }) })
+  const envGuard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'EnvGuard' }) })
+  const rpgDataForge = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'RPG Data Forge' }) })
+  await expect(csharpBook.getByRole('link', { name: /View on Amazon/ })).toHaveAttribute(
+    'href',
+    'https://www.amazon.com/Debugging-Drills-Real-World-Bugs-Find-ebook/dp/B0HF8MLZ52/',
+  )
+  await expect(sqlBook.getByRole('link', { name: /View on Amazon/ })).toHaveAttribute(
+    'href',
+    'https://www.amazon.in/SQL-Data-Cleaning-Cookbook-Real-World-ebook/dp/B0HF8KL378',
+  )
+  await expect(envGuard.getByRole('link', { name: /Free version/ })).toHaveAttribute('href', 'https://payhip.com/b/KJzvD')
+  await expect(envGuard.getByRole('link', { name: /Pro version/ })).toHaveAttribute('href', 'https://payhip.com/b/r3Tn7')
+  await expect(rpgDataForge.getByRole('link', { name: /View on itch.io/ })).toHaveAttribute(
+    'href',
+    'https://ferdinraphael.itch.io/rpg-data-forge',
+  )
+  for (const action of [
+    csharpBook.getByRole('link'),
+    sqlBook.getByRole('link'),
+    envGuard.getByRole('link').first(),
+    envGuard.getByRole('link').last(),
+    rpgDataForge.getByRole('link'),
+  ]) {
+    await expect(action).toHaveAttribute('target', '_blank')
+    await expect(action).toHaveAttribute('rel', 'noreferrer')
+  }
+
+  await page.goto('./services')
+  for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching', 'Technical Content']) {
+    await expect(page.getByRole('heading', { name: title })).toBeVisible()
+  }
+  await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0)
+  await expect(page.getByText('SCOPED SERVICE')).toHaveCount(0)
+
+  await page.goto('./writings')
+  await expect(page.getByRole('heading', {
+    level: 1,
+    name: 'Writing about software, systems, and the decisions behind them.',
+  })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
+  await expect(page.getByText(/Variables Are Simple/i)).toHaveCount(0)
+})
+
 test('production Writings publishes the article while remaining draft-safe and canonical', async ({ page, context }) => {
   const title = 'When the Workaround Becomes the Architecture'
   const writingPath = './writings/when-the-workaround-becomes-the-architecture'
@@ -86,7 +176,9 @@ test('production Writings publishes the article while remaining draft-safe and c
   await page.setViewportSize({ width: 1536, height: 864 })
   await page.goto('./writings')
   await expect(page).toHaveURL(/\/tech\/writings$/)
-  await expect(page.getByRole('heading', { name: 'Latest writings' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Latest writing' })).toBeVisible()
+  await expect(page.getByText('1 writing', { exact: true })).toHaveCount(0)
+  await expect(page.locator('[data-layout="single"]')).toHaveCount(1)
   await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toHaveCount(0)
   const publishedCard = page.getByRole('article').filter({
     has: page.getByRole('heading', { name: title }),
@@ -182,7 +274,7 @@ test('captures the primary desktop review states', async ({ page }) => {
   ).toBeVisible()
   await page.screenshot({ path: 'visual-review/1536-little-worlds-selected.png' })
 
-  for (const route of ['profile', 'projects', 'services', 'writings']) {
+  for (const route of ['projects', 'built-and-published', 'services', 'writings']) {
     await page.goto(`./${route}`)
     const heading = page.getByRole('heading', { level: 1 })
     await expect(heading).toBeVisible()
@@ -243,7 +335,7 @@ for (const viewport of [
     await expect(primaryNav).toBeVisible()
     if (viewport.width < 768) {
       const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
-      await expect(map.locator('[data-node-id]')).toHaveCount(9)
+      await expect(map.locator('[data-node-id]')).toHaveCount(6)
       await page.getByRole('button', { name: /^Projects\./ }).click()
       const inline = page.getByRole('region', { name: /Projects inline details/ })
       await expect(inline).toBeVisible()
@@ -256,6 +348,19 @@ for (const viewport of [
       const clearBox = await clear.boundingBox()
       expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
     }
+
+    await page.goto('./built-and-published')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await expect(page.getByRole('heading', { name: 'Bookshelf' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tool Shelf' })).toBeVisible()
+
+    await page.goto('./projects')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await expect(page.getByText('Deterministic simulation worlds')).toBeVisible()
+
+    await page.goto('./services')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    await expect(page.getByRole('heading', { name: 'Technical Content' })).toBeVisible()
 
     await page.goto('./writings')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)

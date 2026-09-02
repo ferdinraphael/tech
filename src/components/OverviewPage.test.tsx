@@ -65,23 +65,14 @@ describe('overview interactions', () => {
     expect(within(panel).queryByText('Python')).not.toBeInTheDocument()
   })
 
-  it('keeps Website in 2 Days in a non-clickable Coming Soon state', async () => {
+  it('opens Built & Published as a top-level constellation category', async () => {
     const user = userEvent.setup()
     renderOverview()
-    await user.click(screen.getByRole('button', { name: /^Website in 2 Days\./ }))
-    const panel = screen.getByRole('article', { name: /Website in 2 Days selected content/ })
-    expect(within(panel).getAllByText('Coming Soon').length).toBeGreaterThan(0)
-    expect(within(panel).queryByRole('link')).not.toBeInTheDocument()
-  })
-
-  it('uses the approved email action for More Ways to Work Together', async () => {
-    const user = userEvent.setup()
-    renderOverview()
-    await user.click(screen.getByRole('button', { name: /^More Ways to Work Together\./ }))
-    const panel = screen.getByRole('article', { name: /More Ways to Work Together selected content/ })
-    expect(within(panel).getByRole('link', { name: /Discuss your requirement/ })).toHaveAttribute(
+    await user.click(screen.getByRole('button', { name: /^Built & Published\./ }))
+    const panel = screen.getByRole('article', { name: /Built & Published selected content/ })
+    expect(within(panel).getByRole('link', { name: /View Built & Published/ })).toHaveAttribute(
       'href',
-      links.enquiry,
+      '/built-and-published',
     )
   })
 
@@ -163,10 +154,49 @@ describe('overview interactions', () => {
     expect(writings).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('renders an intentional Writings foundation state without published content', () => {
+  it('derives the latest published writing and never previews a draft', async () => {
     renderOverview()
-    expect(screen.getByText('WRITINGS / PREPARING')).toBeInTheDocument()
-    expect(screen.getByText(/Technical articles, concept notes, mental models/)).toBeInTheDocument()
-    expect(screen.queryByText('Designing Modular Simulation Systems')).not.toBeInTheDocument()
+    const latestTitle = await screen.findByRole('heading', { name: 'When the Workaround Becomes the Architecture' })
+    const latest = latestTitle.closest('section')!
+    expect(latest).toHaveAccessibleName('Latest Writing')
+    expect(within(latest).getByText(/Published May 10, 2026/)).toBeInTheDocument()
+    expect(within(latest).getByRole('link', { name: /Read article/ })).toHaveAttribute(
+      'href',
+      '/writings/when-the-workaround-becomes-the-architecture',
+    )
+    expect(screen.queryByText(/Variables Are Simple/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Technical writing framework preview/i)).not.toBeInTheDocument()
+  })
+
+  it('previews books, tools, and differentiated service metadata from shared data', () => {
+    renderOverview()
+    const books = screen.getByRole('region', { name: 'Books' })
+    expect(within(books).getByRole('heading', { name: /C# Debugging Drills/ })).toBeInTheDocument()
+    expect(within(books).getByRole('heading', { name: /SQL Data Cleaning Cookbook/ })).toBeInTheDocument()
+    expect(within(books).getAllByRole('article')).toHaveLength(2)
+    expect(within(books).getAllByRole('link', { name: /View on Amazon/ })).toHaveLength(2)
+
+    const tools = screen.getByRole('region', { name: 'Recent Tools' })
+    expect(within(tools).getByText(/local-first .env comparison tool/i)).toBeInTheDocument()
+    expect(within(tools).getByText(/offline browser tool for generating RPG/i)).toBeInTheDocument()
+    expect(within(tools).getByRole('link', { name: /View EnvGuard/ })).toHaveAttribute(
+      'href',
+      'https://payhip.com/b/KJzvD',
+    )
+    expect(within(tools).getByRole('link', { name: /View on itch.io/ })).toHaveAttribute(
+      'href',
+      'https://ferdinraphael.itch.io/rpg-data-forge',
+    )
+    expect(within(tools).queryByRole('link', { name: /Pro version/ })).not.toBeInTheDocument()
+
+    for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching', 'Technical Content']) {
+      expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
+    }
+    expect(screen.getByRole('list', { name: 'Software Development focus areas' })).toHaveTextContent('.NET')
+    expect(screen.getByRole('list', { name: 'Technical Consulting focus areas' })).toHaveTextContent('Architecture')
+    expect(screen.getByRole('list', { name: 'Mentoring & Teaching focus areas' })).toHaveTextContent('Python')
+    expect(screen.getByRole('list', { name: 'Technical Content focus areas' })).toHaveTextContent('Documentation')
+    expect(screen.queryByText(/preparing/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Website in 2 Days/i)).not.toBeInTheDocument()
   })
 })

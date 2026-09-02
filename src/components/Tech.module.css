@@ -78,7 +78,7 @@
 .desktopNav {
   display: flex;
   align-items: stretch;
-  gap: 32px;
+  gap: 26px;
   height: var(--header-height);
 }
 
@@ -684,9 +684,9 @@
   font-size: 11px;
 }
 
-.supportingGrid {
+.overviewFeatureGrid {
   display: grid;
-  grid-template-columns: 1.55fr 0.8fr;
+  grid-template-columns: 1.12fr 0.88fr;
   gap: 20px;
   margin-top: 18px;
 }
@@ -810,6 +810,80 @@
   width: 14px;
 }
 
+.latestWritingCard {
+  position: relative;
+  min-height: 184px;
+  padding: 18px 12px 8px 54px;
+}
+
+.previewLoading {
+  display: grid;
+  min-height: 184px;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.latestWritingCard > svg {
+  position: absolute;
+  top: 21px;
+  left: 12px;
+  width: 26px;
+  color: var(--color-violet);
+}
+
+.previewMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.latestWritingCard h3,
+.toolPreviewCard h3,
+.bookPreview h3 {
+  margin: 12px 0 8px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.latestWritingCard p,
+.toolPreviewCard p,
+.bookPreview p {
+  margin: 0;
+  color: var(--color-text-soft);
+  font-size: 11px;
+  line-height: 1.62;
+}
+
+.latestWritingCard a,
+.toolPreviewCard a,
+.bookPreview a,
+.shelfItem a {
+  display: inline-flex;
+  min-height: 36px;
+  margin-top: 12px;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-cyan);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.latestWritingCard a svg,
+.toolPreviewCard a svg,
+.bookPreview a svg,
+.shelfItem a svg {
+  width: 13px;
+}
+
 .emptyState {
   min-height: 150px;
   padding: 22px 12px 8px;
@@ -847,6 +921,100 @@
   margin-top: 20px;
 }
 
+.previewSection,
+.booksStrip {
+  margin-top: 20px;
+}
+
+.toolPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.toolPreviewCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-width: 0;
+  padding: 16px;
+  gap: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(8, 24, 36, 0.52);
+}
+
+.toolPreviewCard > svg {
+  width: 21px;
+  color: var(--color-cyan);
+}
+
+.toolPreviewCard h3 {
+  margin-top: 0;
+}
+
+.bookPreviewList {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px 0 10px;
+}
+
+.bookPreviewList::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  content: '';
+  background: linear-gradient(90deg, transparent, var(--color-border-strong), transparent);
+}
+
+.bookPreview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  min-width: 0;
+  padding: 16px;
+  gap: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: rgba(5, 18, 29, 0.98);
+}
+
+.bookPreview > svg {
+  width: 20px;
+  color: var(--color-violet);
+}
+
+.bookPreview h3 {
+  margin-top: 0;
+  font-size: 12px;
+}
+
+.bookPreview p {
+  font-size: 10px;
+}
+
+.previewTagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.previewTagList li {
+  padding: 4px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: rgba(12, 35, 49, 0.6);
+  font-family: var(--font-mono);
+  font-size: 8px;
+}
+
 .serviceGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -856,11 +1024,11 @@
 
 .serviceCard {
   display: grid;
-  grid-template-columns: 1fr auto;
-  min-height: 98px;
+  grid-template-columns: auto 1fr;
+  min-height: 126px;
   padding: 15px;
-  align-items: center;
-  gap: 18px;
+  align-items: start;
+  gap: 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: rgba(8, 24, 36, 0.52);
@@ -1242,7 +1410,7 @@
 }
 
 .routeServiceGrid article {
-  min-height: 360px;
+  min-height: 300px;
   padding: 36px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -1250,7 +1418,66 @@
 }
 
 .routeServiceGrid h2 {
-  margin-top: 28px;
+  margin: 0;
+}
+
+.projectHighlights {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0;
+  padding-left: 18px;
+  color: var(--color-text-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.projectHighlights li::marker {
+  color: var(--color-mint);
+}
+
+.projectOutputLink {
+  margin: -12px 0 38px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.projectOutputLink a {
+  color: var(--color-cyan);
+  text-decoration: none;
+}
+
+.servicePreviewIcon {
+  --node-accent: var(--color-cyan);
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--node-accent) 38%, transparent);
+  border-radius: 50%;
+  color: var(--node-accent);
+  background: color-mix(in srgb, var(--node-accent) 8%, transparent);
+}
+
+.servicePreviewIcon svg {
+  width: 18px;
+}
+
+.servicePreviewBody {
+  min-width: 0;
+}
+
+.routeServiceGrid ul {
+  display: grid;
+  gap: 9px;
+  margin: 22px 0 0;
+  padding-left: 18px;
+  color: var(--color-text-soft);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.routeServiceGrid li::marker {
+  color: var(--color-cyan);
 }
 
 .routeServiceGrid strong {
@@ -1265,6 +1492,138 @@
 .routeServiceGrid .comingSoon {
   display: inline-block;
   margin-top: 24px;
+}
+
+.publishedShelves {
+  display: grid;
+  gap: 42px;
+  margin: 36px 0 42px;
+}
+
+.shelfSection {
+  min-width: 0;
+}
+
+.shelfHeading {
+  max-width: 720px;
+  margin-bottom: 18px;
+}
+
+.shelfHeading h2 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 400;
+}
+
+.shelfHeading > p:last-child {
+  margin: 9px 0 0;
+  color: var(--color-text-soft);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.outputShelf {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px 18px 30px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(9, 31, 45, 0.72), rgba(4, 14, 23, 0.92)),
+    var(--color-bg-panel);
+}
+
+.outputShelf::after {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  left: 10px;
+  height: 5px;
+  content: '';
+  border-top: 1px solid rgba(91, 196, 242, 0.3);
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, rgba(44, 119, 156, 0.3), transparent);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.45);
+}
+
+.shelfItem {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 216px;
+  padding: 22px;
+  gap: 18px;
+  border: 1px solid rgba(69, 137, 173, 0.26);
+  border-radius: var(--radius-sm);
+  background: rgba(4, 17, 27, 0.84);
+}
+
+.shelfItem > img,
+.shelfItemIcon {
+  width: 68px;
+  height: 92px;
+  object-fit: cover;
+  border: 1px solid rgba(96, 193, 235, 0.32);
+  border-radius: 3px 8px 8px 3px;
+}
+
+.shelfItemIcon {
+  display: grid;
+  place-items: center;
+  color: var(--color-cyan);
+  background:
+    linear-gradient(90deg, rgba(58, 162, 207, 0.2) 0 5px, transparent 5px),
+    rgba(9, 35, 49, 0.9);
+}
+
+.outputShelf[data-shelf='tools'] .shelfItemIcon {
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(9, 35, 49, 0.9);
+}
+
+.shelfItemIcon svg {
+  width: 26px;
+}
+
+.shelfItemBody {
+  min-width: 0;
+}
+
+.shelfItemBody > span {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.shelfItem h3 {
+  margin: 9px 0 10px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.42;
+}
+
+.shelfItem p {
+  margin: 0;
+  color: var(--color-text-soft);
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.outputActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.outputActions a {
+  margin-top: 10px;
 }
 
 .writingsFoundation {
@@ -1454,7 +1813,7 @@
     margin: 0 auto;
   }
 
-  .supportingGrid {
+  .overviewFeatureGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1683,9 +2042,14 @@
     color: var(--color-cyan);
   }
 
-  .supportingGrid {
+  .overviewFeatureGrid {
     gap: 14px;
     margin-top: 8px;
+  }
+
+  .toolPreviewGrid,
+  .bookPreviewList {
+    grid-template-columns: 1fr;
   }
 
   .sectionPanel {
@@ -1718,7 +2082,7 @@
   }
 
   .serviceCard {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
     padding: 14px;
   }
 
@@ -1739,7 +2103,7 @@
     bottom: 0;
     left: 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     min-height: calc(64px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--color-border);
@@ -1757,7 +2121,7 @@
     flex-direction: column;
     gap: 4px;
     color: var(--color-text-muted);
-    font-size: 9px;
+    font-size: 8px;
     text-decoration: none;
   }
 
@@ -1765,6 +2129,12 @@
     width: 21px;
     height: 21px;
     stroke-width: 1.5;
+  }
+
+  .bottomNav span {
+    max-width: 68px;
+    line-height: 1.15;
+    text-align: center;
   }
 
   .bottomNav .bottomNavActive {
@@ -1840,6 +2210,28 @@
   .routeServiceGrid article {
     min-height: 0;
     padding: 26px 22px;
+  }
+
+  .outputShelf {
+    grid-template-columns: 1fr;
+    padding: 12px 12px 25px;
+  }
+
+  .shelfItem {
+    grid-template-columns: 54px minmax(0, 1fr);
+    min-height: 0;
+    padding: 18px;
+    gap: 14px;
+  }
+
+  .shelfItem > img,
+  .shelfItemIcon {
+    width: 54px;
+    height: 76px;
+  }
+
+  .outputShelf[data-shelf='tools'] .shelfItemIcon {
+    height: 54px;
   }
 
   .writingsFoundation {

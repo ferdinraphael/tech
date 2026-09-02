@@ -4,7 +4,7 @@ import { writingCatalogue } from '../../content/writings/catalogue'
 import { writingFormatLabel } from '../../content/writings/formats'
 import type { WritingRecord } from '../../content/writings/types'
 import { projectById, writingsCopy } from '../../data/site'
-import { formatWritingDate } from './writingFormat'
+import { formatWritingDate, publishedWritingPresentation } from './writingFormat'
 import styles from './Writings.module.css'
 
 function WritingCard({ writing }: { writing: WritingRecord }) {
@@ -44,27 +44,33 @@ function WritingCard({ writing }: { writing: WritingRecord }) {
 }
 
 export default function WritingsIndexPage() {
+  const publishedCount = writingCatalogue.published.length
+  const presentation = publishedWritingPresentation(publishedCount)
+
   return (
     <div className={styles.writingsPage}>
       <header className={styles.writingsHero}>
         <p className={styles.eyebrow}>WRITINGS</p>
-        <h1>A writing space is taking shape.</h1>
+        <h1>Writing about software, systems, and the decisions behind them.</h1>
         <p>{writingsCopy}</p>
         <Link to="/" className={styles.backLink}>
           <ArrowLeft aria-hidden="true" /> Back to overview
         </Link>
       </header>
 
-      {writingCatalogue.published.length > 0 ? (
+      {publishedCount > 0 ? (
         <section className={styles.indexSection} aria-labelledby="published-writings">
           <div className={styles.sectionHeading}>
             <div>
               <p>PUBLISHED WRITING</p>
-              <h2 id="published-writings">Latest writings</h2>
+              <h2 id="published-writings">{presentation.heading}</h2>
             </div>
-            <span>{writingCatalogue.published.length} writing{writingCatalogue.published.length === 1 ? '' : 's'}</span>
+            {presentation.showCount && <span>{publishedCount} writings</span>}
           </div>
-          <div className={styles.articleGrid}>
+          <div
+            className={`${styles.articleGrid} ${presentation.layout === 'single' ? styles.singleArticleGrid : ''}`}
+            data-layout={presentation.layout}
+          >
             {writingCatalogue.published.map((writing) => <WritingCard key={writing.slug} writing={writing} />)}
           </div>
         </section>
