@@ -1,7 +1,8 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { App } from '../App'
+import { publishedWritingPresentation } from './writings/writingFormat'
 
 function LocationProbe() {
   const location = useLocation()
@@ -21,6 +22,7 @@ describe('foundation routes', () => {
   it.each([
     ['/profile', /Experience across systems/],
     ['/projects', /Built to explore/],
+    ['/built-and-published', /Things I've finished/],
     ['/services', /Focused engagements/],
   ])('renders %s', (path, heading) => {
     renderRoute(path)
@@ -30,9 +32,11 @@ describe('foundation routes', () => {
 
   it('renders the published writing separately from development drafts', async () => {
     renderRoute('/writings')
-    expect(await screen.findByRole('heading', { level: 1, name: /writing space is taking shape/i }, { timeout: 5_000 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: /Writing about software, systems/i }, { timeout: 5_000 })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'No published writings yet.' })).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Latest writings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Latest writing' })).toBeInTheDocument()
+    expect(screen.queryByText('1 writing')).not.toBeInTheDocument()
+    expect(document.querySelector('[data-layout="single"]')).not.toBeNull()
     const publishedCard = screen.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' }).closest('article')
     expect(publishedCard).not.toBeNull()
     expect(within(publishedCard!).getByText('Article')).toBeInTheDocument()
@@ -47,6 +51,87 @@ describe('foundation routes', () => {
     expect(within(frameworkPreviewCard!).getByText('Article')).toBeInTheDocument()
     expect(within(frameworkPreviewCard!).getByRole('link', { name: 'Preview draft' })).toBeInTheDocument()
     expect(document.querySelectorAll('a[href^="/notes"]')).toHaveLength(0)
+  })
+
+  it('keeps plural writing presentation and grid behavior for multiple entries', () => {
+    expect(publishedWritingPresentation(2)).toEqual({
+      heading: 'Latest writings',
+      layout: 'grid',
+      showCount: true,
+    })
+  })
+
+  it('keeps the public navigation focused on the launch information architecture', () => {
+    renderRoute('/')
+    const navigation = screen.getByRole('navigation', { name: 'Primary navigation' })
+    expect(within(navigation).getAllByRole('link').map((link) => link.textContent)).toEqual([
+      'Overview',
+      'Projects',
+      'Built & Published',
+      'Services',
+      'Writings',
+    ])
+    expect(within(navigation).queryByRole('link', { name: 'Profile' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the mobile drawer limited to public navigation, GitHub, and Email', () => {
+    renderRoute('/')
+    fireEvent.click(document.querySelector('[aria-label="Open navigation menu"]')!)
+    const drawer = screen.getByRole('navigation', { name: 'Mobile navigation' })
+    expect(within(drawer).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual([
+      'Overview',
+      'Projects',
+      'Built & Published',
+      'Services',
+      'Writings',
+      'GitHub',
+      'Email',
+    ])
+    expect(within(drawer).queryByText('Existing identity site')).not.toBeInTheDocument()
+    expect(within(drawer).queryByRole('link', { name: 'Profile' })).not.toBeInTheDocument()
+  })
+
+  it('renders verified Built & Published shelves with their exact actions', () => {
+    renderRoute('/built-and-published')
+    expect(screen.getByRole('heading', { name: 'Bookshelf' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tool Shelf' })).toBeInTheDocument()
+    const csharpBook = screen.getByRole('heading', { name: /C# Debugging Drills/ }).closest('article')!
+    const sqlBook = screen.getByRole('heading', { name: /SQL Data Cleaning Cookbook/ }).closest('article')!
+    const envGuard = screen.getByRole('heading', { name: 'EnvGuard' }).closest('article')!
+    const rpgDataForge = screen.getByRole('heading', { name: 'RPG Data Forge' }).closest('article')!
+    expect(within(csharpBook).getByRole('link', { name: /View on Amazon/ })).toHaveAttribute(
+      'href',
+      'https://www.amazon.com/Debugging-Drills-Real-World-Bugs-Find-ebook/dp/B0HF8MLZ52/',
+    )
+    expect(within(sqlBook).getByRole('link', { name: /View on Amazon/ })).toHaveAttribute(
+      'href',
+      'https://www.amazon.in/SQL-Data-Cleaning-Cookbook-Real-World-ebook/dp/B0HF8KL378',
+    )
+    expect(within(envGuard).getByRole('link', { name: /Free version/ })).toHaveAttribute('href', 'https://payhip.com/b/KJzvD')
+    expect(within(envGuard).getByRole('link', { name: /Pro version/ })).toHaveAttribute('href', 'https://payhip.com/b/r3Tn7')
+    expect(within(rpgDataForge).getByRole('link', { name: /View on itch.io/ })).toHaveAttribute(
+      'href',
+      'https://ferdinraphael.itch.io/rpg-data-forge',
+    )
+    expect(screen.queryByText(/Only verified names/i)).not.toBeInTheDocument()
+  })
+
+  it('makes the focused project scope and Built & Published relationship explicit', () => {
+    renderRoute('/projects')
+    expect(screen.getByText('Deterministic simulation worlds')).toBeInTheDocument()
+    expect(screen.getByText(/Evolving microbes with observable behaviour/)).toBeInTheDocument()
+    expect(screen.getByText(/Interactive browser-based simulation/)).toBeInTheDocument()
+    const outputRelationship = screen.getByText(/Smaller finished tools and publications/)
+    expect(within(outputRelationship).getByRole('link', { name: 'Built & Published' })).toHaveAttribute(
+      'href',
+      '/built-and-published',
+    )
+  })
+
+  it('keeps service detail useful without repeated template eyebrows', () => {
+    renderRoute('/services')
+    expect(screen.queryByText('SCOPED SERVICE')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Start with the requirement.' })).toBeInTheDocument()
   })
 
   it('loads the published writing without draft metadata', async () => {

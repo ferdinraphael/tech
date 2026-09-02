@@ -1,15 +1,15 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Atom,
-  BriefcaseBusiness,
+  BookOpen,
   Code2,
+  Dices,
   FileText,
-  FlaskConical,
-  Globe2,
+  GraduationCap,
   Network,
   Package,
   PanelsTopLeft,
-  UserRound,
+  ShieldCheck,
 } from 'lucide-react'
 
 export const links = {
@@ -24,24 +24,15 @@ export const links = {
 
 export type NodeId =
   | 'identity'
-  | 'profile'
   | 'projects'
-  | 'simulations'
+  | 'built-and-published'
   | 'services'
   | 'writings'
   | 'little-worlds'
-  | 'website-in-two-days'
-  | 'engagements'
   | 'experiments'
   | 'technical-thinking'
 
-export type NodeKind =
-  | 'core'
-  | 'category'
-  | 'project'
-  | 'service'
-  | 'engagement'
-  | 'concept'
+export type NodeKind = 'core' | 'category' | 'project' | 'concept'
 
 export type Accent = 'cyan' | 'blue' | 'violet' | 'amber' | 'mint' | 'quiet'
 
@@ -84,23 +75,31 @@ export interface Relationship {
 }
 
 export const writingsCopy =
-  'Technical articles, concept notes, mental models, worked examples, practice sets, mini-projects, debugging notes, and reference sheets will live here.'
+  'Technical writing about software, systems, implementation decisions, and lessons from building and debugging them.'
 
 export const profileSummary =
   'Senior full-stack developer and technical consultant with 15+ years of experience across .NET, Angular, Azure, integrations, and product delivery.'
 
 export const projectsCopy =
-  'Things I build to explore systems, solve problems, or test ideas.'
+  'Substantial exploratory work used to investigate systems, behaviour, and technical ideas.'
+
+export const builtAndPublishedCopy =
+  'Books, tools, and other smaller pieces of work that stand on their own.'
 
 export const servicesCopy =
-  'Focused ways to work together, from a defined website pilot to individually scoped technical engagements.'
+  'Practical software development, consulting, mentoring, teaching, and technical content work.'
 
 export const littleWorlds = {
   title: 'Little Worlds',
-  status: 'Active',
+  status: 'Public project',
   description:
     'A browser-based artificial-life simulation exploring evolving microbes in deterministic virtual worlds.',
   tags: ['TypeScript', 'Canvas', 'Simulation'] as const,
+  highlights: [
+    'Deterministic simulation worlds',
+    'Evolving microbes with observable behaviour',
+    'Interactive browser-based simulation',
+  ] as const,
 }
 
 export const projectIds = ['little-worlds'] as const
@@ -124,20 +123,200 @@ export const projectById: Record<
   },
 }
 
-export const websiteService = {
-  title: 'Website in 2 Days',
-  status: 'Coming soon',
-  description: 'A fixed-scope website service designed for fast, clear delivery.',
+export type PublishedOutputId =
+  | 'csharp-debugging-drills'
+  | 'sql-data-cleaning-cookbook'
+  | 'envguard'
+  | 'rpg-data-forge'
+
+export type PublishedOutputAction =
+  | { kind: 'external'; label: string; href: string }
+  | { kind: 'download'; label: string; href: string; fileName?: string }
+  | { kind: 'internal'; label: string; route: string }
+
+export interface PublishedOutput {
+  id: PublishedOutputId
+  title: string
+  kind: 'book' | 'tool'
+  description: string
+  tags?: readonly string[]
+  image?: string
+  icon?: LucideIcon
+  actions?: readonly PublishedOutputAction[]
+  overviewAction?: PublishedOutputAction
 }
 
-export const engagements = {
-  title: 'More Ways to Work Together',
-  status: 'Open for enquiries',
-  description:
-    'Available for selected freelance, contract, consulting, technical writing, tutoring, mentoring, and other well-scoped technical work.',
-  supporting:
-    'Share what you need. I’ll review the scope, clarify what is practical, and suggest an approach, quote, or next step.',
+const csharpDebuggingDrillsAction = {
+  kind: 'external',
+  label: 'View on Amazon',
+  href: 'https://www.amazon.com/Debugging-Drills-Real-World-Bugs-Find-ebook/dp/B0HF8MLZ52/',
+} as const satisfies PublishedOutputAction
+
+const sqlDataCleaningAction = {
+  kind: 'external',
+  label: 'View on Amazon',
+  href: 'https://www.amazon.in/SQL-Data-Cleaning-Cookbook-Real-World-ebook/dp/B0HF8KL378',
+} as const satisfies PublishedOutputAction
+
+const envGuardFreeAction = {
+  kind: 'external',
+  label: 'Free version',
+  href: 'https://payhip.com/b/KJzvD',
+} as const satisfies PublishedOutputAction
+
+const rpgDataForgeAction = {
+  kind: 'external',
+  label: 'View on itch.io',
+  href: 'https://ferdinraphael.itch.io/rpg-data-forge',
+} as const satisfies PublishedOutputAction
+
+export const publishedOutputs: readonly PublishedOutput[] = [
+  {
+    id: 'csharp-debugging-drills',
+    title: 'C# Debugging Drills: 20 Real-World Bugs to Find and Fix',
+    kind: 'book',
+    description: 'Hands-on C# debugging exercises built around realistic bugs.',
+    tags: ['C#', 'Debugging', 'Exercises'],
+    actions: [csharpDebuggingDrillsAction],
+    overviewAction: csharpDebuggingDrillsAction,
+  },
+  {
+    id: 'sql-data-cleaning-cookbook',
+    title: 'SQL Data Cleaning Cookbook: 43 Practical Recipes for Messy Real-World Data',
+    kind: 'book',
+    description: 'Practical SQL recipes for cleaning messy real-world data.',
+    tags: ['SQL', 'Data cleaning', 'Recipes'],
+    actions: [sqlDataCleaningAction],
+    overviewAction: sqlDataCleaningAction,
+  },
+  {
+    id: 'envguard',
+    title: 'EnvGuard',
+    kind: 'tool',
+    description:
+      'A local-first .env comparison tool for finding missing, extra, changed, malformed, duplicate, and risky configuration values.',
+    tags: ['Local-first', '.env', 'Configuration'],
+    icon: ShieldCheck,
+    actions: [
+      envGuardFreeAction,
+      { kind: 'external', label: 'Pro version', href: 'https://payhip.com/b/r3Tn7' },
+    ],
+    overviewAction: { ...envGuardFreeAction, label: 'View EnvGuard' },
+  },
+  {
+    id: 'rpg-data-forge',
+    title: 'RPG Data Forge',
+    kind: 'tool',
+    description:
+      'An offline browser tool for generating RPG weapons, armor, consumables, enemies, loot tables, and shops, with deterministic seeds and JSON/CSV export.',
+    tags: ['Offline', 'Deterministic', 'JSON / CSV'],
+    icon: Dices,
+    actions: [rpgDataForgeAction],
+    overviewAction: rpgDataForgeAction,
+  },
+]
+
+export interface PublishedOutputShelf {
+  id: 'books' | 'tools'
+  title: string
+  description: string
+  itemIds: readonly PublishedOutputId[]
 }
+
+export const publishedOutputShelves: readonly PublishedOutputShelf[] = [
+  {
+    id: 'books',
+    title: 'Bookshelf',
+    description: 'Practical technical books built around worked problems and repeatable skills.',
+    itemIds: ['csharp-debugging-drills', 'sql-data-cleaning-cookbook'],
+  },
+  {
+    id: 'tools',
+    title: 'Tool Shelf',
+    description: 'Small tools built to solve specific problems.',
+    itemIds: ['envguard', 'rpg-data-forge'],
+  },
+]
+
+export const publishedOutputById = new Map(
+  publishedOutputs.map((output) => [output.id, output]),
+)
+
+export function outputsForShelf(shelf: PublishedOutputShelf): PublishedOutput[] {
+  return shelf.itemIds.map((id) => publishedOutputById.get(id)!)
+}
+
+export interface ServiceOffering {
+  id: 'software-development' | 'technical-consulting' | 'mentoring-teaching' | 'technical-content'
+  title: string
+  description: string
+  capabilities: readonly string[]
+  previewTags: readonly string[]
+  icon: LucideIcon
+  accent: Accent
+}
+
+export const serviceOfferings: readonly ServiceOffering[] = [
+  {
+    id: 'software-development',
+    title: 'Software Development',
+    description: 'Focused implementation for useful software and connected systems.',
+    icon: Code2,
+    accent: 'cyan',
+    previewTags: ['.NET', 'TypeScript', 'Angular', 'APIs'],
+    capabilities: [
+      'Freelance software development',
+      '.NET, TypeScript, and Angular where useful',
+      'APIs and integrations',
+      'Small web applications and practical websites',
+      'Internal tools and automation',
+    ],
+  },
+  {
+    id: 'technical-consulting',
+    title: 'Technical Consulting',
+    description: 'Practical direction for technical decisions, delivery, and stabilization.',
+    icon: Network,
+    accent: 'blue',
+    previewTags: ['Architecture', 'MVPs', 'Integrations'],
+    capabilities: [
+      'Architecture and technical direction',
+      'Implementation planning',
+      'MVP stabilization',
+      'Integration problems and technical trade-offs',
+      'Delivery guidance',
+    ],
+  },
+  {
+    id: 'mentoring-teaching',
+    title: 'Mentoring & Teaching',
+    description: 'Direct, practical support for learning and stronger engineering work.',
+    icon: GraduationCap,
+    accent: 'mint',
+    previewTags: ['1-on-1', 'Python', 'Problem solving'],
+    capabilities: [
+      '1-on-1 technical mentoring',
+      'Python and programming tutoring',
+      'Debugging and problem-solving support',
+      'Guidance for developers growing into stronger engineering roles',
+    ],
+  },
+  {
+    id: 'technical-content',
+    title: 'Technical Content',
+    description: 'Clear material for developers, learners, and technical audiences.',
+    icon: FileText,
+    accent: 'violet',
+    previewTags: ['Writing', 'Exercises', 'Documentation'],
+    capabilities: [
+      'Technical writing',
+      'Developer and learning documentation',
+      'Worked examples',
+      'Exercises and educational material',
+      'Reference material',
+    ],
+  },
+]
 
 export const nodes: readonly ConstellationNode[] = [
   {
@@ -152,47 +331,34 @@ export const nodes: readonly ConstellationNode[] = [
     interactive: true,
   },
   {
-    id: 'profile',
-    label: 'Profile',
-    kind: 'category',
-    icon: UserRound,
-    accent: 'blue',
-    summary: profileSummary,
-    route: '/profile',
-    actions: [{ label: 'View Profile', route: '/profile' }],
-    desktopPosition: { x: 50, y: 16 },
-    mobilePosition: { x: 50, y: 12 },
-    interactive: true,
-  },
-  {
     id: 'projects',
     label: 'Projects',
     kind: 'category',
     icon: Package,
     accent: 'cyan',
     summary: projectsCopy,
-    description: 'Current verified content: one active public project, Little Worlds.',
+    description: 'Public project: Little Worlds.',
     route: '/projects',
     actions: [
       { label: 'View Projects', route: '/projects' },
       { label: 'GitHub', href: links.github },
     ],
-    desktopPosition: { x: 24, y: 43 },
-    mobilePosition: { x: 23, y: 43 },
+    desktopPosition: { x: 29, y: 31 },
+    mobilePosition: { x: 25, y: 34 },
     interactive: true,
   },
   {
-    id: 'simulations',
-    label: 'Simulations',
+    id: 'built-and-published',
+    label: 'Built & Published',
     kind: 'category',
-    icon: FlaskConical,
-    accent: 'cyan',
-    summary:
-      'Interactive systems and experiments used to explore behaviour, constraints, and emergence.',
-    description: 'Related content: Little Worlds.',
-    actions: [{ label: 'View Projects', route: '/projects' }],
-    desktopPosition: { x: 76, y: 42 },
-    mobilePosition: { x: 77, y: 43 },
+    icon: BookOpen,
+    accent: 'blue',
+    summary: builtAndPublishedCopy,
+    description: 'Technical books, EnvGuard, and RPG Data Forge.',
+    route: '/built-and-published',
+    actions: [{ label: 'View Built & Published', route: '/built-and-published' }],
+    desktopPosition: { x: 70, y: 28 },
+    mobilePosition: { x: 70, y: 24 },
     interactive: true,
   },
   {
@@ -202,11 +368,11 @@ export const nodes: readonly ConstellationNode[] = [
     icon: PanelsTopLeft,
     accent: 'amber',
     summary: servicesCopy,
-    description: 'Website in 2 Days and more ways to work together.',
+    description: 'Individually scoped work with practical next steps.',
     route: '/services',
     actions: [{ label: 'View Services', route: '/services' }],
-    desktopPosition: { x: 34, y: 76 },
-    mobilePosition: { x: 32, y: 62 },
+    desktopPosition: { x: 31, y: 72 },
+    mobilePosition: { x: 28, y: 66 },
     interactive: true,
   },
   {
@@ -218,8 +384,8 @@ export const nodes: readonly ConstellationNode[] = [
     summary: writingsCopy,
     route: '/writings',
     actions: [{ label: 'View Writings', route: '/writings' }],
-    desktopPosition: { x: 67, y: 76 },
-    mobilePosition: { x: 68, y: 62 },
+    desktopPosition: { x: 70, y: 72 },
+    mobilePosition: { x: 72, y: 66 },
     interactive: true,
   },
   {
@@ -236,41 +402,9 @@ export const nodes: readonly ConstellationNode[] = [
       { label: 'Live Demo', href: links.littleWorldsDemo },
       { label: 'Repository', href: links.littleWorldsRepository },
     ],
-    desktopPosition: { x: 14, y: 14 },
-    mobilePosition: { x: 11, y: 19 },
+    desktopPosition: { x: 10, y: 12 },
+    mobilePosition: { x: 9, y: 12 },
     featured: true,
-    interactive: true,
-    compact: true,
-  },
-  {
-    id: 'website-in-two-days',
-    label: websiteService.title,
-    eyebrow: 'SERVICE',
-    kind: 'service',
-    icon: Globe2,
-    accent: 'cyan',
-    summary: websiteService.description,
-    status: websiteService.status,
-    actions: [{ label: 'Coming Soon', disabled: true }],
-    desktopPosition: { x: 9, y: 79 },
-    mobilePosition: { x: 9, y: 79 },
-    interactive: true,
-    compact: true,
-  },
-  {
-    id: 'engagements',
-    label: engagements.title,
-    mapLabel: 'Work Together',
-    eyebrow: 'ENGAGEMENTS',
-    kind: 'engagement',
-    icon: BriefcaseBusiness,
-    accent: 'amber',
-    summary: engagements.description,
-    description: engagements.supporting,
-    status: engagements.status,
-    actions: [{ label: 'Discuss your requirement', href: links.enquiry }],
-    desktopPosition: { x: 55, y: 94 },
-    mobilePosition: { x: 31, y: 92 },
     interactive: true,
     compact: true,
   },
@@ -280,9 +414,9 @@ export const nodes: readonly ConstellationNode[] = [
     kind: 'concept',
     icon: Atom,
     accent: 'quiet',
-    summary: 'A conceptual space for technical experiments.',
-    desktopPosition: { x: 92, y: 72 },
-    mobilePosition: { x: 92, y: 63 },
+    summary: 'Technical experiments used to investigate behaviour and constraints.',
+    desktopPosition: { x: 10, y: 85 },
+    mobilePosition: { x: 10, y: 86 },
     interactive: false,
     compact: true,
   },
@@ -293,25 +427,23 @@ export const nodes: readonly ConstellationNode[] = [
     icon: Network,
     accent: 'quiet',
     summary: 'The thinking that connects systems, decisions, and lessons.',
-    desktopPosition: { x: 87, y: 92 },
-    mobilePosition: { x: 79, y: 91 },
+    desktopPosition: { x: 90, y: 86 },
+    mobilePosition: { x: 89, y: 87 },
     interactive: false,
     compact: true,
   },
 ] as const
 
 export const relationships: readonly Relationship[] = [
-  { from: 'identity', to: 'profile' },
   { from: 'identity', to: 'projects' },
-  { from: 'identity', to: 'simulations' },
+  { from: 'identity', to: 'built-and-published' },
   { from: 'identity', to: 'services' },
   { from: 'identity', to: 'writings' },
   { from: 'projects', to: 'little-worlds' },
-  { from: 'simulations', to: 'little-worlds' },
-  { from: 'services', to: 'website-in-two-days' },
-  { from: 'services', to: 'engagements' },
+  { from: 'little-worlds', to: 'experiments' },
+  { from: 'experiments', to: 'built-and-published' },
   { from: 'writings', to: 'technical-thinking' },
-  { from: 'simulations', to: 'experiments' },
+  { from: 'built-and-published', to: 'technical-thinking' },
 ] as const
 
 export const nodeById = new Map(nodes.map((node) => [node.id, node]))

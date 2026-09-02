@@ -1,19 +1,27 @@
-import { ArrowRight, Compass, Github, Mail, Radio } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrowRight, BookOpen, Compass, Github, Radio } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  engagements,
   featuredNode,
   links,
   littleWorlds,
   nodeById,
-  writingsCopy,
+  outputsForShelf,
+  publishedOutputShelves,
+  serviceOfferings,
   type NodeId,
-  websiteService,
 } from '../data/site'
 import { Constellation } from './Constellation'
 import { ContextPanel } from './ContextPanel'
+import { PublishedOutputAction } from './PublishedOutputAction'
 import styles from './Tech.module.css'
+
+const LatestWritingPreview = lazy(() => import('./LatestWritingPreview'))
+
+const bookShelf = publishedOutputShelves.find(({ id }) => id === 'books')!
+const toolShelf = publishedOutputShelves.find(({ id }) => id === 'tools')!
+const overviewBooks = outputsForShelf(bookShelf).slice(0, 3)
+const recentTools = outputsForShelf(toolShelf)
 
 export function OverviewPage() {
   const [selectedId, setSelectedId] = useState<NodeId | null>(null)
@@ -76,8 +84,8 @@ export function OverviewPage() {
             Software, systems, experiments, and technical thinking<span>.</span>
           </h1>
           <p>
-            I build software, automate workflows, run experiments, and write about technical systems
-            that turn ideas into systems. This is a map of my technical work.
+            This is my technical space: software I build, systems I explore, things I publish, and
+            ways I work with others.
           </p>
           <div className={styles.exploreHint}>
             <Compass aria-hidden="true" />
@@ -118,7 +126,7 @@ export function OverviewPage() {
         </section>
       )}
 
-      <div className={styles.supportingGrid}>
+      <div className={styles.overviewFeatureGrid}>
         <section className={styles.sectionPanel} aria-labelledby="selected-projects-heading">
           <div className={styles.sectionHeader}>
             <h2 id="selected-projects-heading">Featured Project</h2>
@@ -134,9 +142,7 @@ export function OverviewPage() {
               <h3>{littleWorlds.title}</h3>
               <p>{littleWorlds.description}</p>
               <ul className={styles.tagList}>
-                {littleWorlds.tags.map((tag) => (
-                  <li key={tag}>{tag}</li>
-                ))}
+                {littleWorlds.tags.map((tag) => <li key={tag}>{tag}</li>)}
               </ul>
               <span className={styles.activeStatus}>
                 <i aria-hidden="true" /> {littleWorlds.status}
@@ -153,24 +159,74 @@ export function OverviewPage() {
           </article>
         </section>
 
-        <section className={styles.sectionPanel} aria-labelledby="writings-heading">
-          <div className={styles.sectionHeader}>
-            <h2 id="writings-heading">Writings</h2>
-            <Link to="/writings">
-              View Writings <ArrowRight aria-hidden="true" />
-            </Link>
-          </div>
-          <div className={styles.emptyState}>
-            <span>WRITINGS / PREPARING</span>
-            <p>{writingsCopy}</p>
-            <Link to="/writings">
-              Explore the Writings foundation <ArrowRight aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
+        <Suspense
+          fallback={
+            <section className={styles.sectionPanel} aria-label="Latest Writing">
+              <div className={styles.previewLoading} role="status">Loading latest writing…</div>
+            </section>
+          }
+        >
+          <LatestWritingPreview />
+        </Suspense>
       </div>
 
-      <section className={`${styles.sectionPanel} ${styles.servicesSection}`} aria-labelledby="services-heading">
+      <section
+        className={`${styles.sectionPanel} ${styles.previewSection}`}
+        aria-labelledby="recent-tools-heading"
+      >
+        <div className={styles.sectionHeader}>
+          <h2 id="recent-tools-heading">Recent Tools</h2>
+          <Link to="/built-and-published">
+            Browse Built &amp; Published <ArrowRight aria-hidden="true" />
+          </Link>
+        </div>
+        <div className={styles.toolPreviewGrid}>
+          {recentTools.map((tool) => (
+            <article className={styles.toolPreviewCard} key={tool.id}>
+              {tool.icon && <tool.icon aria-hidden="true" />}
+              <div>
+                <h3>{tool.title}</h3>
+                <p>{tool.description}</p>
+                {tool.tags && (
+                  <ul className={styles.previewTagList} aria-label={`${tool.title} characteristics`}>
+                    {tool.tags.map((tag) => <li key={tag}>{tag}</li>)}
+                  </ul>
+                )}
+                {tool.overviewAction && <PublishedOutputAction action={tool.overviewAction} />}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section
+        className={`${styles.sectionPanel} ${styles.booksStrip}`}
+        aria-labelledby="books-heading"
+      >
+        <div className={styles.sectionHeader}>
+          <h2 id="books-heading">Books</h2>
+          <Link to="/built-and-published">
+            View bookshelf <ArrowRight aria-hidden="true" />
+          </Link>
+        </div>
+        <div className={styles.bookPreviewList}>
+          {overviewBooks.map((book) => (
+            <article className={styles.bookPreview} key={book.id}>
+              <BookOpen aria-hidden="true" />
+              <div>
+                <h3>{book.title}</h3>
+                <p>{book.description}</p>
+                {book.overviewAction && <PublishedOutputAction action={book.overviewAction} />}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section
+        className={`${styles.sectionPanel} ${styles.servicesSection}`}
+        aria-labelledby="services-heading"
+      >
         <div className={styles.sectionHeader}>
           <h2 id="services-heading">Services</h2>
           <Link to="/services">
@@ -178,28 +234,24 @@ export function OverviewPage() {
           </Link>
         </div>
         <div className={styles.serviceGrid}>
-          <article className={styles.serviceCard}>
-            <div>
-              <div className={styles.titleWithStatus}>
-                <h3>{websiteService.title}</h3>
-                <span>{websiteService.status}</span>
-              </div>
-              <p>{websiteService.description}</p>
-            </div>
-            <span className={styles.comingSoon}>Coming Soon</span>
-          </article>
-          <article className={styles.serviceCard}>
-            <div>
-              <div className={styles.titleWithStatus}>
-                <h3>{engagements.title}</h3>
-                <span className={styles.openStatus}>{engagements.status}</span>
-              </div>
-              <p>{engagements.description}</p>
-            </div>
-            <a href={links.enquiry}>
-              <Mail aria-hidden="true" /> Discuss your requirement
-            </a>
-          </article>
+          {serviceOfferings.map((offering) => {
+            const Icon = offering.icon
+            const accentClass = `accent${offering.accent[0].toUpperCase()}${offering.accent.slice(1)}`
+            return (
+              <article className={styles.serviceCard} key={offering.id}>
+                <span className={`${styles.servicePreviewIcon} ${styles[accentClass]}`}>
+                  <Icon aria-hidden="true" />
+                </span>
+                <div className={styles.servicePreviewBody}>
+                  <h3>{offering.title}</h3>
+                  <p>{offering.description}</p>
+                  <ul className={styles.previewTagList} aria-label={`${offering.title} focus areas`}>
+                    {offering.previewTags.map((tag) => <li key={tag}>{tag}</li>)}
+                  </ul>
+                </div>
+              </article>
+            )
+          })}
         </div>
       </section>
     </div>

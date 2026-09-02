@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
+  BookOpen,
   Braces,
   Cloud,
   CodeXml,
@@ -10,20 +11,24 @@ import {
   Network,
   Package,
   ShieldCheck,
+  Wrench,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
-  engagements,
+  builtAndPublishedCopy,
   links,
   littleWorlds,
+  outputsForShelf,
   profileSummary,
   projectsCopy,
+  publishedOutputShelves,
+  serviceOfferings,
   servicesCopy,
-  websiteService,
 } from '../data/site'
+import { PublishedOutputAction } from './PublishedOutputAction'
 import styles from './Tech.module.css'
 
-type FoundationPageName = 'profile' | 'projects' | 'services'
+type FoundationPageName = 'profile' | 'projects' | 'built-and-published' | 'services'
 
 interface FoundationPageProps {
   page: FoundationPageName
@@ -39,6 +44,11 @@ const pageMeta = {
     eyebrow: 'PROJECTS',
     title: 'Built to explore, test, and understand.',
     intro: projectsCopy,
+  },
+  'built-and-published': {
+    eyebrow: 'BUILT & PUBLISHED',
+    title: "Things I've finished and put out into the world.",
+    intro: builtAndPublishedCopy,
   },
   services: {
     eyebrow: 'WAYS TO WORK TOGETHER',
@@ -73,8 +83,8 @@ function ProfileContent() {
       <section className={styles.routeCta}>
         <div>
           <span>OPEN FOR ENQUIRIES</span>
-          <h2>{engagements.title}</h2>
-          <p>{engagements.description}</p>
+          <h2>Discuss technical work</h2>
+          <p>{servicesCopy}</p>
         </div>
         <div>
           <a href={links.enquiry}>
@@ -91,52 +101,119 @@ function ProfileContent() {
 
 function ProjectsContent() {
   return (
-    <section className={styles.featureRouteCard}>
-      <div className={styles.featureRouteVisual}>
-        <Package aria-hidden="true" />
-        <span>ACTIVE PROJECT</span>
-      </div>
-      <div className={styles.featureRouteBody}>
-        <span className={styles.activeStatus}><i aria-hidden="true" /> {littleWorlds.status}</span>
-        <h2>{littleWorlds.title}</h2>
-        <p>{littleWorlds.description}</p>
-        <ul className={styles.tagList}>
-          {littleWorlds.tags.map((tag) => <li key={tag}>{tag}</li>)}
-        </ul>
-        <div className={styles.inlineActions}>
-          <a href={links.littleWorldsDemo} target="_blank" rel="noreferrer">
-            Live Demo <ArrowUpRight aria-hidden="true" />
-          </a>
-          <a href={links.littleWorldsRepository} target="_blank" rel="noreferrer">
-            Repository <ArrowUpRight aria-hidden="true" />
-          </a>
+    <>
+      <section className={styles.featureRouteCard}>
+        <div className={styles.featureRouteVisual}>
+          <Package aria-hidden="true" />
+          <span>PUBLIC PROJECT</span>
         </div>
-      </div>
-    </section>
+        <div className={styles.featureRouteBody}>
+          <span className={styles.activeStatus}><i aria-hidden="true" /> {littleWorlds.status}</span>
+          <h2>{littleWorlds.title}</h2>
+          <p>{littleWorlds.description}</p>
+          <ul className={styles.projectHighlights}>
+            {littleWorlds.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
+          </ul>
+          <ul className={styles.tagList}>
+            {littleWorlds.tags.map((tag) => <li key={tag}>{tag}</li>)}
+          </ul>
+          <div className={styles.inlineActions}>
+            <a href={links.littleWorldsDemo} target="_blank" rel="noreferrer">
+              Live Demo <ArrowUpRight aria-hidden="true" />
+            </a>
+            <a href={links.littleWorldsRepository} target="_blank" rel="noreferrer">
+              Repository <ArrowUpRight aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      </section>
+      <p className={styles.projectOutputLink}>
+        Smaller finished tools and publications live under <Link to="/built-and-published">Built &amp; Published</Link>.
+      </p>
+    </>
+  )
+}
+
+function BuiltAndPublishedContent() {
+  return (
+    <div className={styles.publishedShelves}>
+      {publishedOutputShelves.map((shelf) => (
+        <section
+          className={styles.shelfSection}
+          aria-labelledby={`${shelf.id}-shelf-heading`}
+          key={shelf.id}
+        >
+          <div className={styles.shelfHeading}>
+            <p className={styles.sectionKicker}>{shelf.id === 'books' ? 'TECHNICAL BOOKS' : 'SOFTWARE TOOLS'}</p>
+            <h2 id={`${shelf.id}-shelf-heading`}>{shelf.title}</h2>
+            <p>{shelf.description}</p>
+          </div>
+          <div className={styles.outputShelf} data-shelf={shelf.id}>
+            {outputsForShelf(shelf).map((item) => {
+              const ItemIcon = item.icon ?? (item.kind === 'book' ? BookOpen : Wrench)
+              return (
+                <article className={styles.shelfItem} key={item.id}>
+                  {item.image ? (
+                    <img src={item.image} alt="" />
+                  ) : (
+                    <span className={styles.shelfItemIcon} aria-hidden="true">
+                      <ItemIcon />
+                    </span>
+                  )}
+                  <div className={styles.shelfItemBody}>
+                    <span>{item.kind === 'book' ? 'Book' : 'Tool'}</span>
+                    <h3>{item.title}</h3>
+                    <p>{item.description}</p>
+                    {item.tags && (
+                      <ul className={styles.previewTagList} aria-label={`${item.title} topics`}>
+                        {item.tags.map((tag) => <li key={tag}>{tag}</li>)}
+                      </ul>
+                    )}
+                    {item.actions && (
+                      <div className={styles.outputActions}>
+                        {item.actions.map((action) => (
+                          <PublishedOutputAction action={action} key={`${action.kind}-${action.label}`} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
   )
 }
 
 function ServicesContent() {
   return (
-    <div className={styles.routeServiceGrid}>
-      <article>
-        <span>SERVICE PILOT</span>
-        <h2>{websiteService.title}</h2>
-        <strong>{websiteService.status}</strong>
-        <p>{websiteService.description}</p>
-        <span className={styles.comingSoon}>No public booking link yet</span>
-      </article>
-      <article>
-        <span>ENGAGEMENTS</span>
-        <h2>{engagements.title}</h2>
-        <strong>{engagements.status}</strong>
-        <p>{engagements.description}</p>
-        <p>{engagements.supporting}</p>
-        <a href={links.enquiry}>
-          <Mail aria-hidden="true" /> Discuss your requirement
-        </a>
-      </article>
-    </div>
+    <>
+      <div className={styles.routeServiceGrid}>
+        {serviceOfferings.map((offering) => (
+          <article key={offering.id}>
+            <h2>{offering.title}</h2>
+            <p>{offering.description}</p>
+            <ul>
+              {offering.capabilities.map((capability) => <li key={capability}>{capability}</li>)}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <section className={styles.routeCta}>
+        <div>
+          <span>GET IN TOUCH</span>
+          <h2>Start with the requirement.</h2>
+          <p>Share the problem, constraints, and outcome you have in mind so the work can be scoped practically.</p>
+        </div>
+        <div>
+          <a href={links.enquiry}>
+            <Mail aria-hidden="true" /> Discuss your requirement
+          </a>
+        </div>
+      </section>
+    </>
   )
 }
 
@@ -161,6 +238,7 @@ export function FoundationPage({ page }: FoundationPageProps) {
       </section>
       {page === 'profile' && <ProfileContent />}
       {page === 'projects' && <ProjectsContent />}
+      {page === 'built-and-published' && <BuiltAndPublishedContent />}
       {page === 'services' && <ServicesContent />}
       <nav className={styles.nextRoute} aria-label="Continue exploring">
         <Link to="/">

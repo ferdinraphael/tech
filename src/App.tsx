@@ -26,6 +26,7 @@ export function App() {
         <Route index element={<OverviewPage />} />
         <Route path="profile" element={<FoundationPage page="profile" />} />
         <Route path="projects" element={<FoundationPage page="projects" />} />
+        <Route path="built-and-published" element={<FoundationPage page="built-and-published" />} />
         <Route path="services" element={<FoundationPage page="services" />} />
         <Route path="writings" element={<WritingsRoute><WritingsIndexPage /></WritingsRoute>} />
         <Route path="writings/:slug" element={<WritingsRoute><WritingPage /></WritingsRoute>} />

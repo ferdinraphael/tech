@@ -1,5 +1,6 @@
 import {
   ArrowUpRight,
+  BookOpen,
   Code2,
   FileText,
   Github,
@@ -17,8 +18,8 @@ import styles from './Tech.module.css'
 
 const primaryNav = [
   { label: 'Overview', to: '/' },
-  { label: 'Profile', to: '/profile' },
   { label: 'Projects', to: '/projects' },
+  { label: 'Built & Published', to: '/built-and-published' },
   { label: 'Services', to: '/services' },
   { label: 'Writings', to: '/writings' },
 ]
@@ -26,6 +27,7 @@ const primaryNav = [
 const bottomNav = [
   { label: 'Overview', to: '/', icon: Home },
   { label: 'Projects', to: '/projects', icon: Package },
+  { label: 'Built & Published', to: '/built-and-published', icon: BookOpen },
   { label: 'Services', to: '/services', icon: PanelsTopLeft },
   { label: 'Writings', to: '/writings', icon: FileText },
 ]
@@ -133,9 +135,6 @@ export function AppShell() {
               </NavLink>
             ))}
             <div className={styles.mobileMenuExternal}>
-              <a href={links.identity} target="_blank" rel="noreferrer">
-                Existing identity site <ArrowUpRight aria-hidden="true" />
-              </a>
               <a href={links.github} target="_blank" rel="noreferrer">
                 GitHub <ArrowUpRight aria-hidden="true" />
               </a>
@@ -166,7 +165,7 @@ export function AppShell() {
           </a>
         </div>
         <span className={styles.footerStatus}>
-          <i aria-hidden="true" /> Building systems. Running experiments. Preparing writings.
+          <i aria-hidden="true" /> Software · Systems · Experiments · Writing
         </span>
       </footer>
 

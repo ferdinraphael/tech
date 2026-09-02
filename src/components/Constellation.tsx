@@ -128,7 +128,7 @@ export function Constellation({
             aria-label={
               node.id === 'identity'
                 ? 'Clear constellation selection'
-                : `${node.label}. ${relationCount} direct relationships.${selected ? ' Selected.' : ''}`
+                : `${node.label}. ${relationCount} direct relationship${relationCount === 1 ? '' : 's'}.${selected ? ' Selected.' : ''}`
             }
             onClick={() => onSelect(node.id)}
           >
