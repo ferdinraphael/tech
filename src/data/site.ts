@@ -87,7 +87,7 @@ export const builtAndPublishedCopy =
   'Books, tools, and other smaller pieces of work that stand on their own.'
 
 export const servicesCopy =
-  'Practical software development, consulting, mentoring, teaching, and technical content work.'
+  'I build software, help people make difficult technical decisions, and teach people who want to become stronger at doing the work themselves.'
 
 export const littleWorlds = {
   title: 'Little Worlds',
@@ -247,11 +247,10 @@ export function outputsForShelf(shelf: PublishedOutputShelf): PublishedOutput[] 
 }
 
 export interface ServiceOffering {
-  id: 'software-development' | 'technical-consulting' | 'mentoring-teaching' | 'technical-content'
+  id: 'software-development' | 'technical-consulting' | 'mentoring-teaching'
   title: string
+  question: string
   description: string
-  capabilities: readonly string[]
-  previewTags: readonly string[]
   icon: LucideIcon
   accent: Accent
 }
@@ -260,61 +259,26 @@ export const serviceOfferings: readonly ServiceOffering[] = [
   {
     id: 'software-development',
     title: 'Software Development',
-    description: 'Focused implementation for useful software and connected systems.',
+    question: 'Need something built?',
+    description: 'I can build a focused piece of software, take a product idea toward an MVP, extend an existing product, or provide part-time development help when you do not need another full-time hire.',
     icon: Code2,
     accent: 'cyan',
-    previewTags: ['.NET', 'TypeScript', 'Angular', 'APIs'],
-    capabilities: [
-      'Freelance software development',
-      '.NET, TypeScript, and Angular where useful',
-      'APIs and integrations',
-      'Small web applications and practical websites',
-      'Internal tools and automation',
-    ],
   },
   {
     id: 'technical-consulting',
     title: 'Technical Consulting',
-    description: 'Practical direction for technical decisions, delivery, and stabilization.',
+    question: 'Need to work out what to do before building it?',
+    description: 'I can review an existing system, help untangle an architecture or scalability problem, plan modernization or cloud/AI adoption, or stay involved as an ongoing technical advisor.',
     icon: Network,
     accent: 'blue',
-    previewTags: ['Architecture', 'MVPs', 'Integrations'],
-    capabilities: [
-      'Architecture and technical direction',
-      'Implementation planning',
-      'MVP stabilization',
-      'Integration problems and technical trade-offs',
-      'Delivery guidance',
-    ],
   },
   {
     id: 'mentoring-teaching',
     title: 'Mentoring & Teaching',
-    description: 'Direct, practical support for learning and stronger engineering work.',
+    question: 'Want to learn, improve, or get unstuck?',
+    description: 'I work with beginners, students, developers, QA engineers, career switchers, and small teams through practical 1-on-1 learning, developer mentoring, and focused group training.',
     icon: GraduationCap,
     accent: 'mint',
-    previewTags: ['1-on-1', 'Python', 'Problem solving'],
-    capabilities: [
-      '1-on-1 technical mentoring',
-      'Python and programming tutoring',
-      'Debugging and problem-solving support',
-      'Guidance for developers growing into stronger engineering roles',
-    ],
-  },
-  {
-    id: 'technical-content',
-    title: 'Technical Content',
-    description: 'Clear material for developers, learners, and technical audiences.',
-    icon: FileText,
-    accent: 'violet',
-    previewTags: ['Writing', 'Exercises', 'Documentation'],
-    capabilities: [
-      'Technical writing',
-      'Developer and learning documentation',
-      'Worked examples',
-      'Exercises and educational material',
-      'Reference material',
-    ],
   },
 ]
 

@@ -4,6 +4,9 @@ import { AppShell } from './components/AppShell'
 import { FoundationPage } from './components/FoundationPage'
 import { NotFoundPage } from './components/NotFoundPage'
 import { OverviewPage } from './components/OverviewPage'
+import { SoftwareDevelopmentPage } from './components/services/SoftwareDevelopmentPage'
+import { TechnicalConsultingPage } from './components/services/TechnicalConsultingPage'
+import { MentoringTeachingPage } from './components/services/MentoringTeachingPage'
 
 const WritingsIndexPage = lazy(() => import('./components/writings/WritingsIndexPage'))
 const WritingPage = lazy(() => import('./components/writings/WritingPage'))
@@ -28,6 +31,9 @@ export function App() {
         <Route path="projects" element={<FoundationPage page="projects" />} />
         <Route path="built-and-published" element={<FoundationPage page="built-and-published" />} />
         <Route path="services" element={<FoundationPage page="services" />} />
+        <Route path="services/software-development" element={<SoftwareDevelopmentPage />} />
+        <Route path="services/technical-consulting" element={<TechnicalConsultingPage />} />
+        <Route path="services/mentoring-teaching" element={<MentoringTeachingPage />} />
         <Route path="writings" element={<WritingsRoute><WritingsIndexPage /></WritingsRoute>} />
         <Route path="writings/:slug" element={<WritingsRoute><WritingPage /></WritingsRoute>} />
         <Route path="notes" element={<LegacyNotesRedirect />} />

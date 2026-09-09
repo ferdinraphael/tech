@@ -233,6 +233,7 @@ export function OverviewPage() {
             View Services <ArrowRight aria-hidden="true" />
           </Link>
         </div>
+        <p className={styles.remoteNote}>All services are remote.</p>
         <div className={styles.serviceGrid}>
           {serviceOfferings.map((offering) => {
             const Icon = offering.icon
@@ -244,10 +245,11 @@ export function OverviewPage() {
                 </span>
                 <div className={styles.servicePreviewBody}>
                   <h3>{offering.title}</h3>
+                  <p className={styles.serviceQuestion}>{offering.question}</p>
                   <p>{offering.description}</p>
-                  <ul className={styles.previewTagList} aria-label={`${offering.title} focus areas`}>
-                    {offering.previewTags.map((tag) => <li key={tag}>{tag}</li>)}
-                  </ul>
+                  <Link to={`/services/${offering.id}`} className={styles.serviceExplore}>
+                    Explore {offering.title} <ArrowRight aria-hidden="true" />
+                  </Link>
                 </div>
               </article>
             )

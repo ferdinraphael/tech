@@ -23,7 +23,7 @@ describe('foundation routes', () => {
     ['/profile', /Experience across systems/],
     ['/projects', /Built to explore/],
     ['/built-and-published', /Things I've finished/],
-    ['/services', /Focused engagements/],
+    ['/services', /Practical technical help/],
   ])('renders %s', (path, heading) => {
     renderRoute(path)
     expect(screen.getByRole('heading', { level: 1, name: heading })).toBeInTheDocument()
@@ -131,7 +131,7 @@ describe('foundation routes', () => {
   it('keeps service detail useful without repeated template eyebrows', () => {
     renderRoute('/services')
     expect(screen.queryByText('SCOPED SERVICE')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Start with the requirement.' })).toBeInTheDocument()
+    expect(screen.getByText('All services are remote.')).toBeInTheDocument()
   })
 
   it('loads the published writing without draft metadata', async () => {
