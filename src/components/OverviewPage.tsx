@@ -246,7 +246,7 @@ export function OverviewPage() {
                 <div className={styles.servicePreviewBody}>
                   <h3>{offering.title}</h3>
                   <p className={styles.serviceQuestion}>{offering.question}</p>
-                  <p>{offering.description}</p>
+                  <p>{offering.previewDescription}</p>
                   <Link to={`/services/${offering.id}`} className={styles.serviceExplore}>
                     Explore {offering.title} <ArrowRight aria-hidden="true" />
                   </Link>

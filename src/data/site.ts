@@ -251,6 +251,7 @@ export interface ServiceOffering {
   title: string
   question: string
   description: string
+  previewDescription: string
   icon: LucideIcon
   accent: Accent
 }
@@ -260,7 +261,8 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     id: 'software-development',
     title: 'Software Development',
     question: 'Need something built?',
-    description: 'I can build a focused piece of software, take a product idea toward an MVP, extend an existing product, or provide part-time development help when you do not need another full-time hire.',
+    description: 'Websites, internal tools, MVPs, product features, integrations, and part-time development help.',
+    previewDescription: 'Builds, product work, integrations, and part-time development help.',
     icon: Code2,
     accent: 'cyan',
   },
@@ -268,7 +270,8 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     id: 'technical-consulting',
     title: 'Technical Consulting',
     question: 'Need to work out what to do before building it?',
-    description: 'I can review an existing system, help untangle an architecture or scalability problem, plan modernization or cloud/AI adoption, or stay involved as an ongoing technical advisor.',
+    description: 'Architecture reviews, modernization planning, cloud/AI decisions, and ongoing technical advice.',
+    previewDescription: 'Architecture reviews, modernization, cloud/AI decisions, and technical advice.',
     icon: Network,
     accent: 'blue',
   },
@@ -276,7 +279,8 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     id: 'mentoring-teaching',
     title: 'Mentoring & Teaching',
     question: 'Want to learn, improve, or get unstuck?',
-    description: 'I work with beginners, students, developers, QA engineers, career switchers, and small teams through practical 1-on-1 learning, developer mentoring, and focused group training.',
+    description: '1-on-1 learning, developer mentoring, and remote training for small groups.',
+    previewDescription: '1-on-1 learning, developer mentoring, and small-group training.',
     icon: GraduationCap,
     accent: 'mint',
   },
@@ -331,8 +335,8 @@ export const nodes: readonly ConstellationNode[] = [
     kind: 'category',
     icon: PanelsTopLeft,
     accent: 'amber',
-    summary: servicesCopy,
-    description: 'Individually scoped work with practical next steps.',
+    summary: 'Software development, technical consulting, and mentoring.',
+    description: 'All services are remote.',
     route: '/services',
     actions: [{ label: 'View Services', route: '/services' }],
     desktopPosition: { x: 31, y: 72 },
