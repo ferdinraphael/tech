@@ -18,6 +18,7 @@ export const links = {
   identity: 'https://ferdinraphael.github.io/',
   littleWorldsDemo: 'https://ferdinraphael.github.io/little-worlds',
   littleWorldsRepository: 'https://github.com/ferdinraphael/little-worlds/',
+  wildpathDemo: 'https://ferdinraphael.github.io/wildpath/',
   enquiry:
     'mailto:ferdinraphael@gmail.com?subject=Project%20enquiry%20from%20ferdinraphael.github.io%2Ftech',
 } as const
@@ -29,6 +30,7 @@ export type NodeId =
   | 'services'
   | 'writings'
   | 'little-worlds'
+  | 'wildpath'
   | 'experiments'
   | 'technical-thinking'
 
@@ -102,24 +104,50 @@ export const littleWorlds = {
   ] as const,
 }
 
-export const projectIds = ['little-worlds'] as const
+export const wildpath = {
+  title: 'Wildpath',
+  status: 'Public project',
+  description:
+    'A browser-based creature-adventure game with exploration, turn-based battles, progression, and a complete playable journey.',
+  tags: ['TypeScript', 'Canvas', 'Game Development'] as const,
+  highlights: [
+    'Exploration and wild encounters',
+    'Turn-based creature battles and progression',
+    'Responsive browser gameplay with touch support',
+  ] as const,
+}
+
+export const projectIds = ['little-worlds', 'wildpath'] as const
 export type ProjectId = (typeof projectIds)[number]
 
-export const projectById: Record<
-  ProjectId,
-  typeof littleWorlds & {
-    id: ProjectId
-    route: string
-    liveDemo: string
-    repository: string
-  }
-> = {
+export interface Project {
+  id: ProjectId
+  title: string
+  status: string
+  description: string
+  tags: readonly string[]
+  highlights: readonly string[]
+  route: string
+  liveDemo: string
+  liveActionLabel: string
+  repository?: string
+}
+
+export const projectById: Record<ProjectId, Project> = {
   'little-worlds': {
     id: 'little-worlds',
     ...littleWorlds,
     route: '/projects',
     liveDemo: links.littleWorldsDemo,
+    liveActionLabel: 'Live Demo',
     repository: links.littleWorldsRepository,
+  },
+  wildpath: {
+    id: 'wildpath',
+    ...wildpath,
+    route: '/projects',
+    liveDemo: links.wildpathDemo,
+    liveActionLabel: 'Play Wildpath',
   },
 }
 
@@ -305,7 +333,7 @@ export const nodes: readonly ConstellationNode[] = [
     icon: Package,
     accent: 'cyan',
     summary: projectsCopy,
-    description: 'Public project: Little Worlds.',
+    description: 'Public projects: Little Worlds and Wildpath.',
     route: '/projects',
     actions: [
       { label: 'View Projects', route: '/projects' },
@@ -371,8 +399,24 @@ export const nodes: readonly ConstellationNode[] = [
       { label: 'Repository', href: links.littleWorldsRepository },
     ],
     desktopPosition: { x: 10, y: 12 },
-    mobilePosition: { x: 9, y: 12 },
+    mobilePosition: { x: 11, y: 12 },
     featured: true,
+    interactive: true,
+    compact: true,
+  },
+  {
+    id: 'wildpath',
+    label: wildpath.title,
+    eyebrow: 'PROJECT',
+    kind: 'project',
+    icon: Package,
+    accent: 'mint',
+    summary: wildpath.description,
+    status: wildpath.status,
+    tags: wildpath.tags,
+    actions: [{ label: projectById.wildpath.liveActionLabel, href: projectById.wildpath.liveDemo }],
+    desktopPosition: { x: 45, y: 12 },
+    mobilePosition: { x: 45, y: 12 },
     interactive: true,
     compact: true,
   },
@@ -412,6 +456,7 @@ export const relationships: readonly Relationship[] = [
   { from: 'experiments', to: 'built-and-published' },
   { from: 'writings', to: 'technical-thinking' },
   { from: 'built-and-published', to: 'technical-thinking' },
+  { from: 'projects', to: 'wildpath' },
 ] as const
 
 export const nodeById = new Map(nodes.map((node) => [node.id, node]))

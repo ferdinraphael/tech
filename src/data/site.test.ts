@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   links,
   nodes,
+  nodeById,
+  projectById,
+  projectIds,
   outputsForShelf,
   publishedOutputShelves,
   publishedOutputs,
@@ -79,15 +82,34 @@ describe('constellation data', () => {
     expect(position('writings').y).toBeGreaterThan(49)
   })
 
-  it('contains only the approved project and no fabricated satellites', () => {
+  it('contains only the approved projects and no fabricated satellites', () => {
     expect(nodes.filter((node) => node.kind === 'project').map((node) => node.label)).toEqual([
       'Little Worlds',
+      'Wildpath',
     ])
     const labels = nodes.map((node) => node.label)
     expect(labels).not.toContain('Data / Profiler Work')
     expect(labels).not.toContain('Future Experiments')
     expect(labels).not.toContain('React')
     expect(labels).not.toContain('.NET')
+  })
+
+  it('supports public projects without a source repository and keeps Wildpath attached only to Projects', () => {
+    expect(projectIds).toEqual(['little-worlds', 'wildpath'])
+    expect(projectById.wildpath.liveDemo).toBe('https://ferdinraphael.github.io/wildpath/')
+    expect(projectById.wildpath).not.toHaveProperty('repository')
+    expect(projectById['little-worlds'].repository).toBe('https://github.com/ferdinraphael/little-worlds/')
+    expect(nodeById.get('projects')?.description).toBe('Public projects: Little Worlds and Wildpath.')
+    expect(relationships.filter(({ from, to }) => from === 'wildpath' || to === 'wildpath')).toEqual([
+      { from: 'projects', to: 'wildpath' },
+    ])
+    expect(nodeById.get('wildpath')).toMatchObject({
+      kind: 'project', interactive: true, compact: true, status: 'Public project',
+      tags: ['TypeScript', 'Canvas', 'Game Development'],
+      actions: [{ label: 'Play Wildpath', href: links.wildpathDemo }],
+    })
+    expect(nodes.filter(({ featured }) => featured).map(({ id }) => id)).toEqual(['little-worlds'])
+    expect(publishedOutputs.some(({ title }) => title === 'Wildpath')).toBe(false)
   })
 
   it('uses the approved enquiry action and durable service scope', () => {

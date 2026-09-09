@@ -76,6 +76,22 @@ describe('overview interactions', () => {
     )
   })
 
+  it('selects Wildpath without replacing Little Worlds as the featured project', async () => {
+    const user = userEvent.setup()
+    renderOverview()
+    await user.click(screen.getByRole('button', { name: /^Wildpath\./ }))
+    const panel = within(screen.getByRole('article', { name: 'Wildpath selected content' }))
+    expect(panel.getByText('Game Development')).toBeInTheDocument()
+    expect(panel.getByText('Public project')).toBeInTheDocument()
+    expect(panel.getByRole('link', { name: 'Play Wildpath' })).toHaveAttribute('href', links.wildpathDemo)
+    expect(panel.queryByRole('link', { name: 'Repository' })).not.toBeInTheDocument()
+    const featured = within(screen.getByRole('region', { name: 'Featured Project' }))
+    expect(featured.getByRole('heading', { name: 'Little Worlds' })).toBeInTheDocument()
+    expect(featured.queryByRole('heading', { name: 'Wildpath' })).not.toBeInTheDocument()
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('article', { name: 'Little Worlds featured content' })).toBeInTheDocument()
+  })
+
   it('renders mobile context inline, preserves relationships, updates, and clears', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 412 })
     vi.mocked(window.matchMedia).mockImplementation((query: string) => ({

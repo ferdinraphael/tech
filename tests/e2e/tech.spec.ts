@@ -335,7 +335,7 @@ for (const viewport of [
     await expect(primaryNav).toBeVisible()
     if (viewport.width < 768) {
       const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
-      await expect(map.locator('[data-node-id]')).toHaveCount(6)
+      await expect(map.locator('[data-node-id]')).toHaveCount(7)
       await page.getByRole('button', { name: /^Projects\./ }).click()
       const inline = page.getByRole('region', { name: /Projects inline details/ })
       await expect(inline).toBeVisible()
