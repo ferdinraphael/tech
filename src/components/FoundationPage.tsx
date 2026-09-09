@@ -17,9 +17,10 @@ import { Link } from 'react-router-dom'
 import {
   builtAndPublishedCopy,
   links,
-  littleWorlds,
   outputsForShelf,
   profileSummary,
+  projectById,
+  projectIds,
   projectsCopy,
   publishedOutputShelves,
   serviceOfferings,
@@ -102,31 +103,36 @@ function ProfileContent() {
 function ProjectsContent() {
   return (
     <>
-      <section className={styles.featureRouteCard}>
-        <div className={styles.featureRouteVisual}>
-          <Package aria-hidden="true" />
-          <span>PUBLIC PROJECT</span>
-        </div>
-        <div className={styles.featureRouteBody}>
-          <span className={styles.activeStatus}><i aria-hidden="true" /> {littleWorlds.status}</span>
-          <h2>{littleWorlds.title}</h2>
-          <p>{littleWorlds.description}</p>
-          <ul className={styles.projectHighlights}>
-            {littleWorlds.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
-          </ul>
-          <ul className={styles.tagList}>
-            {littleWorlds.tags.map((tag) => <li key={tag}>{tag}</li>)}
-          </ul>
-          <div className={styles.inlineActions}>
-            <a href={links.littleWorldsDemo} target="_blank" rel="noreferrer">
-              Live Demo <ArrowUpRight aria-hidden="true" />
-            </a>
-            <a href={links.littleWorldsRepository} target="_blank" rel="noreferrer">
-              Repository <ArrowUpRight aria-hidden="true" />
-            </a>
-          </div>
-        </div>
-      </section>
+      {projectIds.map((id) => {
+        const project = projectById[id]
+        return (
+          <section className={styles.featureRouteCard} key={id} aria-labelledby={`${id}-project-heading`}>
+            <div className={styles.featureRouteVisual}>
+              <Package aria-hidden="true" />
+              <span>PUBLIC PROJECT</span>
+            </div>
+            <div className={styles.featureRouteBody}>
+              <span className={styles.activeStatus}><i aria-hidden="true" /> {project.status}</span>
+              <h2 id={`${id}-project-heading`}>{project.title}</h2>
+              <p>{project.description}</p>
+              <ul className={styles.projectHighlights}>
+                {project.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}
+              </ul>
+              <ul className={styles.tagList}>
+                {project.tags.map((tag) => <li key={tag}>{tag}</li>)}
+              </ul>
+              <div className={styles.inlineActions}>
+                <a href={project.liveDemo} target="_blank" rel="noreferrer">
+                  {project.liveActionLabel} <ArrowUpRight aria-hidden="true" />
+                </a>
+                {project.repository && <a href={project.repository} target="_blank" rel="noreferrer">
+                  Repository <ArrowUpRight aria-hidden="true" />
+                </a>}
+              </div>
+            </div>
+          </section>
+        )
+      })}
       <p className={styles.projectOutputLink}>
         Smaller finished tools and publications live under <Link to="/built-and-published">Built &amp; Published</Link>.
       </p>

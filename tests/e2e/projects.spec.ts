@@ -1,0 +1,32 @@
+import { expect, test } from '@playwright/test'
+
+test('Wildpath is a playable project with no public repository while Little Worlds stays featured', async ({ page }) => {
+  await page.goto('./projects')
+  const littleWorlds = page.getByRole('region', { name: 'Little Worlds', exact: true })
+  const wildpath = page.getByRole('region', { name: 'Wildpath', exact: true })
+  await expect(littleWorlds.getByRole('link', { name: 'Live Demo', exact: true })).toHaveAttribute('href', 'https://ferdinraphael.github.io/little-worlds')
+  await expect(littleWorlds.getByRole('link', { name: 'Repository', exact: true })).toHaveAttribute('href', 'https://github.com/ferdinraphael/little-worlds/')
+  await expect(wildpath.getByRole('link')).toHaveCount(1)
+  await expect(wildpath.getByRole('link', { name: 'Play Wildpath', exact: true })).toHaveAttribute('href', 'https://ferdinraphael.github.io/wildpath/')
+  await expect(wildpath.getByRole('link', { name: 'Repository', exact: true })).toHaveCount(0)
+
+  await page.goto('./')
+  const featured = page.getByRole('region', { name: 'Featured Project', exact: true })
+  await expect(featured.getByRole('heading', { name: 'Little Worlds', exact: true })).toBeVisible()
+  await expect(featured.getByRole('heading', { name: 'Wildpath', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('article', { name: 'Little Worlds featured content', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: /^Projects\./ }).click()
+  await expect(page.getByRole('article', { name: 'Projects selected content', exact: true })).toContainText('Public projects: Little Worlds and Wildpath.')
+  await page.getByRole('button', { name: /^Wildpath\./ }).click()
+  const selected = page.getByRole('article', { name: 'Wildpath selected content', exact: true })
+  await expect(selected.getByText('Game Development', { exact: true })).toBeVisible()
+  await expect(selected.getByRole('link')).toHaveCount(1)
+  await expect(selected.getByRole('link', { name: 'Play Wildpath', exact: true })).toHaveAttribute('href', 'https://ferdinraphael.github.io/wildpath/')
+  await expect(page.locator('[data-relationship="projects-wildpath"][data-active="true"]')).toHaveCount(2)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('article', { name: 'Little Worlds featured content', exact: true })).toBeVisible()
+
+  await page.goto('./built-and-published')
+  await expect(page.getByRole('main')).not.toContainText('Wildpath')
+  await expect(page.locator('a[href*="github.com/ferdinraphael/wildpath"]')).toHaveCount(0)
+})

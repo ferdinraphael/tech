@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react';
 import {
   Atom,
   BookOpen,
@@ -10,7 +10,7 @@ import {
   Package,
   PanelsTopLeft,
   ShieldCheck,
-} from 'lucide-react'
+} from 'lucide-react';
 
 export const links = {
   github: 'https://github.com/ferdinraphael/',
@@ -18,9 +18,10 @@ export const links = {
   identity: 'https://ferdinraphael.github.io/',
   littleWorldsDemo: 'https://ferdinraphael.github.io/little-worlds',
   littleWorldsRepository: 'https://github.com/ferdinraphael/little-worlds/',
+  wildpathDemo: 'https://ferdinraphael.github.io/wildpath/',
   enquiry:
     'mailto:ferdinraphael@gmail.com?subject=Project%20enquiry%20from%20ferdinraphael.github.io%2Ftech',
-} as const
+} as const;
 
 export type NodeId =
   | 'identity'
@@ -29,65 +30,66 @@ export type NodeId =
   | 'services'
   | 'writings'
   | 'little-worlds'
+  | 'wildpath'
   | 'experiments'
-  | 'technical-thinking'
+  | 'technical-thinking';
 
-export type NodeKind = 'core' | 'category' | 'project' | 'concept'
+export type NodeKind = 'core' | 'category' | 'project' | 'concept';
 
-export type Accent = 'cyan' | 'blue' | 'violet' | 'amber' | 'mint' | 'quiet'
+export type Accent = 'cyan' | 'blue' | 'violet' | 'amber' | 'mint' | 'quiet';
 
 export interface Position {
-  x: number
-  y: number
+  x: number;
+  y: number;
 }
 
 export interface NodeAction {
-  label: string
-  href?: string
-  route?: string
-  disabled?: boolean
+  label: string;
+  href?: string;
+  route?: string;
+  disabled?: boolean;
 }
 
 export interface ConstellationNode {
-  id: NodeId
-  label: string
-  mapLabel?: string
-  eyebrow?: string
-  kind: NodeKind
-  icon: LucideIcon
-  accent: Accent
-  summary: string
-  description?: string
-  status?: string
-  tags?: readonly string[]
-  route?: string
-  actions?: readonly NodeAction[]
-  desktopPosition: Position
-  mobilePosition: Position
-  featured?: boolean
-  interactive: boolean
-  compact?: boolean
+  id: NodeId;
+  label: string;
+  mapLabel?: string;
+  eyebrow?: string;
+  kind: NodeKind;
+  icon: LucideIcon;
+  accent: Accent;
+  summary: string;
+  description?: string;
+  status?: string;
+  tags?: readonly string[];
+  route?: string;
+  actions?: readonly NodeAction[];
+  desktopPosition: Position;
+  mobilePosition: Position;
+  featured?: boolean;
+  interactive: boolean;
+  compact?: boolean;
 }
 
 export interface Relationship {
-  from: NodeId
-  to: NodeId
+  from: NodeId;
+  to: NodeId;
 }
 
 export const writingsCopy =
-  'Technical writing about software, systems, implementation decisions, and lessons from building and debugging them.'
+  'Technical writing about software, systems, implementation decisions, and lessons from building and debugging them.';
 
 export const profileSummary =
-  'Senior full-stack developer and technical consultant with 15+ years of experience across .NET, Angular, Azure, integrations, and product delivery.'
+  'Senior full-stack developer and technical consultant with 15+ years of experience across .NET, Angular, Azure, integrations, and product delivery.';
 
 export const projectsCopy =
-  'Substantial exploratory work used to investigate systems, behaviour, and technical ideas.'
+  'Substantial builds used to explore systems, behaviour, and technical ideas.';
 
 export const builtAndPublishedCopy =
-  'Books, tools, and other smaller pieces of work that stand on their own.'
+  'Books, tools, and other smaller pieces of work that stand on their own.';
 
 export const servicesCopy =
-  'I build software, help people make difficult technical decisions, and teach people who want to become stronger at doing the work themselves.'
+  'I build software, help people make difficult technical decisions, and teach people who want to become stronger at doing the work themselves.';
 
 export const littleWorlds = {
   title: 'Little Worlds',
@@ -100,75 +102,101 @@ export const littleWorlds = {
     'Evolving microbes with observable behaviour',
     'Interactive browser-based simulation',
   ] as const,
+};
+
+export const wildpath = {
+  title: 'Wildpath',
+  status: 'Public project',
+  description:
+    'A browser-based creature-adventure game with exploration, turn-based battles, progression, and a complete playable journey.',
+  tags: ['TypeScript', 'Canvas', 'Game Development'] as const,
+  highlights: [
+    'Exploration and wild encounters',
+    'Turn-based creature battles and progression',
+    'Responsive browser gameplay with touch support',
+  ] as const,
+};
+
+export const projectIds = ['little-worlds', 'wildpath'] as const;
+export type ProjectId = (typeof projectIds)[number];
+
+export interface Project {
+  id: ProjectId;
+  title: string;
+  status: string;
+  description: string;
+  tags: readonly string[];
+  highlights: readonly string[];
+  route: string;
+  liveDemo: string;
+  liveActionLabel: string;
+  repository?: string;
 }
 
-export const projectIds = ['little-worlds'] as const
-export type ProjectId = (typeof projectIds)[number]
-
-export const projectById: Record<
-  ProjectId,
-  typeof littleWorlds & {
-    id: ProjectId
-    route: string
-    liveDemo: string
-    repository: string
-  }
-> = {
+export const projectById: Record<ProjectId, Project> = {
   'little-worlds': {
     id: 'little-worlds',
     ...littleWorlds,
     route: '/projects',
     liveDemo: links.littleWorldsDemo,
+    liveActionLabel: 'Live Demo',
     repository: links.littleWorldsRepository,
   },
-}
+  wildpath: {
+    id: 'wildpath',
+    ...wildpath,
+    route: '/projects',
+    liveDemo: links.wildpathDemo,
+    liveActionLabel: 'Play Wildpath',
+  },
+};
 
 export type PublishedOutputId =
   | 'csharp-debugging-drills'
   | 'sql-data-cleaning-cookbook'
   | 'envguard'
-  | 'rpg-data-forge'
+  | 'rpg-data-forge';
 
 export type PublishedOutputAction =
   | { kind: 'external'; label: string; href: string }
   | { kind: 'download'; label: string; href: string; fileName?: string }
-  | { kind: 'internal'; label: string; route: string }
+  | { kind: 'internal'; label: string; route: string };
 
 export interface PublishedOutput {
-  id: PublishedOutputId
-  title: string
-  kind: 'book' | 'tool'
-  description: string
-  tags?: readonly string[]
-  image?: string
-  icon?: LucideIcon
-  actions?: readonly PublishedOutputAction[]
-  overviewAction?: PublishedOutputAction
+  id: PublishedOutputId;
+  title: string;
+  kind: 'book' | 'tool';
+  description: string;
+  tags?: readonly string[];
+  image?: string;
+  icon?: LucideIcon;
+  actions?: readonly PublishedOutputAction[];
+  overviewAction?: PublishedOutputAction;
 }
 
 const csharpDebuggingDrillsAction = {
   kind: 'external',
   label: 'View on Amazon',
   href: 'https://www.amazon.com/Debugging-Drills-Real-World-Bugs-Find-ebook/dp/B0HF8MLZ52/',
-} as const satisfies PublishedOutputAction
+} as const satisfies PublishedOutputAction;
 
 const sqlDataCleaningAction = {
   kind: 'external',
   label: 'View on Amazon',
   href: 'https://www.amazon.in/SQL-Data-Cleaning-Cookbook-Real-World-ebook/dp/B0HF8KL378',
-} as const satisfies PublishedOutputAction
+} as const satisfies PublishedOutputAction;
 
 const envGuardFreeAction = {
   kind: 'external',
   label: 'Free version',
   href: 'https://payhip.com/b/KJzvD',
-} as const satisfies PublishedOutputAction
+} as const satisfies PublishedOutputAction;
 
 const rpgDataForgeAction = {
   kind: 'external',
   label: 'View on itch.io',
   href: 'https://ferdinraphael.itch.io/rpg-data-forge',
-} as const satisfies PublishedOutputAction
+} as const satisfies PublishedOutputAction;
 
 export const publishedOutputs: readonly PublishedOutput[] = [
   {
@@ -182,7 +210,8 @@ export const publishedOutputs: readonly PublishedOutput[] = [
   },
   {
     id: 'sql-data-cleaning-cookbook',
-    title: 'SQL Data Cleaning Cookbook: 43 Practical Recipes for Messy Real-World Data',
+    title:
+      'SQL Data Cleaning Cookbook: 43 Practical Recipes for Messy Real-World Data',
     kind: 'book',
     description: 'Practical SQL recipes for cleaning messy real-world data.',
     tags: ['SQL', 'Data cleaning', 'Recipes'],
@@ -199,7 +228,11 @@ export const publishedOutputs: readonly PublishedOutput[] = [
     icon: ShieldCheck,
     actions: [
       envGuardFreeAction,
-      { kind: 'external', label: 'Pro version', href: 'https://payhip.com/b/r3Tn7' },
+      {
+        kind: 'external',
+        label: 'Pro version',
+        href: 'https://payhip.com/b/r3Tn7',
+      },
     ],
     overviewAction: { ...envGuardFreeAction, label: 'View EnvGuard' },
   },
@@ -214,20 +247,21 @@ export const publishedOutputs: readonly PublishedOutput[] = [
     actions: [rpgDataForgeAction],
     overviewAction: rpgDataForgeAction,
   },
-]
+];
 
 export interface PublishedOutputShelf {
-  id: 'books' | 'tools'
-  title: string
-  description: string
-  itemIds: readonly PublishedOutputId[]
+  id: 'books' | 'tools';
+  title: string;
+  description: string;
+  itemIds: readonly PublishedOutputId[];
 }
 
 export const publishedOutputShelves: readonly PublishedOutputShelf[] = [
   {
     id: 'books',
     title: 'Bookshelf',
-    description: 'Practical technical books built around worked problems and repeatable skills.',
+    description:
+      'Practical technical books built around worked problems and repeatable skills.',
     itemIds: ['csharp-debugging-drills', 'sql-data-cleaning-cookbook'],
   },
   {
@@ -236,24 +270,26 @@ export const publishedOutputShelves: readonly PublishedOutputShelf[] = [
     description: 'Small tools built to solve specific problems.',
     itemIds: ['envguard', 'rpg-data-forge'],
   },
-]
+];
 
 export const publishedOutputById = new Map(
   publishedOutputs.map((output) => [output.id, output]),
-)
+);
 
-export function outputsForShelf(shelf: PublishedOutputShelf): PublishedOutput[] {
-  return shelf.itemIds.map((id) => publishedOutputById.get(id)!)
+export function outputsForShelf(
+  shelf: PublishedOutputShelf,
+): PublishedOutput[] {
+  return shelf.itemIds.map((id) => publishedOutputById.get(id)!);
 }
 
 export interface ServiceOffering {
-  id: 'software-development' | 'technical-consulting' | 'mentoring-teaching'
-  title: string
-  question: string
-  description: string
-  previewDescription: string
-  icon: LucideIcon
-  accent: Accent
+  id: 'software-development' | 'technical-consulting' | 'mentoring-teaching';
+  title: string;
+  question: string;
+  description: string;
+  previewDescription: string;
+  icon: LucideIcon;
+  accent: Accent;
 }
 
 export const serviceOfferings: readonly ServiceOffering[] = [
@@ -261,8 +297,10 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     id: 'software-development',
     title: 'Software Development',
     question: 'Need something built?',
-    description: 'Websites, internal tools, MVPs, product features, integrations, and part-time development help.',
-    previewDescription: 'Builds, product work, integrations, and part-time development help.',
+    description:
+      'Websites, internal tools, MVPs, product features, integrations, and part-time development help.',
+    previewDescription:
+      'Builds, product work, integrations, and part-time development help.',
     icon: Code2,
     accent: 'cyan',
   },
@@ -270,8 +308,10 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     id: 'technical-consulting',
     title: 'Technical Consulting',
     question: 'Need to work out what to do before building it?',
-    description: 'Architecture reviews, modernization planning, cloud/AI decisions, and ongoing technical advice.',
-    previewDescription: 'Architecture reviews, modernization, cloud/AI decisions, and technical advice.',
+    description:
+      'Architecture reviews, modernization planning, cloud/AI decisions, and ongoing technical advice.',
+    previewDescription:
+      'Architecture reviews, modernization, cloud/AI decisions, and technical advice.',
     icon: Network,
     accent: 'blue',
   },
@@ -279,12 +319,14 @@ export const serviceOfferings: readonly ServiceOffering[] = [
     id: 'mentoring-teaching',
     title: 'Mentoring & Teaching',
     question: 'Want to learn, improve, or get unstuck?',
-    description: '1-on-1 learning, developer mentoring, and remote training for small groups.',
-    previewDescription: '1-on-1 learning, developer mentoring, and small-group training.',
+    description:
+      '1-on-1 learning, developer mentoring, and remote training for small groups.',
+    previewDescription:
+      '1-on-1 learning, developer mentoring, and small-group training.',
     icon: GraduationCap,
     accent: 'mint',
   },
-]
+];
 
 export const nodes: readonly ConstellationNode[] = [
   {
@@ -305,7 +347,7 @@ export const nodes: readonly ConstellationNode[] = [
     icon: Package,
     accent: 'cyan',
     summary: projectsCopy,
-    description: 'Public project: Little Worlds.',
+    description: 'Public projects: Little Worlds and Wildpath.',
     route: '/projects',
     actions: [
       { label: 'View Projects', route: '/projects' },
@@ -324,7 +366,9 @@ export const nodes: readonly ConstellationNode[] = [
     summary: builtAndPublishedCopy,
     description: 'Technical books, EnvGuard, and RPG Data Forge.',
     route: '/built-and-published',
-    actions: [{ label: 'View Built & Published', route: '/built-and-published' }],
+    actions: [
+      { label: 'View Built & Published', route: '/built-and-published' },
+    ],
     desktopPosition: { x: 70, y: 28 },
     mobilePosition: { x: 70, y: 24 },
     interactive: true,
@@ -371,8 +415,29 @@ export const nodes: readonly ConstellationNode[] = [
       { label: 'Repository', href: links.littleWorldsRepository },
     ],
     desktopPosition: { x: 10, y: 12 },
-    mobilePosition: { x: 9, y: 12 },
+    mobilePosition: { x: 11, y: 12 },
     featured: true,
+    interactive: true,
+    compact: true,
+  },
+  {
+    id: 'wildpath',
+    label: wildpath.title,
+    eyebrow: 'PROJECT',
+    kind: 'project',
+    icon: Package,
+    accent: 'mint',
+    summary: wildpath.description,
+    status: wildpath.status,
+    tags: wildpath.tags,
+    actions: [
+      {
+        label: projectById.wildpath.liveActionLabel,
+        href: projectById.wildpath.liveDemo,
+      },
+    ],
+    desktopPosition: { x: 45, y: 12 },
+    mobilePosition: { x: 45, y: 12 },
     interactive: true,
     compact: true,
   },
@@ -382,7 +447,8 @@ export const nodes: readonly ConstellationNode[] = [
     kind: 'concept',
     icon: Atom,
     accent: 'quiet',
-    summary: 'Technical experiments used to investigate behaviour and constraints.',
+    summary:
+      'Technical experiments used to investigate behaviour and constraints.',
     desktopPosition: { x: 10, y: 85 },
     mobilePosition: { x: 10, y: 86 },
     interactive: false,
@@ -400,7 +466,7 @@ export const nodes: readonly ConstellationNode[] = [
     interactive: false,
     compact: true,
   },
-] as const
+] as const;
 
 export const relationships: readonly Relationship[] = [
   { from: 'identity', to: 'projects' },
@@ -412,23 +478,24 @@ export const relationships: readonly Relationship[] = [
   { from: 'experiments', to: 'built-and-published' },
   { from: 'writings', to: 'technical-thinking' },
   { from: 'built-and-published', to: 'technical-thinking' },
-] as const
+  { from: 'projects', to: 'wildpath' },
+] as const;
 
-export const nodeById = new Map(nodes.map((node) => [node.id, node]))
-export const featuredNode = nodes.find((node) => node.featured)!
+export const nodeById = new Map(nodes.map((node) => [node.id, node]));
+export const featuredNode = nodes.find((node) => node.featured)!;
 
 export function relatedNodeIds(id: NodeId): Set<NodeId> {
-  const related = new Set<NodeId>([id])
+  const related = new Set<NodeId>([id]);
   relationships.forEach(({ from, to }) => {
-    if (from === id) related.add(to)
-    if (to === id) related.add(from)
-  })
-  return related
+    if (from === id) related.add(to);
+    if (to === id) related.add(from);
+  });
+  return related;
 }
 
 export function relationshipTouches(
   relationship: Relationship,
   id: NodeId | null,
 ): boolean {
-  return id !== null && (relationship.from === id || relationship.to === id)
+  return id !== null && (relationship.from === id || relationship.to === id);
 }

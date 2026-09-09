@@ -128,6 +128,21 @@ describe('foundation routes', () => {
     )
   })
 
+  it('renders both public projects with only their available external actions', () => {
+    renderRoute('/projects')
+    const littleWorlds = within(screen.getByRole('region', { name: 'Little Worlds' }))
+    const wildpath = within(screen.getByRole('region', { name: 'Wildpath' }))
+    expect(littleWorlds.getByRole('link', { name: 'Live Demo' })).toHaveAttribute('href', 'https://ferdinraphael.github.io/little-worlds')
+    expect(littleWorlds.getByRole('link', { name: 'Repository' })).toHaveAttribute('href', 'https://github.com/ferdinraphael/little-worlds/')
+    const play = wildpath.getByRole('link', { name: 'Play Wildpath' })
+    expect(play).toHaveAttribute('href', 'https://ferdinraphael.github.io/wildpath/')
+    expect(play).toHaveAttribute('target', '_blank')
+    expect(play).toHaveAttribute('rel', 'noreferrer')
+    expect(wildpath.getAllByRole('link')).toHaveLength(1)
+    expect(wildpath.queryByRole('link', { name: 'Repository' })).not.toBeInTheDocument()
+    expect(wildpath.getByText('Responsive browser gameplay with touch support')).toBeInTheDocument()
+  })
+
   it('keeps service detail useful without repeated template eyebrows', () => {
     renderRoute('/services')
     expect(screen.queryByText('SCOPED SERVICE')).not.toBeInTheDocument()

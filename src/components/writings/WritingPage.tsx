@@ -145,13 +145,13 @@ function WritingView({ writing }: { writing: WritingRecord }) {
                         <Link to={project.route}>
                           Project page <ArrowRight aria-hidden="true" />
                         </Link>
-                        <a
+                        {project.repository && <a
                           href={project.repository}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           Repository <ExternalLink aria-hidden="true" />
-                        </a>
+                        </a>}
                       </div>
                     </div>
                   </article>
