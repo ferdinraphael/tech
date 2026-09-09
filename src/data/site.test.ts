@@ -96,13 +96,11 @@ describe('constellation data', () => {
       'Software Development',
       'Technical Consulting',
       'Mentoring & Teaching',
-      'Technical Content',
     ])
-    const capabilities = serviceOfferings.flatMap(({ capabilities }) => capabilities).join(' ').toLowerCase()
-    for (const term of ['freelance', 'apis', 'architecture', 'mvp', 'mentoring', 'python', 'technical writing']) {
-      expect(capabilities).toContain(term)
-    }
-    expect(serviceOfferings.every(({ icon, previewTags, accent }) => icon && previewTags.length > 0 && accent)).toBe(true)
+    expect(serviceOfferings.map(({ id }) => id)).toEqual([
+      'software-development', 'technical-consulting', 'mentoring-teaching',
+    ])
+    expect(serviceOfferings.every(({ icon, question, accent }) => icon && question && accent)).toBe(true)
   })
 
   it('organizes verified outputs and exact destinations into extensible shelves', () => {

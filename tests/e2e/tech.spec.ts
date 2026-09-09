@@ -152,7 +152,7 @@ test('launch information architecture is public and durable', async ({ page }) =
   }
 
   await page.goto('./services')
-  for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching', 'Technical Content']) {
+  for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching']) {
     await expect(page.getByRole('heading', { name: title })).toBeVisible()
   }
   await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0)
@@ -360,7 +360,8 @@ for (const viewport of [
 
     await page.goto('./services')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-    await expect(page.getByRole('heading', { name: 'Technical Content' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Technical Content' })).toHaveCount(0)
+    await expect(page.getByRole('article')).toHaveCount(3)
 
     await page.goto('./writings')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)

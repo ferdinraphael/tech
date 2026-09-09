@@ -87,7 +87,7 @@ export const builtAndPublishedCopy =
   'Books, tools, and other smaller pieces of work that stand on their own.'
 
 export const servicesCopy =
-  'Practical software development, consulting, mentoring, teaching, and technical content work.'
+  'I build software, help people make difficult technical decisions, and teach people who want to become stronger at doing the work themselves.'
 
 export const littleWorlds = {
   title: 'Little Worlds',
@@ -247,11 +247,11 @@ export function outputsForShelf(shelf: PublishedOutputShelf): PublishedOutput[] 
 }
 
 export interface ServiceOffering {
-  id: 'software-development' | 'technical-consulting' | 'mentoring-teaching' | 'technical-content'
+  id: 'software-development' | 'technical-consulting' | 'mentoring-teaching'
   title: string
+  question: string
   description: string
-  capabilities: readonly string[]
-  previewTags: readonly string[]
+  previewDescription: string
   icon: LucideIcon
   accent: Accent
 }
@@ -260,61 +260,29 @@ export const serviceOfferings: readonly ServiceOffering[] = [
   {
     id: 'software-development',
     title: 'Software Development',
-    description: 'Focused implementation for useful software and connected systems.',
+    question: 'Need something built?',
+    description: 'Websites, internal tools, MVPs, product features, integrations, and part-time development help.',
+    previewDescription: 'Builds, product work, integrations, and part-time development help.',
     icon: Code2,
     accent: 'cyan',
-    previewTags: ['.NET', 'TypeScript', 'Angular', 'APIs'],
-    capabilities: [
-      'Freelance software development',
-      '.NET, TypeScript, and Angular where useful',
-      'APIs and integrations',
-      'Small web applications and practical websites',
-      'Internal tools and automation',
-    ],
   },
   {
     id: 'technical-consulting',
     title: 'Technical Consulting',
-    description: 'Practical direction for technical decisions, delivery, and stabilization.',
+    question: 'Need to work out what to do before building it?',
+    description: 'Architecture reviews, modernization planning, cloud/AI decisions, and ongoing technical advice.',
+    previewDescription: 'Architecture reviews, modernization, cloud/AI decisions, and technical advice.',
     icon: Network,
     accent: 'blue',
-    previewTags: ['Architecture', 'MVPs', 'Integrations'],
-    capabilities: [
-      'Architecture and technical direction',
-      'Implementation planning',
-      'MVP stabilization',
-      'Integration problems and technical trade-offs',
-      'Delivery guidance',
-    ],
   },
   {
     id: 'mentoring-teaching',
     title: 'Mentoring & Teaching',
-    description: 'Direct, practical support for learning and stronger engineering work.',
+    question: 'Want to learn, improve, or get unstuck?',
+    description: '1-on-1 learning, developer mentoring, and remote training for small groups.',
+    previewDescription: '1-on-1 learning, developer mentoring, and small-group training.',
     icon: GraduationCap,
     accent: 'mint',
-    previewTags: ['1-on-1', 'Python', 'Problem solving'],
-    capabilities: [
-      '1-on-1 technical mentoring',
-      'Python and programming tutoring',
-      'Debugging and problem-solving support',
-      'Guidance for developers growing into stronger engineering roles',
-    ],
-  },
-  {
-    id: 'technical-content',
-    title: 'Technical Content',
-    description: 'Clear material for developers, learners, and technical audiences.',
-    icon: FileText,
-    accent: 'violet',
-    previewTags: ['Writing', 'Exercises', 'Documentation'],
-    capabilities: [
-      'Technical writing',
-      'Developer and learning documentation',
-      'Worked examples',
-      'Exercises and educational material',
-      'Reference material',
-    ],
   },
 ]
 
@@ -367,8 +335,8 @@ export const nodes: readonly ConstellationNode[] = [
     kind: 'category',
     icon: PanelsTopLeft,
     accent: 'amber',
-    summary: servicesCopy,
-    description: 'Individually scoped work with practical next steps.',
+    summary: 'Software development, technical consulting, and mentoring.',
+    description: 'All services are remote.',
     route: '/services',
     actions: [{ label: 'View Services', route: '/services' }],
     desktopPosition: { x: 31, y: 72 },

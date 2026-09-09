@@ -189,13 +189,20 @@ describe('overview interactions', () => {
     )
     expect(within(tools).queryByRole('link', { name: /Pro version/ })).not.toBeInTheDocument()
 
-    for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching', 'Technical Content']) {
+    for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching']) {
       expect(screen.getByRole('heading', { name: title })).toBeInTheDocument()
     }
-    expect(screen.getByRole('list', { name: 'Software Development focus areas' })).toHaveTextContent('.NET')
-    expect(screen.getByRole('list', { name: 'Technical Consulting focus areas' })).toHaveTextContent('Architecture')
-    expect(screen.getByRole('list', { name: 'Mentoring & Teaching focus areas' })).toHaveTextContent('Python')
-    expect(screen.getByRole('list', { name: 'Technical Content focus areas' })).toHaveTextContent('Documentation')
+    const services = screen.getByRole('region', { name: 'Services' })
+    expect(within(services).getAllByRole('article')).toHaveLength(3)
+    for (const [title, slug] of [
+      ['Software Development', 'software-development'],
+      ['Technical Consulting', 'technical-consulting'],
+      ['Mentoring & Teaching', 'mentoring-teaching'],
+    ]) {
+      expect(within(services).getByRole('link', { name: `Explore ${title}` })).toHaveAttribute('href', `/services/${slug}`)
+    }
+    expect(within(services).getByText('All services are remote.')).toBeInTheDocument()
+    expect(screen.queryByText(/Technical Content/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/preparing/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/Website in 2 Days/i)).not.toBeInTheDocument()
   })

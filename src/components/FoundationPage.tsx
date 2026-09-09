@@ -52,7 +52,7 @@ const pageMeta = {
   },
   services: {
     eyebrow: 'WAYS TO WORK TOGETHER',
-    title: 'Focused engagements with practical next steps.',
+    title: 'Practical technical help, depending on what you need.',
     intro: servicesCopy,
   },
 } satisfies Record<FoundationPageName, Record<string, string>>
@@ -192,27 +192,16 @@ function ServicesContent() {
     <>
       <div className={styles.routeServiceGrid}>
         {serviceOfferings.map((offering) => (
-          <article key={offering.id}>
-            <h2>{offering.title}</h2>
+          <article key={offering.id} aria-labelledby={`${offering.id}-heading`}>
+            <h2 id={`${offering.id}-heading`}>{offering.title}</h2>
+            <p className={styles.serviceQuestion}>{offering.question}</p>
             <p>{offering.description}</p>
-            <ul>
-              {offering.capabilities.map((capability) => <li key={capability}>{capability}</li>)}
-            </ul>
+            <Link to={`/services/${offering.id}`}>
+              Explore {offering.title} <ArrowRight aria-hidden="true" />
+            </Link>
           </article>
         ))}
       </div>
-      <section className={styles.routeCta}>
-        <div>
-          <span>GET IN TOUCH</span>
-          <h2>Start with the requirement.</h2>
-          <p>Share the problem, constraints, and outcome you have in mind so the work can be scoped practically.</p>
-        </div>
-        <div>
-          <a href={links.enquiry}>
-            <Mail aria-hidden="true" /> Discuss your requirement
-          </a>
-        </div>
-      </section>
     </>
   )
 }
@@ -221,11 +210,12 @@ export function FoundationPage({ page }: FoundationPageProps) {
   const meta = pageMeta[page]
   return (
     <div className={styles.routePage}>
-      <section className={styles.routeHero}>
+      <section className={`${styles.routeHero} ${page === 'services' ? styles.servicesHero : ''}`}>
         <div>
           <p className={styles.eyebrow}>{meta.eyebrow}</p>
           <h1>{meta.title}</h1>
           <p>{meta.intro}</p>
+          {page === 'services' && <p className={styles.remoteNote}>All services are remote.</p>}
           <Link to="/" className={styles.backLink}>
             <ArrowLeft aria-hidden="true" /> Back to overview
           </Link>
