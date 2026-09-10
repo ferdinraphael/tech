@@ -1,18 +1,21 @@
-import { execFile, spawn } from 'node:child_process'
+import { execFile, fork, spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { existsSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
+import { fileURLToPath } from 'node:url'
 
 const execFileAsync = promisify(execFile)
 const writingsPreview = process.argv.includes('--writings-preview')
-const previewUrl = writingsPreview
-  ? 'http://127.0.0.1:4174/tech/'
-  : 'http://127.0.0.1:4173/tech/'
+const previewPort = writingsPreview ? 4174 : 4173
+const previewUrl = `http://127.0.0.1:${previewPort}/tech/`
 const startupTimeoutMs = 30_000
-const testTimeoutMs = 180_000
+const buildTimeoutMs = 180_000
+// The production suite takes about five minutes locally. Allow variance and,
+// in CI, the two retries configured in playwright.config.ts.
+const testTimeoutMs = 8 * 60_000 * (process.env.CI ? 3 : 1)
 const cleanupTimeoutMs = 10_000
 
 function localBrowserExecutable() {
@@ -39,25 +42,38 @@ function startNode(args, environment = process.env) {
 }
 
 async function waitForPreview(child) {
-  const deadline = Date.now() + startupTimeoutMs
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`Vite preview exited before becoming ready (${child.exitCode}).`)
+  // Only this fork can announce readiness, after Vite has bound its strict port.
+  // An HTTP response from an unrelated server cannot make this run ready.
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => finish(new Error('Vite preview startup timed out.')), startupTimeoutMs)
+    function finish(error) {
+      clearTimeout(timer)
+      child.off('message', ready)
+      child.off('error', finish)
+      child.off('exit', exited)
+      if (error) reject(error)
+      else resolve()
     }
-    try {
-      const response = await fetch(previewUrl, { signal: AbortSignal.timeout(2_000) })
-      if (response.ok) return
-    } catch {
-      // The preview is still starting.
+    function ready(message) {
+      if (message?.type === 'preview-ready' && message.port === previewPort) finish()
     }
-    await new Promise((resolve) => setTimeout(resolve, 250))
+    function exited(code) {
+      finish(new Error(`Vite preview exited before becoming ready (${code}); port ${previewPort} must be available.`))
+    }
+    child.on('message', ready)
+    child.once('error', finish)
+    child.once('exit', exited)
+  })
+  const response = await fetch(previewUrl, { signal: AbortSignal.timeout(5_000) })
+  if (!response.ok || child.exitCode !== null || child.signalCode !== null) {
+    throw new Error(`This run's Vite preview is not serving ${previewUrl} (${response.status}).`)
   }
-  throw new Error(`Vite preview was not ready within ${startupTimeoutMs}ms.`)
 }
 
 async function terminateTree(child) {
   if (!child || child.exitCode !== null || child.signalCode !== null) return
 
+  const exited = once(child, 'exit')
   if (process.platform === 'win32') {
     try {
       await execFileAsync('taskkill', ['/pid', String(child.pid), '/T', '/F'], {
@@ -71,10 +87,15 @@ async function terminateTree(child) {
     child.kill('SIGTERM')
   }
 
-  await Promise.race([
-    once(child, 'exit'),
-    new Promise((resolve) => setTimeout(resolve, cleanupTimeoutMs)),
-  ])
+  let timer
+  try {
+    await Promise.race([
+      exited,
+      new Promise((resolve) => { timer = setTimeout(resolve, cleanupTimeoutMs) }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 async function waitForChild(child, timeoutMs, label) {
@@ -114,7 +135,7 @@ async function buildWritingsPreview() {
     { ...process.env, VITE_INCLUDE_DRAFTS: 'true' },
   )
   try {
-    await waitForChild(child, testTimeoutMs, 'Writings preview build')
+    await waitForChild(child, buildTimeoutMs, 'Writings preview build')
     return directory
   } catch (error) {
     await rm(directory, { recursive: true, force: true })
@@ -134,28 +155,31 @@ async function runTests() {
   await waitForChild(child, testTimeoutMs, 'Playwright')
 }
 
-let preview
-let writingsPreviewDirectory
-try {
-  writingsPreviewDirectory = writingsPreview ? await buildWritingsPreview() : undefined
-  preview = startNode(
-    [
-      'node_modules/vite/bin/vite.js',
-      'preview',
-      '--configLoader',
-      'runner',
-      '--host',
-      '127.0.0.1',
-      ...(writingsPreview
-        ? ['--port', '4174', '--strictPort', '--outDir', writingsPreviewDirectory]
-        : []),
-    ],
-  )
-  await waitForPreview(preview)
-  await runTests()
-} finally {
-  await terminateTree(preview)
-  if (writingsPreviewDirectory) {
-    await rm(writingsPreviewDirectory, { recursive: true, force: true })
+if (process.argv[2] === '--serve-preview') {
+  const { preview } = await import('vite')
+  const port = Number(process.argv[3])
+  const server = await preview({
+    configLoader: 'runner',
+    preview: { host: '127.0.0.1', port, strictPort: true },
+    ...(process.argv[4] ? { build: { outDir: process.argv[4] } } : {}),
+  })
+  server.printUrls()
+  process.send({ type: 'preview-ready', port })
+} else {
+  let preview
+  let writingsPreviewDirectory
+  try {
+    writingsPreviewDirectory = writingsPreview ? await buildWritingsPreview() : undefined
+    preview = fork(fileURLToPath(import.meta.url), [
+      '--serve-preview', String(previewPort),
+      ...(writingsPreviewDirectory ? [writingsPreviewDirectory] : []),
+    ], { cwd: process.cwd(), stdio: ['ignore', 'inherit', 'inherit', 'ipc'], windowsHide: true })
+    await waitForPreview(preview)
+    await runTests()
+  } finally {
+    await terminateTree(preview)
+    if (writingsPreviewDirectory) {
+      await rm(writingsPreviewDirectory, { recursive: true, force: true })
+    }
   }
 }

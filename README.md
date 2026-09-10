@@ -1,8 +1,8 @@
 # Ferdin Raphael — Technical Identity
 
-A standalone technical identity site for Ferdin Raphael. This first vertical slice turns projects, services, simulations, profile context, and future technical writing into a responsive interactive constellation rather than a conventional portfolio grid.
+A standalone technical identity site for Ferdin Raphael: software projects, published books and tools, remote services, and technical writing, connected through a responsive interactive constellation.
 
-Deployment is **not enabled**. The project is prepared for a future GitHub Pages site at `/tech/`, but this repository contains no deployment workflow and does not modify Pages settings.
+This repository contains validation CI but no deployment workflow. The target is [the Tech site on GitHub Pages](https://ferdinraphael.github.io/tech/) under `/tech/`. Deployment/readiness work is separate; the build alone does not publish the site or change Pages settings.
 
 ## Current scope
 
@@ -10,12 +10,19 @@ Deployment is **not enabled**. The project is prepared for a future GitHub Pages
 - Typed, data-driven interactive constellation
 - Neutral, featured, selected, and cleared interaction states
 - Desktop contextual panel and in-flow mobile contextual details
-- Verified Little Worlds project content
-- Markdown-based technical-writing framework with an intentional published empty state
+- Little Worlds and Wildpath as public projects
+- Built & Published shelves for C# Debugging Drills, SQL Data Cleaning Cookbook, EnvGuard, and RPG Data Forge
+- Published writing: “When the Workaround Becomes the Architecture”
 - Development-only draft previews, validated frontmatter, writing routes, active Contents navigation, and accessible code examples
-- Two approved service/engagement cards
-- Lightweight Profile, Projects, Services, and Writings routes
+- Three service categories with dedicated detail pages: Software Development, Technical Consulting, and Mentoring & Teaching; all services are remote
+- Public navigation: Overview · Projects · Built & Published · Services · Writings
+- Profile remains available by direct route but intentionally hidden from public navigation
+- “Variables Are Simple — Until They Aren't” remains unchanged and draft-only
 - Accessibility behavior, component tests, browser smoke tests, and build-only CI
+
+Wildpath is a [public playable project](https://ferdinraphael.github.io/wildpath/). The Tech site intentionally provides no public source-repository action for it. Little Worlds remains the featured project.
+
+Website in 2 Days is not a public service. Technical Content is not a standalone service.
 
 ## Technology
 
@@ -63,15 +70,20 @@ The development server serves the application with the `/tech/` base path. Follo
 
 ## Routes
 
-| Source route | Future public path | Scope |
+| Source route | Path under the configured base | Scope |
 | --- | --- | --- |
 | `/` | `/tech/` | Complete overview and constellation |
-| `/profile` | `/tech/profile` | Concise profile and core areas |
-| `/projects` | `/tech/projects` | Little Worlds only |
-| `/services` | `/tech/services` | Approved pilot and engagements |
-| `/writings` | `/tech/writings` | Canonical data-driven writing index and published empty state |
+| `/profile` | `/tech/profile` | Profile; intentionally hidden from public navigation |
+| `/projects` | `/tech/projects` | Little Worlds and Wildpath |
+| `/built-and-published` | `/tech/built-and-published` | Bookshelf and Tool Shelf |
+| `/services` | `/tech/services` | Three remote service categories |
+| `/services/software-development` | `/tech/services/software-development` | Software Development |
+| `/services/technical-consulting` | `/tech/services/technical-consulting` | Technical Consulting |
+| `/services/mentoring-teaching` | `/tech/services/mentoring-teaching` | Mentoring & Teaching |
+| `/writings` | `/tech/writings` | Published writing index; separate draft previews in development |
 | `/writings/:slug` | `/tech/writings/:slug` | Reusable writing route or intentional writing-not-found state |
-| `/notes`, `/notes/:slug` | matching `/tech/writings...` route | Replace-style compatibility redirects preserving slug and hash |
+| `/notes`, `/notes/:slug` | matching `/tech/writings...` route | Replace-style compatibility redirects preserving slug, query, and hash |
+| `/overview` | `/tech/overview` | Replace-style redirect to Overview |
 
 Unknown paths render an intentional in-app 404.
 
@@ -79,7 +91,7 @@ Unknown paths render an intentional in-app 404.
 
 `vite.config.ts` sets `base: '/tech/'`. `BrowserRouter` derives its basename from `import.meta.env.BASE_URL`, keeping local, test, and future Pages paths aligned.
 
-The production build copies `dist/index.html` to `dist/404.html`. When GitHub Pages is enabled in a later task, clean URLs such as `/tech/projects` can fall back to the SPA entry point and React Router can render the correct route. No hash routing is used.
+The production build copies `dist/index.html` to `dist/404.html` for the GitHub Pages SPA fallback. Clean URLs such as `/tech/projects` are handled by React Router once the entry point loads. Host-level direct requests and reloads must be verified during deployment/readiness. No hash routing is used.
 
 This fallback prepares build output only; it does not deploy, enable Pages, or change repository settings.
 
@@ -88,7 +100,7 @@ This fallback prepares build output only; it does not deploy, enable Pages, or c
 The visual is a curated composition, not a physics simulation.
 
 - `src/data/site.ts` is the shared source of truth.
-- Nodes are positioned semantic buttons layered over an SVG relationship field.
+- Interactive nodes are positioned semantic buttons layered over an SVG relationship field; concept nodes are non-interactive labels.
 - SVG draws orbits, connectors, and relationship emphasis.
 - CSS provides the restrained star field, glow, and state transitions.
 - Desktop and mobile use independent percentage coordinate maps.
@@ -105,11 +117,21 @@ The visual is a curated composition, not a physics simulation.
 - desktop and mobile positions
 - featured, interactive, and compact flags
 
-The current graph includes the central technical identity, Profile, Projects, Simulations, Services, Writings, Little Worlds, Website in 2 Days, More Ways to Work Together, Experiments, and Technical Thinking.
+The nine current nodes are Technical identity; the categories Projects, Built & Published, Services, and Writings; the projects Little Worlds and Wildpath; and the non-interactive concepts Experiments and Technical Thinking.
 
 ### Relationship model
 
-Relationships are separate typed `{ from, to }` records. Rendering and selected-state emphasis both use this model. Little Worlds has two direct category relationships: Projects and Simulations.
+Relationships are separate typed `{ from, to }` records. Rendering and selected-state emphasis both use this model. Current connections are:
+
+- Technical identity → Projects, Built & Published, Services, and Writings
+- Projects → Little Worlds
+- Projects → Wildpath
+- Little Worlds → Experiments
+- Experiments → Built & Published
+- Writings → Technical Thinking
+- Built & Published → Technical Thinking
+
+The arrows describe the stored endpoints; highlighting treats connections as relationships in either direction. Little Worlds has two direct relationships, to Projects and Experiments.
 
 ### Featured versus selected
 
@@ -134,11 +156,15 @@ Every node has both `desktopPosition` and `mobilePosition`. CSS swaps the active
 
 ### Add a project
 
-Add verified project content to the shared data model, including only approved public links and claims. Connect the project to all relevant category nodes. Supporting cards and route content should consume that shared record rather than duplicate its description.
+Add the project ID and record in `src/data/site.ts`, including only approved public links and claims. A repository is optional. The Projects page and related-writing references consume the shared record. If the project belongs in the curated constellation, add its node, relationships, and both coordinate maps separately. Review category summaries and tests that intentionally list launch content. Changing the featured project also requires reviewing the Overview card and featured graph node.
+
+### Add a book or tool
+
+Add a published-output ID and record in `src/data/site.ts`, then place it in the appropriate shelf's ordered `itemIds`. Actions distinguish external links, internal routes, and downloads. Overview shows the first three books and the current tool shelf, with separately chosen preview actions.
 
 ### Add a service
 
-Add a shared service record and an appropriate constellation node if it belongs in the map. Do not add a public action until a verified URL or approved contact path exists.
+Add the service ID and summary in `serviceOfferings`, compose its page with `ServiceDetailLayout` and `ServiceSection`, and register its detail route in `src/App.tsx`. Overview and the Services index derive summary cards from the shared records. The constellation represents Services as a category, not each individual offering. Review the summary, detail page, responsive layout, and route tests together.
 
 ### Add a writing
 
@@ -152,7 +178,8 @@ Technical writings live as plain Markdown under `src/content/writings/`. YAML fr
 - Semantic constellation buttons with state and relationship summaries
 - Live selection announcement
 - Keyboard selection and Escape-to-clear
-- Accessible mobile menu with Escape closure
+- Mobile navigation drawer closes on every destination, including the active route, and on external actions, close button, backdrop, or Escape
+- Drawer keyboard focus stays within the visible menu while background content is inert; closing returns focus to the trigger
 - Mobile contextual details remain in normal document flow without modal or focus-trap semantics
 - Motion-aware scrolling brings inline context into view without stealing focus
 - Minimum 44-pixel interactive controls where practical
@@ -173,27 +200,30 @@ Vitest and React Testing Library cover:
 - approved content and absence of fabricated projects/satellites
 - neutral versus featured state
 - selection, Escape clearing, and contextual switching
-- Projects and Little Worlds panels
-- Website in 2 Days Coming Soon behavior
+- Projects, Little Worlds, and Wildpath panels, including Wildpath's optional repository
 - approved enquiry action
 - mobile inline context rendering, updating, relationship persistence, and clearing
 - reduced-motion inline-context scrolling
-- Writings empty state and legacy Notes redirects
+- Published writing, development drafts, multiple-writing presentation, and legacy Notes redirects
+- Service summaries, detail routes, remote engagement copy, and mentoring rates
+- Drawer dismissal, keyboard containment, and focus restoration
 - foundation and invalid routes
 - writing format metadata, dates, duplicate slugs, project references, and draft visibility
-- Markdown headings, safe raw-HTML handling, code blocks, language aliases, synchronized tabs, persistence, keyboard navigation, and copy controls
+- Shared heading-anchor allocation across levels, stable published article anchors, safe raw-HTML handling, code blocks, language aliases, synchronized tabs, persistence, keyboard navigation, and copy controls
 
 Playwright covers:
 
 - overview loading
-- Projects and Little Worlds selection
+- Projects, Little Worlds, and Wildpath selection
 - mobile inline-context behavior and persistent selected relationships
 - route navigation and browser back
 - production serving under `/tech/`
 - horizontal-overflow checks
 - navigation visibility
 - mobile bottom-navigation clearance
-- production Writings empty-state, draft exclusion, nested route state, legacy redirects, and writing-not-found behaviour
+- production article reading, draft exclusion, nested route state, legacy redirects, and writing-not-found behaviour
+- service detail links and readability, mentoring rate visibility, and enquiry-action clearance
+- drawer keyboard containment and current-route dismissal at 430 × 932, 375 × 667, and 360 × 800
 - bounded development-only writing review, scroll-spy, and mobile Contents behaviour at desktop and mobile sizes
 
 ## Viewport matrix
@@ -214,6 +244,8 @@ Responsive smoke checks:
 
 Generated review screenshots belong in the untracked `visual-review/` directory.
 
+After a production build, `node scripts/run-e2e.mjs` runs the standard production suite. The runner starts its own preview child on strict port 4173, waits for that child to confirm it has bound the port, and checks `/tech/` before testing. An occupied port fails the run rather than reusing another server. The suite budget is eight minutes locally and 24 minutes in CI to accommodate the configured two retries; per-test Playwright limits are unchanged. Preview cleanup runs on success or failure. Development-only writing tests skip in production mode.
+
 Run `npm run test:writings-preview` to reproduce the draft-writing review. The bounded harness creates a temporary draft-enabled development build, serves it at `http://127.0.0.1:4174/tech/`, runs the desktop/mobile checks, writes review screenshots, stops the server, and removes the temporary build on success or failure.
 
 ## Build-only continuous integration
@@ -229,23 +261,22 @@ Run `npm run test:writings-preview` to reproduce the draft-writing review. The b
 
 It does not upload a Pages artifact, request deployment permissions, publish a release, or deploy.
 
-## Known content gaps
+## Intentional content boundaries
 
-- No writings are published yet; the only writing file is a development-only framework fixture.
-- Website in 2 Days has no public URL and remains Coming soon.
-- Profile copy is intentionally concise and provisional.
-- Little Worlds is the only approved public project in this slice.
+- Profile is hidden from public navigation; its direct route is retained.
+- Website in 2 Days and standalone Technical Content are absent from public services.
+- Variables and framework previews remain development-only. Release builds must not set `VITE_INCLUDE_DRAFTS=true`.
+- The published workaround article must remain unchanged; required Git blob: `f23fb656e3e6fc9eda611c575640832e7068a541`.
 
 ## Known implementation limitations
 
 - The constellation uses curated coordinates; new content requires deliberate placement at both layout sizes.
 - Tablet context moves below the visual instead of keeping a compressed three-column arrangement.
-- Writing social metadata remains client-rendered with the existing Vite SPA architecture; no deployment or server-rendering layer was added.
-- GitHub Pages clean-route fallback is prepared but cannot be proven on the real Pages host until deployment is explicitly enabled in a later task.
+- Page titles and social metadata are currently global in `index.html`, not generated per route.
+- GitHub Pages clean-route fallback is prepared; host-level behavior remains part of the separate deployment/readiness pass.
 
 ## Human review items
 
-- Refine provisional Profile language if desired.
 - Review final node spacing on the most common physical devices.
-- Confirm when Website in 2 Days is ready for a public URL or revised launch copy.
-- Approve the first real writing before adding any published records.
+- Verify direct routes, static assets, production draft exclusion, and the protected article blob during deployment/readiness.
+- Review and approve each future writing before following the documented publication workflow.

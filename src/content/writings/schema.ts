@@ -9,6 +9,7 @@ import {
   type DirectiveNode,
 } from './directives'
 import { isWritingFormat } from './formats'
+import { headingAnchor, markdownHeadings } from './headingAnchors'
 import { normalizeCodeLanguage } from './languages'
 import { isReaderLanguage, type ReaderLanguage } from './readerLanguages'
 import { validateRuntimeModel } from './runtimeModelSchema'
@@ -621,11 +622,6 @@ export function parseWritingSegments(
   })
 }
 
-function tokenText(token: MarkedToken): string {
-  if (token.tokens) return token.tokens.map(tokenText).join('')
-  return token.text ?? ''
-}
-
 function extractHeadings(
   segments: WritingSegment[],
   sourcePath: string,
@@ -635,13 +631,13 @@ function extractHeadings(
   try {
     for (const segment of segments) {
       if (segment.type !== 'markdown' && segment.type !== 'language-only') continue
-      for (const token of marked.lexer(segment.source, { gfm: true })) {
-        if (token.type !== 'heading' || (token.depth !== 2 && token.depth !== 3)) continue
-        const text = tokenText(token).trim()
+      for (const token of markdownHeadings(marked.lexer(segment.source, { gfm: true }))) {
+        const { text, id } = headingAnchor(token, slugger)
+        if (token.depth !== 2 && token.depth !== 3) continue
         headings.push({
           depth: token.depth,
-          text,
-          id: slugger.slug(text),
+          text: text.trim(),
+          id,
           ...(segment.type === 'language-only' ? { languages: segment.languages } : {}),
         })
       }

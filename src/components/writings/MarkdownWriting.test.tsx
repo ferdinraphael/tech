@@ -2,6 +2,8 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { preferredLanguageStorageKey } from '../../content/writings/languages'
+import { parseWritingSource } from '../../content/writings/schema'
+import { writingCatalogue } from '../../content/writings/catalogue'
 import type { WritingSegment } from '../../content/writings/types'
 import { LanguagePreferenceProvider } from './LanguagePreference'
 import { MarkdownWriting } from './MarkdownWriting'
@@ -201,6 +203,41 @@ describe('Markdown writing rendering', () => {
     expect(screen.getByRole('link', { name: 'External' })).toHaveAttribute('rel', 'noopener noreferrer')
     expect(screen.queryByRole('link', { name: 'unsafe' })).not.toBeInTheDocument()
     expect(container.querySelector('[href^="javascript:"]')).toBeNull()
+  })
+
+  it('matches Contents to rendered cross-level duplicates, including nested headings', () => {
+    const writing = parseWritingSource({
+      path: 'heading-regression.md',
+      source: [
+        '---', 'title: Heading regression', 'description: Anchor allocation',
+        'format: article', 'draft: true', '---',
+        '#### Shared **label**', '', '## Shared **label**', '', '### Shared **label**', '',
+        '> ##### Shared **label**', '', '- ###### Shared **label**', '', '## Shared **label**',
+      ].join('\n'),
+    })
+    const { container } = renderWriting(writing.segments)
+    expect(writing.headings.map(({ id }) => id)).toEqual(['shared-label-1', 'shared-label-2', 'shared-label-5'])
+    expect(Array.from(container.querySelectorAll('h2, h3'), (heading) => heading.id))
+      .toEqual(writing.headings.map(({ id }) => id))
+    for (const heading of writing.headings) {
+      expect(container.querySelector(`[id="${heading.id}"]`)).toHaveTextContent(heading.text)
+    }
+  })
+
+  it('preserves every published workaround article anchor and its Contents targets', () => {
+    const writing = writingCatalogue.getBySlug('when-the-workaround-becomes-the-architecture')!
+    const { container } = renderWriting(writing.segments)
+    const ids = writing.headings.map(({ id }) => id)
+    expect(ids).toEqual([
+      'the-harmless-workaround',
+      'when-the-workaround-becomes-behavior',
+      'the-information-we-erased',
+      'dont-let-the-workaround-disappear',
+      'when-tolerance-changes-the-contract',
+      'ai-can-accelerate-the-same-mistake',
+      'make-the-decision-explicit',
+    ])
+    expect(Array.from(container.querySelectorAll('h2, h3'), (heading) => heading.id)).toEqual(ids)
   })
 
   it('omits Read As for ordinary writing and renders it once before language prose', () => {

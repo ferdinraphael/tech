@@ -2,6 +2,7 @@ import { Fragment, createElement, type ReactNode } from 'react'
 import GithubSlugger from 'github-slugger'
 import { marked, type Token } from 'marked'
 import { normalizeCodeLanguage } from '../../content/writings/languages'
+import { headingAnchor } from '../../content/writings/headingAnchors'
 import { CodeBlock } from './CodeBlock'
 import styles from './Writings.module.css'
 
@@ -13,11 +14,6 @@ function safeUrl(value: string | undefined, image = false): string | null {
   if (/^(?:javascript|vbscript|data):/i.test(normalized)) return null
   if (image && /^(?:mailto|tel):/i.test(normalized)) return null
   return normalized
-}
-
-function tokenText(token: MarkedToken): string {
-  if (token.tokens) return token.tokens.map(tokenText).join('')
-  return token.text ?? ''
 }
 
 function inlineTokens(tokens: MarkedToken[] | undefined, keyPrefix: string): ReactNode[] {
@@ -89,8 +85,7 @@ function blockTokens(
         return <Fragment key={key}>{inlineTokens(token.tokens, key)}</Fragment>
       case 'heading': {
         const depth = Math.min(6, Math.max(1, token.depth ?? 2))
-        const text = tokenText(token)
-        const id = slugger.slug(text)
+        const { text, id } = headingAnchor(token, slugger)
         return createElement(
           `h${depth}`,
           { key, id },
