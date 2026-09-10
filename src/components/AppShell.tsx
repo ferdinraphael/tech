@@ -47,7 +47,9 @@ export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLElement>(null)
   const location = useLocation()
+  const closeMenu = () => setMenuOpen(false)
 
   useEffect(() => {
     setMenuOpen(false)
@@ -56,23 +58,42 @@ export function AppShell() {
 
   useEffect(() => {
     if (!menuOpen) return
+    const trigger = menuButtonRef.current
     closeButtonRef.current?.focus()
     const close = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
         setMenuOpen(false)
-        menuButtonRef.current?.focus()
+      }
+      if (event.key === 'Tab') {
+        const controls = menuRef.current?.querySelectorAll<HTMLElement>('button, a[href]')
+        const first = controls?.[0]
+        const last = controls?.[controls.length - 1]
+        const outside = !menuRef.current?.contains(document.activeElement)
+        if (event.shiftKey && (document.activeElement === first || outside)) {
+          event.preventDefault()
+          last?.focus()
+        } else if (!event.shiftKey && (document.activeElement === last || outside)) {
+          event.preventDefault()
+          first?.focus()
+        }
       }
     }
     document.addEventListener('keydown', close)
-    return () => document.removeEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('keydown', close)
+      // Restore after React removes inert from the background, including the trigger.
+      trigger?.focus()
+    }
   }, [menuOpen])
 
   return (
     <div className={styles.siteFrame}>
-      <a className={styles.skipLink} href="#main-content">
+      <a className={styles.skipLink} href="#main-content" inert={menuOpen}>
         Skip to content
       </a>
-      <header className={styles.siteHeader}>
+      <header className={styles.siteHeader} inert={menuOpen}>
         <Brand />
         <nav className={styles.desktopNav} aria-label="Primary navigation">
           {primaryNav.map((item) => (
@@ -108,8 +129,19 @@ export function AppShell() {
       </header>
 
       {menuOpen && (
-        <div className={styles.menuBackdrop} onMouseDown={() => setMenuOpen(false)}>
+        <div
+          className={styles.menuBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+          onMouseDown={(event) => {
+            // Default mouse-down focus must not override restored trigger focus.
+            event.preventDefault()
+            closeMenu()
+          }}
+        >
           <nav
+            ref={menuRef}
             id="mobile-menu"
             className={styles.mobileMenu}
             aria-label="Mobile navigation"
@@ -121,34 +153,31 @@ export function AppShell() {
                 ref={closeButtonRef}
                 type="button"
                 aria-label="Close navigation menu"
-                onClick={() => {
-                  setMenuOpen(false)
-                  menuButtonRef.current?.focus()
-                }}
+                onClick={closeMenu}
               >
                 <X aria-hidden="true" />
               </button>
             </div>
             {primaryNav.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.to === '/'}>
+              <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={closeMenu}>
                 {item.label}
               </NavLink>
             ))}
             <div className={styles.mobileMenuExternal}>
-              <a href={links.github} target="_blank" rel="noreferrer">
+              <a href={links.github} target="_blank" rel="noreferrer" onClick={closeMenu}>
                 GitHub <ArrowUpRight aria-hidden="true" />
               </a>
-              <a href={links.email}>Email</a>
+              <a href={links.email} onClick={closeMenu}>Email</a>
             </div>
           </nav>
         </div>
       )}
 
-      <main id="main-content">
+      <main id="main-content" inert={menuOpen}>
         <Outlet />
       </main>
 
-      <footer className={styles.siteFooter}>
+      <footer className={styles.siteFooter} inert={menuOpen}>
         <span>© 2026 Ferdin Raphael</span>
         <div className={styles.footerLinks}>
           <a href={links.identity} target="_blank" rel="noreferrer">
@@ -169,7 +198,7 @@ export function AppShell() {
         </span>
       </footer>
 
-      <nav className={styles.bottomNav} aria-label="Mobile primary navigation">
+      <nav className={styles.bottomNav} aria-label="Mobile primary navigation" inert={menuOpen}>
         {bottomNav.map(({ label, to, icon: Icon }) => (
           <NavLink
             key={to}
