@@ -20,6 +20,32 @@ function renderRoute(path: string) {
 
 describe('foundation routes', () => {
   it.each([
+    ['/', 'Ferdin Raphael — Software & Systems'],
+    ['/profile', 'Profile — Ferdin Raphael'],
+    ['/projects', 'Projects — Ferdin Raphael'],
+    ['/built-and-published', 'Built & Published — Ferdin Raphael'],
+    ['/services', 'Services — Ferdin Raphael'],
+    ['/services/software-development', 'Software Development — Ferdin Raphael'],
+    ['/services/technical-consulting', 'Technical Consulting — Ferdin Raphael'],
+    ['/services/mentoring-teaching', 'Mentoring & Teaching — Ferdin Raphael'],
+    ['/writings', 'Writings — Ferdin Raphael'],
+    ['/not-a-real-place', 'Not Found — Ferdin Raphael'],
+  ])('sets the browser title for %s', (path, title) => {
+    renderRoute(path)
+    expect(document.title).toBe(title)
+  })
+
+  it('updates the title during client navigation and the overview redirect', async () => {
+    renderRoute('/overview')
+    expect(document.title).toBe('Ferdin Raphael — Software & Systems')
+    const navigation = screen.getByRole('navigation', { name: 'Primary navigation' })
+    fireEvent.click(within(navigation).getByRole('link', { name: 'Projects' }))
+    expect(document.title).toBe('Projects — Ferdin Raphael')
+    fireEvent.click(within(navigation).getByRole('link', { name: 'Overview' }))
+    expect(document.title).toBe('Ferdin Raphael — Software & Systems')
+  })
+
+  it.each([
     ['/profile', /Experience across systems/],
     ['/projects', /Built to explore/],
     ['/built-and-published', /Things I've finished/],
@@ -152,6 +178,7 @@ describe('foundation routes', () => {
   it('loads the published writing without draft metadata', async () => {
     renderRoute('/writings/when-the-workaround-becomes-the-architecture')
     expect(await screen.findByRole('heading', { level: 1, name: 'When the Workaround Becomes the Architecture' }, { timeout: 5_000 })).toBeInTheDocument()
+    expect(document.title).toBe('When the Workaround Becomes the Architecture — Ferdin Raphael')
     expect(screen.getByText('ARTICLE')).toBeInTheDocument()
     expect(screen.getByText('Published May 10, 2026')).toBeInTheDocument()
     expect(screen.queryByText('DRAFT')).not.toBeInTheDocument()
@@ -161,6 +188,7 @@ describe('foundation routes', () => {
   it('loads a draft writing directly in development with Writings navigation active', async () => {
     renderRoute('/writings/framework-preview')
     expect(await screen.findByRole('heading', { level: 1, name: 'Technical writing framework preview' }, { timeout: 5_000 })).toBeInTheDocument()
+    expect(document.title).toBe('Technical writing framework preview — Ferdin Raphael')
     expect(screen.getByText('ARTICLE')).toBeInTheDocument()
     expect(screen.getByText('DRAFT')).toBeInTheDocument()
     expect(screen.getByText('Unpublished draft')).toBeInTheDocument()
@@ -173,6 +201,7 @@ describe('foundation routes', () => {
   it('renders an intentional writing-not-found state for an unknown canonical slug', async () => {
     renderRoute('/writings/not-a-real-writing')
     expect(await screen.findByRole('heading', { name: 'That writing is not available.' })).toBeInTheDocument()
+    expect(document.title).toBe('Not Found — Ferdin Raphael')
     expect(screen.getByRole('link', { name: /Return to Writings/ })).toHaveAttribute('href', '/writings')
   })
 

@@ -2,7 +2,7 @@
 
 A standalone technical identity site for Ferdin Raphael: software projects, published books and tools, remote services, and technical writing, connected through a responsive interactive constellation.
 
-This repository contains validation CI but no deployment workflow. The target is [the Tech site on GitHub Pages](https://ferdinraphael.github.io/tech/) under `/tech/`. Deployment/readiness work is separate; the build alone does not publish the site or change Pages settings.
+This repository contains validation CI and a GitHub Pages deployment workflow targeting [the Tech site](https://ferdinraphael.github.io/tech/) under `/tech/`. After the deployment workflow reaches `main`, a validated push to `main` can publish the site. A local build does not publish or change Pages settings; deployment and live-host verification must succeed before launch is considered complete.
 
 ## Current scope
 
@@ -261,6 +261,36 @@ Run `npm run test:writings-preview` to reproduce the draft-writing review. The b
 
 It does not upload a Pages artifact, request deployment permissions, publish a release, or deploy.
 
+## GitHub Pages deployment
+
+`.github/workflows/deploy-pages.yml` owns release validation and deployment. It runs on pushes to `main` and manual dispatch; both jobs require `refs/heads/main`, so dispatching a feature branch cannot deploy. Main releases share the `pages-refs/heads/main` concurrency group: an active release finishes, while only the newest pending run is retained. A skipped dispatch on another branch cannot replace a pending main release.
+
+The build job uses Node 24, npm caching, and read-only contents/Pages permissions. It requires `VITE_INCLUDE_DRAFTS=false`, verifies the protected article blob, runs type-checking, lint, the full unit suite and content check, and builds once. After installing Playwright Chromium with its system dependencies, it runs the standard production E2E harness against that artifact. The final artifact check verifies the `/tech/` asset paths, equivalent `index.html`/`404.html`, social image, local fonts, and absence of draft titles/slugs.
+
+Only after all checks pass does the workflow read Pages configuration and upload `dist/` with the official Pages artifact action. A separate dependent job deploys that artifact using only `pages: write` and `id-token: write`, targeting the `github-pages` environment and exposing its deployment URL. PR/feature CI remains in `ci.yml`; it has no deployment permissions.
+
+The repository owner must verify **Settings → Pages → Build and deployment → Source → GitHub Actions** before the first successful deployment. This workflow does not enable Pages or change that setting. Prefer checking it before merging the workflow; if a run fails because Pages is not configured, configure the source and rerun the workflow from `main`. Any environment approval rules also need to be satisfied.
+
+Run the release checks locally from the repository root. First set the environment explicitly: `$env:VITE_INCLUDE_DRAFTS = 'false'` in PowerShell, or `export VITE_INCLUDE_DRAFTS=false` in a POSIX shell. Then:
+
+```sh
+npm ci
+node scripts/check-release.mjs
+npm run typecheck
+npm run lint
+npm run test
+npm run content:check
+npm run build
+npx playwright install chromium
+node scripts/run-e2e.mjs
+node scripts/check-release.mjs --artifact
+git diff --check
+```
+
+On Linux/CI, install browser system dependencies with `npx playwright install --with-deps chromium`. Do not substitute the draft-preview mode or run `npm run test:e2e` after this build, since that convenience command builds again. The separate development writing-preview command remains available and does not produce a release artifact.
+
+Keep Vite's `/tech/` base, the derived router basename, and the build-time `404.html` copy. The local suite checks direct route loads, reloads, titles, redirects, unknown routes, and production draft exclusion. It cannot prove GitHub Pages' handling of clean-route requests: after deployment, verify those routes and reloads on the live host, along with `/tech/og.png` and application/font assets. GitHub Pages may return an HTTP 404 status while serving the SPA fallback; the client should still render the requested valid route.
+
 ## Intentional content boundaries
 
 - Profile is hidden from public navigation; its direct route is retained.
@@ -272,11 +302,11 @@ It does not upload a Pages artifact, request deployment permissions, publish a r
 
 - The constellation uses curated coordinates; new content requires deliberate placement at both layout sizes.
 - Tablet context moves below the visual instead of keeping a compressed three-column arrangement.
-- Page titles and social metadata are currently global in `index.html`, not generated per route.
-- GitHub Pages clean-route fallback is prepared; host-level behavior remains part of the separate deployment/readiness pass.
+- Browser titles follow routes and writing metadata. OG/Twitter metadata remains one static site-level card in `index.html`; client-side titles do not provide article-specific social previews.
+- GitHub Pages clean-route fallback is prepared; host-level behavior must be verified after deployment.
 
 ## Human review items
 
 - Review final node spacing on the most common physical devices.
-- Verify direct routes, static assets, production draft exclusion, and the protected article blob during deployment/readiness.
+- After deployment, verify live direct routes/reloads, static assets, and production draft exclusion before declaring launch complete.
 - Review and approve each future writing before following the documented publication workflow.

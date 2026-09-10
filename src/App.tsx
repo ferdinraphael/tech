@@ -7,9 +7,15 @@ import { OverviewPage } from './components/OverviewPage'
 import { SoftwareDevelopmentPage } from './components/services/SoftwareDevelopmentPage'
 import { TechnicalConsultingPage } from './components/services/TechnicalConsultingPage'
 import { MentoringTeachingPage } from './components/services/MentoringTeachingPage'
+import { usePageTitle } from './usePageTitle'
 
 const WritingsIndexPage = lazy(() => import('./components/writings/WritingsIndexPage'))
 const WritingPage = lazy(() => import('./components/writings/WritingPage'))
+
+function PageTitle({ title, children }: { title?: string; children: ReactNode }) {
+  usePageTitle(title)
+  return children
+}
 
 function WritingsRoute({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div role="status">Loading Writings…</div>}>{children}</Suspense>
@@ -26,20 +32,20 @@ export function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<OverviewPage />} />
-        <Route path="profile" element={<FoundationPage page="profile" />} />
-        <Route path="projects" element={<FoundationPage page="projects" />} />
-        <Route path="built-and-published" element={<FoundationPage page="built-and-published" />} />
-        <Route path="services" element={<FoundationPage page="services" />} />
-        <Route path="services/software-development" element={<SoftwareDevelopmentPage />} />
-        <Route path="services/technical-consulting" element={<TechnicalConsultingPage />} />
-        <Route path="services/mentoring-teaching" element={<MentoringTeachingPage />} />
-        <Route path="writings" element={<WritingsRoute><WritingsIndexPage /></WritingsRoute>} />
+        <Route index element={<PageTitle><OverviewPage /></PageTitle>} />
+        <Route path="profile" element={<PageTitle title="Profile"><FoundationPage page="profile" /></PageTitle>} />
+        <Route path="projects" element={<PageTitle title="Projects"><FoundationPage page="projects" /></PageTitle>} />
+        <Route path="built-and-published" element={<PageTitle title="Built & Published"><FoundationPage page="built-and-published" /></PageTitle>} />
+        <Route path="services" element={<PageTitle title="Services"><FoundationPage page="services" /></PageTitle>} />
+        <Route path="services/software-development" element={<PageTitle title="Software Development"><SoftwareDevelopmentPage /></PageTitle>} />
+        <Route path="services/technical-consulting" element={<PageTitle title="Technical Consulting"><TechnicalConsultingPage /></PageTitle>} />
+        <Route path="services/mentoring-teaching" element={<PageTitle title="Mentoring & Teaching"><MentoringTeachingPage /></PageTitle>} />
+        <Route path="writings" element={<PageTitle title="Writings"><WritingsRoute><WritingsIndexPage /></WritingsRoute></PageTitle>} />
         <Route path="writings/:slug" element={<WritingsRoute><WritingPage /></WritingsRoute>} />
         <Route path="notes" element={<LegacyNotesRedirect />} />
         <Route path="notes/:slug" element={<LegacyNotesRedirect />} />
         <Route path="overview" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<PageTitle title="Not Found"><NotFoundPage /></PageTitle>} />
       </Route>
     </Routes>
   )
