@@ -14,6 +14,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { links } from '../data/site'
+import { trackSiteLink } from '../analytics'
 import styles from './Tech.module.css'
 
 const primaryNav = [
@@ -89,7 +90,10 @@ export function AppShell() {
   }, [menuOpen])
 
   return (
-    <div className={styles.siteFrame}>
+    <div className={styles.siteFrame} onClickCapture={(event) => {
+      const anchor = event.target instanceof Element ? event.target.closest('a') : null
+      if (anchor) trackSiteLink(anchor.getAttribute('href') ?? '', location.pathname)
+    }}>
       <a className={styles.skipLink} href="#main-content" inert={menuOpen}>
         Skip to content
       </a>

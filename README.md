@@ -2,7 +2,7 @@
 
 A standalone technical identity site for Ferdin Raphael: software projects, published books and tools, remote services, and technical writing, connected through a responsive interactive constellation.
 
-This repository contains validation CI but no deployment workflow. The target is [the Tech site on GitHub Pages](https://ferdinraphael.github.io/tech/) under `/tech/`. Deployment/readiness work is separate; the build alone does not publish the site or change Pages settings.
+This repository contains validation CI and a GitHub Pages deployment workflow targeting [the Tech site](https://ferdinraphael.github.io/tech/) under `/tech/`. After the deployment workflow reaches `main`, a validated push to `main` can publish the site. A local build does not publish or change Pages settings; deployment and live-host verification must succeed before launch is considered complete.
 
 ## Current scope
 
@@ -91,7 +91,7 @@ Unknown paths render an intentional in-app 404.
 
 `vite.config.ts` sets `base: '/tech/'`. `BrowserRouter` derives its basename from `import.meta.env.BASE_URL`, keeping local, test, and future Pages paths aligned.
 
-The production build copies `dist/index.html` to `dist/404.html` for the GitHub Pages SPA fallback. Clean URLs such as `/tech/projects` are handled by React Router once the entry point loads. Host-level direct requests and reloads must be verified during deployment/readiness. No hash routing is used.
+The production build derives nine static route entry shells from the final Vite HTML, including `projects/index.html` and nested service/article entries. Each contains route-specific metadata and the same `/tech/assets/` application files. React Router still renders the page; no content is prerendered. `404.html` remains an app shell for unknown paths, with Not Found metadata, `noindex, follow`, and no canonical. No hash routing is used.
 
 This fallback prepares build output only; it does not deploy, enable Pages, or change repository settings.
 
@@ -261,6 +261,58 @@ Run `npm run test:writings-preview` to reproduce the draft-writing review. The b
 
 It does not upload a Pages artifact, request deployment permissions, publish a release, or deploy.
 
+## GitHub Pages deployment
+
+`.github/workflows/deploy-pages.yml` owns release validation and deployment. It runs on pushes to `main` and manual dispatch; both jobs require `refs/heads/main`, so dispatching a feature branch cannot deploy. Main releases share the `pages-refs/heads/main` concurrency group: an active release finishes, while only the newest pending run is retained. A skipped dispatch on another branch cannot replace a pending main release.
+
+The build job uses Node 24, npm caching, and read-only contents/Pages permissions. It requires `VITE_INCLUDE_DRAFTS=false`, verifies the protected article blob, runs type-checking, lint, the full unit suite and content check, and builds once. After installing Playwright Chromium with its system dependencies, it runs the standard production E2E harness against that artifact. The final artifact check verifies the `/tech/` asset paths, all public entry shells and their metadata, matching sitemap URLs, a valid noindex `404.html` with the same app body/scripts, social image, local fonts, and absence of draft titles/slugs.
+
+Only after all checks pass does the workflow read Pages configuration and upload `dist/` with the official Pages artifact action. A separate dependent job deploys that artifact using only `pages: write` and `id-token: write`, targeting the `github-pages` environment and exposing its deployment URL. PR/feature CI remains in `ci.yml`; it has no deployment permissions.
+
+The repository owner must verify **Settings → Pages → Build and deployment → Source → GitHub Actions** before the first successful deployment. This workflow does not enable Pages or change that setting. Prefer checking it before merging the workflow; if a run fails because Pages is not configured, configure the source and rerun the workflow from `main`. Any environment approval rules also need to be satisfied.
+
+Run the release checks locally from the repository root. First set the environment explicitly: `$env:VITE_INCLUDE_DRAFTS = 'false'` in PowerShell, or `export VITE_INCLUDE_DRAFTS=false` in a POSIX shell. Then:
+
+```sh
+npm ci
+node scripts/check-release.mjs
+npm run typecheck
+npm run lint
+npm run test
+npm run content:check
+npm run build
+npx playwright install chromium
+node scripts/run-e2e.mjs
+node scripts/check-release.mjs --artifact
+git diff --check
+```
+
+On Linux/CI, install browser system dependencies with `npx playwright install --with-deps chromium`. Do not substitute the draft-preview mode or run `npm run test:e2e` after this build, since that convenience command builds again. The separate development writing-preview command remains available and does not produce a release artifact.
+
+Keep Vite's `/tech/` base, the derived router basename, and the build-time route shells. Canonical public routes have physical directory entry files, so they no longer rely on `404.html`. Canonicals and React links retain clean URLs without trailing slashes (except the site root); directory serving may redirect to a trailing slash. The standard E2E suite includes an ordinary static-file server that checks all nine entries, missing-route 404s, and nested page boots/reloads. This proves the artifact works with directory serving, not GitHub Pages' actual HTTP behavior. After deployment, verify clean URLs, slash redirects, final HTTP 200 responses, navigation/reloads, `/tech/og.png`, and application/font assets on the live host.
+
+## SEO and analytics
+
+The explicit metadata table and URL/title formatting in `src/seo.ts` are shared by the runtime `usePageSeo` hook and the build-time `scripts/route-shells.mjs` generator. Both set titles, descriptions, canonicals, robots meta, and OG/Twitter metadata. Published article titles/descriptions come from the same frontmatter identity parser used by the writing catalogue; the generator only reads published sources. Canonicals use `https://ferdinraphael.github.io/tech/` and exclude query strings, fragments, and redirect aliases. Drafts, the hidden Profile page, and Not Found use `noindex, follow` with no canonical. Each static shell retains the shared social image/card and a small Person JSON-LD block containing only name, site URL, and the public GitHub profile.
+
+Route-specific static metadata is available before JavaScript runs, improving crawler and social visibility. Page bodies remain client-rendered: there is no SSR or content prerendering. Actual indexing, social previews, and GitHub Pages HTTP statuses still require live verification.
+
+The static sitemap at `/tech/sitemap.xml` lists the nine public launch routes, with no drafts, aliases, hidden Profile, or invented modification dates. Update `public/sitemap.xml` when public metadata routes or published articles change. Release validation compares it with the shared route registry and requires exactly those HTML entry files, plus `404.html`; aliases, hidden pages, drafts, and `index.html` file URLs stay out of the sitemap. `public/robots.txt` builds to `/tech/robots.txt` and points to that sitemap. Crawlers read robots rules from the host-root `/robots.txt`, so this project-subdirectory file does not control host crawling; the root site can reference the sitemap, or the sitemap can be submitted in Search Console. Neither root-site configuration nor Search Console is changed by this repository.
+
+GA4 uses the checked-in public measurement ID **`G-G1V96CEM5J`**, with the direct Google tag rather than Google Tag Manager. It initializes once after the first resolved page's metadata, only for production builds on `https://ferdinraphael.github.io/tech/` (and never for draft-enabled builds). Development, localhost previews, Vitest, and normal E2E runs do not load Google or send events.
+
+Enhanced Measurement owns page views, scrolls, outbound clicks, and file downloads. Keep **Page loads** and **Page changes based on browser history events** enabled in the stream's advanced page-view settings; site search, form interactions, and video engagement remain off. App code sends no custom `page_view` events and does not reconfigure GA on navigation. After deployment, confirm single page-view counts in GA DebugView; local mocked checks do not prove remote stream configuration or event ingestion.
+
+The typed analytics helper adds only these site-specific events, from approved action links across the shared app shell:
+
+| Event | Parameters |
+| --- | --- |
+| `service_enquiry` | `source_page` (fixed page label), optional `service_category`, `link_type=mailto` |
+| `project_open` | `project_name`, `destination_type=live_demo` |
+| `published_output_open` | `item_name`, `item_type`, `destination` (approved destination hostname) |
+
+Custom events contain no email address, mail subject/body, arbitrary URL, query string, or user-entered content. Analytics never cancels a link, awaits delivery, or adds a callback before navigation. Missing/blocked `gtag` safely no-ops. Tests use spies or intercepted Google requests and do not send real GA traffic. No consent UI is added by this integration.
+
 ## Intentional content boundaries
 
 - Profile is hidden from public navigation; its direct route is retained.
@@ -272,11 +324,11 @@ It does not upload a Pages artifact, request deployment permissions, publish a r
 
 - The constellation uses curated coordinates; new content requires deliberate placement at both layout sizes.
 - Tablet context moves below the visual instead of keeping a compressed three-column arrangement.
-- Page titles and social metadata are currently global in `index.html`, not generated per route.
-- GitHub Pages clean-route fallback is prepared; host-level behavior remains part of the separate deployment/readiness pass.
+- Route-specific metadata is static, but page bodies still require JavaScript; live indexing and social previews remain unverified.
+- Public route entry files and the unknown-path fallback are prepared; host-level status and redirect behavior must be verified after deployment.
 
 ## Human review items
 
 - Review final node spacing on the most common physical devices.
-- Verify direct routes, static assets, production draft exclusion, and the protected article blob during deployment/readiness.
+- After deployment, verify live direct routes/reloads, static assets, and production draft exclusion before declaring launch complete.
 - Review and approve each future writing before following the documented publication workflow.

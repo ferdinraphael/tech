@@ -11,6 +11,8 @@ import { writingCatalogue } from '../../content/writings/catalogue';
 import { writingFormatLabel } from '../../content/writings/formats';
 import type { WritingRecord } from '../../content/writings/types';
 import { projectById } from '../../data/site';
+import { pageMetadata, writingPageMetadata } from '../../seo';
+import { usePageSeo } from '../../usePageSeo';
 import { formatWritingDate } from './writingFormat';
 import { LanguagePreferenceProvider } from './LanguagePreference';
 import { MarkdownWriting } from './MarkdownWriting';
@@ -185,6 +187,7 @@ function WritingView({ writing }: { writing: WritingRecord }) {
 export default function WritingPage() {
   const { slug = '' } = useParams();
   const writing = writingCatalogue.getBySlug(slug);
+  usePageSeo(writing ? writingPageMetadata(writing) : pageMetadata.notFound);
 
   return writing ? (
     <LanguagePreferenceProvider

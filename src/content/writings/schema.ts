@@ -1,5 +1,7 @@
 import GithubSlugger from 'github-slugger'
 import { load as loadYaml } from 'js-yaml'
+import { fail, isRecord, requiredString, splitFrontmatter, slugFromPath, parseWritingIdentity } from './frontmatter'
+export { WritingValidationError, splitFrontmatter } from './frontmatter'
 import { marked, type Token } from 'marked'
 import { projectIds, type ProjectId } from '../../data/site'
 import {
@@ -27,32 +29,6 @@ import type {
 } from './types'
 
 type MarkedToken = Token & { text?: string; tokens?: MarkedToken[] }
-
-export class WritingValidationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'WritingValidationError'
-  }
-}
-
-function fail(sourcePath: string, message: string): never {
-  throw new WritingValidationError(`${sourcePath}: ${message}`)
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function requiredString(
-  value: unknown,
-  field: string,
-  sourcePath: string,
-): string {
-  if (typeof value !== 'string' || value.trim() === '') {
-    fail(sourcePath, `frontmatter field "${field}" must be a non-empty string`)
-  }
-  return value.trim()
-}
 
 function optionalStringArray(
   value: unknown,
@@ -154,16 +130,11 @@ function parseMetadata(
 ): WritingMetadata {
   if (!isRecord(value)) fail(sourcePath, 'frontmatter must be a YAML mapping')
 
-  const title = requiredString(value.title, 'title', sourcePath)
-  const description = requiredString(value.description, 'description', sourcePath)
+  const { title, description, draft } = parseWritingIdentity(value, sourcePath)
   if (!isWritingFormat(value.format)) {
     fail(sourcePath, 'frontmatter field "format" must be a supported writing format')
   }
   const format = value.format
-  if (typeof value.draft !== 'boolean') {
-    fail(sourcePath, 'frontmatter field "draft" must be explicitly true or false')
-  }
-  const draft = value.draft as boolean
 
   const publishedAt = validDate(value.publishedAt, 'publishedAt', sourcePath)
   const updatedAt = validDate(value.updatedAt, 'updatedAt', sourcePath)
@@ -224,28 +195,6 @@ function parseMetadata(
     relatedProjects: relatedProjects as ProjectId[],
     featured,
     ...readerMetadata,
-  }
-}
-
-export function splitFrontmatter(
-  source: string,
-  sourcePath: string,
-): { frontmatter: unknown; body: string } {
-  const normalized = source.replace(/\r\n?/g, '\n')
-  if (!normalized.startsWith('---\n')) {
-    return fail(sourcePath, 'writing must begin with YAML frontmatter')
-  }
-  const end = normalized.indexOf('\n---\n', 4)
-  if (end === -1) return fail(sourcePath, 'frontmatter closing delimiter is missing')
-
-  try {
-    return {
-      frontmatter: loadYaml(normalized.slice(4, end)),
-      body: normalized.slice(end + 5).trim(),
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message.split('\n')[0] : String(error)
-    return fail(sourcePath, `invalid YAML frontmatter: ${message}`)
   }
 }
 
@@ -647,15 +596,6 @@ function extractHeadings(
     fail(sourcePath, `Markdown could not be parsed: ${message}`)
   }
   return headings
-}
-
-function slugFromPath(sourcePath: string): string {
-  const filename = sourcePath.replace(/\\/g, '/').split('/').pop() ?? ''
-  const slug = filename.replace(/\.md$/i, '')
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    fail(sourcePath, 'filename must form a lowercase kebab-case writing slug')
-  }
-  return slug
 }
 
 export function parseWritingSource(

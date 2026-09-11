@@ -7,9 +7,16 @@ import { OverviewPage } from './components/OverviewPage'
 import { SoftwareDevelopmentPage } from './components/services/SoftwareDevelopmentPage'
 import { TechnicalConsultingPage } from './components/services/TechnicalConsultingPage'
 import { MentoringTeachingPage } from './components/services/MentoringTeachingPage'
+import { pageMetadata } from './seo'
+import { usePageSeo } from './usePageSeo'
 
 const WritingsIndexPage = lazy(() => import('./components/writings/WritingsIndexPage'))
 const WritingPage = lazy(() => import('./components/writings/WritingPage'))
+
+function PageSeo({ page, children }: { page: keyof typeof pageMetadata; children: ReactNode }) {
+  usePageSeo(pageMetadata[page])
+  return children
+}
 
 function WritingsRoute({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div role="status">Loading Writings…</div>}>{children}</Suspense>
@@ -26,20 +33,20 @@ export function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<OverviewPage />} />
-        <Route path="profile" element={<FoundationPage page="profile" />} />
-        <Route path="projects" element={<FoundationPage page="projects" />} />
-        <Route path="built-and-published" element={<FoundationPage page="built-and-published" />} />
-        <Route path="services" element={<FoundationPage page="services" />} />
-        <Route path="services/software-development" element={<SoftwareDevelopmentPage />} />
-        <Route path="services/technical-consulting" element={<TechnicalConsultingPage />} />
-        <Route path="services/mentoring-teaching" element={<MentoringTeachingPage />} />
-        <Route path="writings" element={<WritingsRoute><WritingsIndexPage /></WritingsRoute>} />
+        <Route index element={<PageSeo page="overview"><OverviewPage /></PageSeo>} />
+        <Route path="profile" element={<PageSeo page="profile"><FoundationPage page="profile" /></PageSeo>} />
+        <Route path="projects" element={<PageSeo page="projects"><FoundationPage page="projects" /></PageSeo>} />
+        <Route path="built-and-published" element={<PageSeo page="built-and-published"><FoundationPage page="built-and-published" /></PageSeo>} />
+        <Route path="services" element={<PageSeo page="services"><FoundationPage page="services" /></PageSeo>} />
+        <Route path="services/software-development" element={<PageSeo page="software-development"><SoftwareDevelopmentPage /></PageSeo>} />
+        <Route path="services/technical-consulting" element={<PageSeo page="technical-consulting"><TechnicalConsultingPage /></PageSeo>} />
+        <Route path="services/mentoring-teaching" element={<PageSeo page="mentoring-teaching"><MentoringTeachingPage /></PageSeo>} />
+        <Route path="writings" element={<PageSeo page="writings"><WritingsRoute><WritingsIndexPage /></WritingsRoute></PageSeo>} />
         <Route path="writings/:slug" element={<WritingsRoute><WritingPage /></WritingsRoute>} />
         <Route path="notes" element={<LegacyNotesRedirect />} />
         <Route path="notes/:slug" element={<LegacyNotesRedirect />} />
         <Route path="overview" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<NotFoundPage />} />
+        <Route path="*" element={<PageSeo page="notFound"><NotFoundPage /></PageSeo>} />
       </Route>
     </Routes>
   )
