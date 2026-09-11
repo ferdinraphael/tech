@@ -4,6 +4,8 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { load } from 'js-yaml'
+import { assertRouteShell, publicRouteMetadata, routeShellPath } from './route-shells.mjs'
+import { pageMetadata, resolvePageMetadata } from '../src/seo.ts'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const read = (path) => readFileSync(join(root, path), 'utf8')
@@ -20,25 +22,26 @@ console.log('Release source checks passed: draft-safe environment and protected 
 
 if (process.argv.includes('--artifact')) {
   const index = read('dist/index.html')
-  assert.equal(read('dist/404.html'), index, 'SPA fallback must match index.html.')
-  const assets = [...index.matchAll(/(?:src|href)="([^"]+)"/g)].map((match) => match[1])
-  assert.ok(assets.length > 0, 'Built HTML must reference application assets.')
-  for (const asset of assets) {
-    assert.ok(asset.startsWith('/tech/assets/'), `Unexpected built asset URL: ${asset}`)
-    assert.ok(existsSync(join(root, 'dist', asset.slice('/tech/'.length))), `Missing built asset: ${asset}`)
+  const routes = publicRouteMetadata(root)
+  const files = filesUnder('dist')
+  assert.deepEqual(files.filter((file) => file.endsWith('.html')).sort(),
+    ['dist/404.html', ...routes.map((page) => `dist/${routeShellPath(page.path)}`)].sort(),
+    'Output must contain exactly the public entry shells and 404 fallback; no hidden, draft, or alias shells.')
+  for (const [file, metadata] of [
+    ...routes.map((page) => [`dist/${routeShellPath(page.path)}`, page]),
+    ['dist/404.html', pageMetadata.notFound],
+  ]) {
+    const assets = assertRouteShell(read(file), metadata, index)
+    for (const asset of assets) {
+      assert.ok(existsSync(join(root, 'dist', asset.slice('/tech/'.length))), `Missing built asset: ${asset}`)
+    }
   }
-  assert.ok(index.includes('https://ferdinraphael.github.io/tech/og.png'), 'Social image URL must use the project base.')
-  assert.ok(index.includes('services, and writings.'), 'Global description must use current launch terminology.')
   assert.deepEqual(readFileSync(join(root, 'dist/og.png')), readFileSync(join(root, 'public/og.png')), 'Social image must be included unchanged.')
 
-  const files = filesUnder('dist')
   const output = files.filter((file) => /\.(?:html|js|css|xml|txt)$/.test(file)).map(read).join('\n')
   const sitemap = read('dist/sitemap.xml')
-  const publicPaths = ['', 'projects', 'built-and-published', 'services',
-    'services/software-development', 'services/technical-consulting', 'services/mentoring-teaching',
-    'writings', 'writings/when-the-workaround-becomes-the-architecture']
   assert.deepEqual([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort(),
-    publicPaths.map((path) => `https://ferdinraphael.github.io/tech/${path}`).sort(), 'Sitemap must contain exactly the public launch routes.')
+    routes.map((page) => resolvePageMetadata(page).canonicalUrl).sort(), 'Sitemap must match the public entry shells.')
   assert.ok(sitemap.includes('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'), 'Sitemap namespace is required.')
   assert.ok(!sitemap.includes('<lastmod>'), 'Do not invent sitemap modification dates.')
   assert.equal(read('dist/robots.txt').replaceAll('\r\n', '\n'),
@@ -66,5 +69,5 @@ if (process.argv.includes('--artifact')) {
       assert.ok(existsSync(join(root, 'dist', asset.slice('/tech/'.length))), `Missing CSS asset: ${asset}`)
     }
   }
-  console.log(`Release artifact checks passed: /tech/ assets, equivalent 404 fallback, OG image, ${fonts.length} local fonts, public sitemap/robots, Person JSON-LD, GA4 ID, and no draft titles/slugs.`)
+  console.log(`Release artifact checks passed: ${routes.length} public entry shells and metadata, /tech/ assets, noindex SPA fallback, OG image, ${fonts.length} local fonts, matching sitemap/robots, Person JSON-LD, GA4 ID, and no draft titles/slugs.`)
 }

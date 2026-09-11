@@ -7,6 +7,25 @@ export interface PageMetadata {
   path: string | null
 }
 
+export function resolvePageMetadata({ title, description, path }: PageMetadata) {
+  return {
+    fullTitle: title ? `${title} — Ferdin Raphael` : 'Ferdin Raphael — Software & Systems',
+    description,
+    canonicalUrl: path === null ? null : new URL(path.slice(1), siteUrl).href,
+    robots: path === null ? 'noindex, follow' : 'index, follow',
+  }
+}
+
+export function writingPageMetadata(writing: {
+  title: string; description: string; slug: string; draft: boolean
+}): PageMetadata {
+  return {
+    title: writing.title,
+    description: writing.description,
+    path: writing.draft ? null : `/writings/${writing.slug}`,
+  }
+}
+
 export const pageMetadata = {
   overview: { path: '/', description: 'Software, systems, projects, services, writings, and technical experiments by Ferdin Raphael.' },
   projects: { path: '/projects', title: 'Projects', description: 'Public software projects including Little Worlds and Wildpath.' },

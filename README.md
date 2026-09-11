@@ -91,7 +91,7 @@ Unknown paths render an intentional in-app 404.
 
 `vite.config.ts` sets `base: '/tech/'`. `BrowserRouter` derives its basename from `import.meta.env.BASE_URL`, keeping local, test, and future Pages paths aligned.
 
-The production build copies `dist/index.html` to `dist/404.html` for the GitHub Pages SPA fallback. Clean URLs such as `/tech/projects` are handled by React Router once the entry point loads. Host-level direct requests and reloads must be verified during deployment/readiness. No hash routing is used.
+The production build derives nine static route entry shells from the final Vite HTML, including `projects/index.html` and nested service/article entries. Each contains route-specific metadata and the same `/tech/assets/` application files. React Router still renders the page; no content is prerendered. `404.html` remains an app shell for unknown paths, with Not Found metadata, `noindex, follow`, and no canonical. No hash routing is used.
 
 This fallback prepares build output only; it does not deploy, enable Pages, or change repository settings.
 
@@ -265,7 +265,7 @@ It does not upload a Pages artifact, request deployment permissions, publish a r
 
 `.github/workflows/deploy-pages.yml` owns release validation and deployment. It runs on pushes to `main` and manual dispatch; both jobs require `refs/heads/main`, so dispatching a feature branch cannot deploy. Main releases share the `pages-refs/heads/main` concurrency group: an active release finishes, while only the newest pending run is retained. A skipped dispatch on another branch cannot replace a pending main release.
 
-The build job uses Node 24, npm caching, and read-only contents/Pages permissions. It requires `VITE_INCLUDE_DRAFTS=false`, verifies the protected article blob, runs type-checking, lint, the full unit suite and content check, and builds once. After installing Playwright Chromium with its system dependencies, it runs the standard production E2E harness against that artifact. The final artifact check verifies the `/tech/` asset paths, equivalent `index.html`/`404.html`, social image, local fonts, and absence of draft titles/slugs.
+The build job uses Node 24, npm caching, and read-only contents/Pages permissions. It requires `VITE_INCLUDE_DRAFTS=false`, verifies the protected article blob, runs type-checking, lint, the full unit suite and content check, and builds once. After installing Playwright Chromium with its system dependencies, it runs the standard production E2E harness against that artifact. The final artifact check verifies the `/tech/` asset paths, all public entry shells and their metadata, matching sitemap URLs, a valid noindex `404.html` with the same app body/scripts, social image, local fonts, and absence of draft titles/slugs.
 
 Only after all checks pass does the workflow read Pages configuration and upload `dist/` with the official Pages artifact action. A separate dependent job deploys that artifact using only `pages: write` and `id-token: write`, targeting the `github-pages` environment and exposing its deployment URL. PR/feature CI remains in `ci.yml`; it has no deployment permissions.
 
@@ -289,15 +289,15 @@ git diff --check
 
 On Linux/CI, install browser system dependencies with `npx playwright install --with-deps chromium`. Do not substitute the draft-preview mode or run `npm run test:e2e` after this build, since that convenience command builds again. The separate development writing-preview command remains available and does not produce a release artifact.
 
-Keep Vite's `/tech/` base, the derived router basename, and the build-time `404.html` copy. The local suite checks direct route loads, reloads, titles, redirects, unknown routes, and production draft exclusion. It cannot prove GitHub Pages' handling of clean-route requests: after deployment, verify those routes and reloads on the live host, along with `/tech/og.png` and application/font assets. GitHub Pages may return an HTTP 404 status while serving the SPA fallback; the client should still render the requested valid route.
+Keep Vite's `/tech/` base, the derived router basename, and the build-time route shells. Canonical public routes have physical directory entry files, so they no longer rely on `404.html`. Canonicals and React links retain clean URLs without trailing slashes (except the site root); directory serving may redirect to a trailing slash. The standard E2E suite includes an ordinary static-file server that checks all nine entries, missing-route 404s, and nested page boots/reloads. This proves the artifact works with directory serving, not GitHub Pages' actual HTTP behavior. After deployment, verify clean URLs, slash redirects, final HTTP 200 responses, navigation/reloads, `/tech/og.png`, and application/font assets on the live host.
 
 ## SEO and analytics
 
-The explicit metadata table in `src/seo.ts` and shared `usePageSeo` hook update browser titles, descriptions, canonicals, robots meta, and runtime OG/Twitter titles/descriptions/URLs. Published articles use their existing metadata. Canonicals use `https://ferdinraphael.github.io/tech/` and exclude query strings, fragments, and redirect aliases. Drafts, the hidden Profile page, and Not Found use `noindex, follow` with no canonical. The static HTML retains an accurate site-level social card and a small Person JSON-LD block containing only name, site URL, and the public GitHub profile.
+The explicit metadata table and URL/title formatting in `src/seo.ts` are shared by the runtime `usePageSeo` hook and the build-time `scripts/route-shells.mjs` generator. Both set titles, descriptions, canonicals, robots meta, and OG/Twitter metadata. Published article titles/descriptions come from the same frontmatter identity parser used by the writing catalogue; the generator only reads published sources. Canonicals use `https://ferdinraphael.github.io/tech/` and exclude query strings, fragments, and redirect aliases. Drafts, the hidden Profile page, and Not Found use `noindex, follow` with no canonical. Each static shell retains the shared social image/card and a small Person JSON-LD block containing only name, site URL, and the public GitHub profile.
 
-This remains a client-rendered SPA: runtime metadata does not guarantee social crawler previews. GitHub Pages' clean-route fallback can return HTTP 404 even for valid client routes, which also limits search indexing of direct deep links. There is no SSR or prerendering in this launch setup.
+Route-specific static metadata is available before JavaScript runs, improving crawler and social visibility. Page bodies remain client-rendered: there is no SSR or content prerendering. Actual indexing, social previews, and GitHub Pages HTTP statuses still require live verification.
 
-The static sitemap at `/tech/sitemap.xml` lists the nine public launch routes, with no drafts, aliases, hidden Profile, or invented modification dates. Update `public/sitemap.xml` and the release-check route allowlist when public routes or published articles change. `public/robots.txt` builds to `/tech/robots.txt` and points to that sitemap. Crawlers read robots rules from the host-root `/robots.txt`, so this project-subdirectory file does not control host crawling; the root site can reference the sitemap, or the sitemap can be submitted in Search Console. Neither root-site configuration nor Search Console is changed by this repository.
+The static sitemap at `/tech/sitemap.xml` lists the nine public launch routes, with no drafts, aliases, hidden Profile, or invented modification dates. Update `public/sitemap.xml` when public metadata routes or published articles change. Release validation compares it with the shared route registry and requires exactly those HTML entry files, plus `404.html`; aliases, hidden pages, drafts, and `index.html` file URLs stay out of the sitemap. `public/robots.txt` builds to `/tech/robots.txt` and points to that sitemap. Crawlers read robots rules from the host-root `/robots.txt`, so this project-subdirectory file does not control host crawling; the root site can reference the sitemap, or the sitemap can be submitted in Search Console. Neither root-site configuration nor Search Console is changed by this repository.
 
 GA4 uses the checked-in public measurement ID **`G-G1V96CEM5J`**, with the direct Google tag rather than Google Tag Manager. It initializes once after the first resolved page's metadata, only for production builds on `https://ferdinraphael.github.io/tech/` (and never for draft-enabled builds). Development, localhost previews, Vitest, and normal E2E runs do not load Google or send events.
 
@@ -324,8 +324,8 @@ Custom events contain no email address, mail subject/body, arbitrary URL, query 
 
 - The constellation uses curated coordinates; new content requires deliberate placement at both layout sizes.
 - Tablet context moves below the visual instead of keeping a compressed three-column arrangement.
-- Browser and runtime social metadata follow routes and writing metadata. Static social crawlers still receive the site-level fallback in `index.html`; route-specific previews are not guaranteed.
-- GitHub Pages clean-route fallback is prepared; host-level behavior must be verified after deployment.
+- Route-specific metadata is static, but page bodies still require JavaScript; live indexing and social previews remain unverified.
+- Public route entry files and the unknown-path fallback are prepared; host-level status and redirect behavior must be verified after deployment.
 
 ## Human review items
 

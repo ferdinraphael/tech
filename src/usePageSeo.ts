@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { initializeAnalytics } from './analytics'
-import { siteUrl, type PageMetadata } from './seo'
+import { resolvePageMetadata, type PageMetadata } from './seo'
 
 function setMeta(attribute: 'name' | 'property', key: string, content: string | null) {
   const selector = `meta[${attribute}="${key}"]`
@@ -17,11 +17,10 @@ function setMeta(attribute: 'name' | 'property', key: string, content: string | 
 
 export function usePageSeo({ title, description, path }: PageMetadata) {
   useEffect(() => {
-    const fullTitle = title ? `${title} — Ferdin Raphael` : 'Ferdin Raphael — Software & Systems'
-    const canonicalUrl = path === null ? null : new URL(path.slice(1), siteUrl).href
+    const { fullTitle, canonicalUrl, robots } = resolvePageMetadata({ title, description, path })
     document.title = fullTitle
     setMeta('name', 'description', description)
-    setMeta('name', 'robots', canonicalUrl ? 'index, follow' : 'noindex, follow')
+    setMeta('name', 'robots', robots)
     setMeta('property', 'og:title', fullTitle)
     setMeta('property', 'og:description', description)
     setMeta('property', 'og:url', canonicalUrl)
