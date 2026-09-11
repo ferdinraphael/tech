@@ -3,6 +3,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { App } from '../App'
 import { publishedWritingPresentation } from './writings/writingFormat'
+import { writingCatalogue } from '../content/writings/catalogue'
 
 function LocationProbe() {
   const location = useLocation()
@@ -19,6 +20,41 @@ function renderRoute(path: string) {
 }
 
 describe('foundation routes', () => {
+  it.each([
+    ['/projects', 'Public software projects including Little Worlds and Wildpath.'],
+    ['/services', 'Remote software development, technical consulting, and mentoring services.'],
+    ['/services/mentoring-teaching', 'Remote 1-on-1 technical learning, developer mentoring, and small-group training.'],
+  ])('sets public description, social metadata and one canonical for %s', (path, description) => {
+    renderRoute(`${path}?source=review#details`)
+    expect(document.head.querySelector('meta[name="description"]')).toHaveAttribute('content', description)
+    expect(document.head.querySelector('meta[property="og:description"]')).toHaveAttribute('content', description)
+    expect(document.head.querySelector('meta[name="twitter:description"]')).toHaveAttribute('content', description)
+    expect(document.head.querySelector('meta[property="og:title"]')).toHaveAttribute('content', document.title)
+    expect(document.head.querySelector('meta[name="twitter:title"]')).toHaveAttribute('content', document.title)
+    expect(document.head.querySelectorAll('link[rel="canonical"]')).toHaveLength(1)
+    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', `https://ferdinraphael.github.io/tech${path}`)
+    expect(document.head.querySelector('meta[property="og:url"]')).toHaveAttribute('content', `https://ferdinraphael.github.io/tech${path}`)
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'index, follow')
+  })
+
+  it('clears unknown-route canonicals and restores indexable metadata on navigation', () => {
+    renderRoute('/not-a-real-place')
+    expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
+    expect(document.head.querySelector('meta[property="og:url"]')).toBeNull()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, follow')
+    fireEvent.click(screen.getByRole('link', { name: /Return to overview/ }))
+    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'https://ferdinraphael.github.io/tech/')
+    expect(document.head.querySelectorAll('link[rel="canonical"]')).toHaveLength(1)
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'index, follow')
+  })
+
+  it('uses canonical target metadata after a legacy redirect', async () => {
+    renderRoute('/notes?source=review#top')
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/writings?source=review#top'))
+    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'https://ferdinraphael.github.io/tech/writings')
+    expect(document.head.querySelectorAll('link[rel="canonical"]')).toHaveLength(1)
+  })
+
   it.each([
     ['/', 'Ferdin Raphael — Software & Systems'],
     ['/profile', 'Profile — Ferdin Raphael'],
@@ -179,6 +215,8 @@ describe('foundation routes', () => {
     renderRoute('/writings/when-the-workaround-becomes-the-architecture')
     expect(await screen.findByRole('heading', { level: 1, name: 'When the Workaround Becomes the Architecture' }, { timeout: 5_000 })).toBeInTheDocument()
     expect(document.title).toBe('When the Workaround Becomes the Architecture — Ferdin Raphael')
+    expect(document.head.querySelector('meta[name="description"]')).toHaveAttribute('content', writingCatalogue.getBySlug('when-the-workaround-becomes-the-architecture')!.description)
+    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'https://ferdinraphael.github.io/tech/writings/when-the-workaround-becomes-the-architecture')
     expect(screen.getByText('ARTICLE')).toBeInTheDocument()
     expect(screen.getByText('Published May 10, 2026')).toBeInTheDocument()
     expect(screen.queryByText('DRAFT')).not.toBeInTheDocument()
@@ -189,6 +227,8 @@ describe('foundation routes', () => {
     renderRoute('/writings/framework-preview')
     expect(await screen.findByRole('heading', { level: 1, name: 'Technical writing framework preview' }, { timeout: 5_000 })).toBeInTheDocument()
     expect(document.title).toBe('Technical writing framework preview — Ferdin Raphael')
+    expect(document.head.querySelector('link[rel="canonical"]')).toBeNull()
+    expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'noindex, follow')
     expect(screen.getByText('ARTICLE')).toBeInTheDocument()
     expect(screen.getByText('DRAFT')).toBeInTheDocument()
     expect(screen.getByText('Unpublished draft')).toBeInTheDocument()

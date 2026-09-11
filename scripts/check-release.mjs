@@ -32,7 +32,24 @@ if (process.argv.includes('--artifact')) {
   assert.deepEqual(readFileSync(join(root, 'dist/og.png')), readFileSync(join(root, 'public/og.png')), 'Social image must be included unchanged.')
 
   const files = filesUnder('dist')
-  const output = files.filter((file) => /\.(?:html|js|css)$/.test(file)).map(read).join('\n')
+  const output = files.filter((file) => /\.(?:html|js|css|xml|txt)$/.test(file)).map(read).join('\n')
+  const sitemap = read('dist/sitemap.xml')
+  const publicPaths = ['', 'projects', 'built-and-published', 'services',
+    'services/software-development', 'services/technical-consulting', 'services/mentoring-teaching',
+    'writings', 'writings/when-the-workaround-becomes-the-architecture']
+  assert.deepEqual([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]).sort(),
+    publicPaths.map((path) => `https://ferdinraphael.github.io/tech/${path}`).sort(), 'Sitemap must contain exactly the public launch routes.')
+  assert.ok(sitemap.includes('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'), 'Sitemap namespace is required.')
+  assert.ok(!sitemap.includes('<lastmod>'), 'Do not invent sitemap modification dates.')
+  assert.equal(read('dist/robots.txt').replaceAll('\r\n', '\n'),
+    'User-agent: *\nAllow: /\n\nSitemap: https://ferdinraphael.github.io/tech/sitemap.xml\n', 'Robots file must allow crawling and reference the project sitemap.')
+  assert.ok(files.filter((file) => file.endsWith('.js')).some((file) => read(file).includes('G-G1V96CEM5J')), 'Production JavaScript must contain the intended public GA4 ID.')
+  const structuredData = index.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)
+  assert.ok(structuredData, 'Person structured data must be present.')
+  assert.deepEqual(JSON.parse(structuredData[1]), {
+    '@context': 'https://schema.org', '@type': 'Person', name: 'Ferdin Raphael',
+    url: 'https://ferdinraphael.github.io/tech/', sameAs: ['https://github.com/ferdinraphael/'],
+  }, 'Structured data must contain only the approved public identity fields.')
   for (const file of filesUnder('src/content/writings/drafts').filter((file) => file.endsWith('.md'))) {
     const frontmatter = read(file).match(/^---\r?\n([\s\S]*?)\r?\n---/)
     assert.ok(frontmatter, `Missing draft frontmatter: ${file}`)
@@ -49,5 +66,5 @@ if (process.argv.includes('--artifact')) {
       assert.ok(existsSync(join(root, 'dist', asset.slice('/tech/'.length))), `Missing CSS asset: ${asset}`)
     }
   }
-  console.log(`Release artifact checks passed: /tech/ assets, equivalent 404 fallback, OG image, ${fonts.length} local fonts, and no draft titles/slugs.`)
+  console.log(`Release artifact checks passed: /tech/ assets, equivalent 404 fallback, OG image, ${fonts.length} local fonts, public sitemap/robots, Person JSON-LD, GA4 ID, and no draft titles/slugs.`)
 }

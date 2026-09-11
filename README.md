@@ -291,6 +291,28 @@ On Linux/CI, install browser system dependencies with `npx playwright install --
 
 Keep Vite's `/tech/` base, the derived router basename, and the build-time `404.html` copy. The local suite checks direct route loads, reloads, titles, redirects, unknown routes, and production draft exclusion. It cannot prove GitHub Pages' handling of clean-route requests: after deployment, verify those routes and reloads on the live host, along with `/tech/og.png` and application/font assets. GitHub Pages may return an HTTP 404 status while serving the SPA fallback; the client should still render the requested valid route.
 
+## SEO and analytics
+
+The explicit metadata table in `src/seo.ts` and shared `usePageSeo` hook update browser titles, descriptions, canonicals, robots meta, and runtime OG/Twitter titles/descriptions/URLs. Published articles use their existing metadata. Canonicals use `https://ferdinraphael.github.io/tech/` and exclude query strings, fragments, and redirect aliases. Drafts, the hidden Profile page, and Not Found use `noindex, follow` with no canonical. The static HTML retains an accurate site-level social card and a small Person JSON-LD block containing only name, site URL, and the public GitHub profile.
+
+This remains a client-rendered SPA: runtime metadata does not guarantee social crawler previews. GitHub Pages' clean-route fallback can return HTTP 404 even for valid client routes, which also limits search indexing of direct deep links. There is no SSR or prerendering in this launch setup.
+
+The static sitemap at `/tech/sitemap.xml` lists the nine public launch routes, with no drafts, aliases, hidden Profile, or invented modification dates. Update `public/sitemap.xml` and the release-check route allowlist when public routes or published articles change. `public/robots.txt` builds to `/tech/robots.txt` and points to that sitemap. Crawlers read robots rules from the host-root `/robots.txt`, so this project-subdirectory file does not control host crawling; the root site can reference the sitemap, or the sitemap can be submitted in Search Console. Neither root-site configuration nor Search Console is changed by this repository.
+
+GA4 uses the checked-in public measurement ID **`G-G1V96CEM5J`**, with the direct Google tag rather than Google Tag Manager. It initializes once after the first resolved page's metadata, only for production builds on `https://ferdinraphael.github.io/tech/` (and never for draft-enabled builds). Development, localhost previews, Vitest, and normal E2E runs do not load Google or send events.
+
+Enhanced Measurement owns page views, scrolls, outbound clicks, and file downloads. Keep **Page loads** and **Page changes based on browser history events** enabled in the stream's advanced page-view settings; site search, form interactions, and video engagement remain off. App code sends no custom `page_view` events and does not reconfigure GA on navigation. After deployment, confirm single page-view counts in GA DebugView; local mocked checks do not prove remote stream configuration or event ingestion.
+
+The typed analytics helper adds only these site-specific events, from approved action links across the shared app shell:
+
+| Event | Parameters |
+| --- | --- |
+| `service_enquiry` | `source_page` (fixed page label), optional `service_category`, `link_type=mailto` |
+| `project_open` | `project_name`, `destination_type=live_demo` |
+| `published_output_open` | `item_name`, `item_type`, `destination` (approved destination hostname) |
+
+Custom events contain no email address, mail subject/body, arbitrary URL, query string, or user-entered content. Analytics never cancels a link, awaits delivery, or adds a callback before navigation. Missing/blocked `gtag` safely no-ops. Tests use spies or intercepted Google requests and do not send real GA traffic. No consent UI is added by this integration.
+
 ## Intentional content boundaries
 
 - Profile is hidden from public navigation; its direct route is retained.
@@ -302,7 +324,7 @@ Keep Vite's `/tech/` base, the derived router basename, and the build-time `404.
 
 - The constellation uses curated coordinates; new content requires deliberate placement at both layout sizes.
 - Tablet context moves below the visual instead of keeping a compressed three-column arrangement.
-- Browser titles follow routes and writing metadata. OG/Twitter metadata remains one static site-level card in `index.html`; client-side titles do not provide article-specific social previews.
+- Browser and runtime social metadata follow routes and writing metadata. Static social crawlers still receive the site-level fallback in `index.html`; route-specific previews are not guaranteed.
 - GitHub Pages clean-route fallback is prepared; host-level behavior must be verified after deployment.
 
 ## Human review items
