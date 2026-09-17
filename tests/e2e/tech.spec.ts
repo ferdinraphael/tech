@@ -1,145 +1,215 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test';
 
 test('overview loads neutral and supports selection', async ({ page }) => {
-  await page.goto('./')
-  await expect(page.getByRole('heading', { name: /Software, systems/ })).toBeVisible()
-  await expect(page.getByText('No constellation node selected.')).toBeAttached()
-  const projects = page.getByRole('button', { name: /^Projects\./ })
-  await projects.click()
-  await expect(projects).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByRole('article', { name: /Projects selected content/ })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(projects).toHaveAttribute('aria-pressed', 'false')
-})
+  await page.goto('./');
+  await expect(
+    page.getByRole('heading', { name: /Software, systems/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('No constellation node selected.'),
+  ).toBeAttached();
+  const projects = page.getByRole('button', { name: /^Projects\./ });
+  await projects.click();
+  await expect(projects).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.getByRole('article', { name: /Projects selected content/ }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(projects).toHaveAttribute('aria-pressed', 'false');
+});
 
-test('Little Worlds selected content uses approved actions', async ({ page }) => {
-  await page.goto('./')
-  await page.getByRole('button', { name: /^Little Worlds\./ }).click()
-  const panel = page.getByRole('article', { name: /Little Worlds selected content/ })
+test('Little Worlds selected content uses approved actions', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: /^Little Worlds\./ }).click();
+  const panel = page.getByRole('article', {
+    name: /Little Worlds selected content/,
+  });
   await expect(panel.getByRole('link', { name: /Live Demo/ })).toHaveAttribute(
     'href',
     'https://ferdinraphael.github.io/little-worlds',
-  )
-  await expect(panel.getByText('TypeScript')).toBeVisible()
-  await expect(panel.getByText('Python')).toHaveCount(0)
-})
+  );
+  await expect(panel.getByText('TypeScript')).toBeVisible();
+  await expect(panel.getByText('Python')).toHaveCount(0);
+});
 
-test('mobile context stays inline while selection and relationships persist', async ({ page }) => {
-  await page.setViewportSize({ width: 412, height: 767 })
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('./')
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-  const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
-  const littleWorlds = page.getByRole('button', { name: /^Little Worlds\./ })
-  await littleWorlds.click()
-  const inline = page.getByRole('region', { name: /Little Worlds inline details/ })
-  await expect(inline).toBeVisible()
-  await expect(littleWorlds).toHaveAttribute('aria-pressed', 'true')
-  await expect(map).toHaveAttribute('data-selected', 'little-worlds')
-  await expect(map.locator('[data-active="true"]')).toHaveCount(4)
-  await expect(page.getByRole('dialog')).toHaveCount(0)
+test('mobile context stays inline while selection and relationships persist', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 412, height: 767 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const map = page.getByLabel(
+    "Interactive map of Ferdin Raphael's technical work",
+  );
+  const littleWorlds = page.getByRole('button', { name: /^Little Worlds\./ });
+  await littleWorlds.click();
+  const inline = page.getByRole('region', {
+    name: /Little Worlds inline details/,
+  });
+  await expect(inline).toBeVisible();
+  await expect(littleWorlds).toHaveAttribute('aria-pressed', 'true');
+  await expect(map).toHaveAttribute('data-selected', 'little-worlds');
+  await expect(map.locator('[data-active="true"]')).toHaveCount(4);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
-  const mapBox = await map.boundingBox()
-  const inlineBox = await inline.boundingBox()
-  expect(mapBox && inlineBox && inlineBox.y >= mapBox.y + mapBox.height).toBeTruthy()
+  const mapBox = await map.boundingBox();
+  const inlineBox = await inline.boundingBox();
+  expect(
+    mapBox && inlineBox && inlineBox.y >= mapBox.y + mapBox.height,
+  ).toBeTruthy();
 
-  const bottomNav = page.getByRole('navigation', { name: 'Mobile primary navigation' })
-  const clear = inline.getByRole('button', { name: 'Clear selection' })
-  await clear.scrollIntoViewIfNeeded()
-  const navBox = await bottomNav.boundingBox()
-  const clearBox = await clear.boundingBox()
-  expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
+  const bottomNav = page.getByRole('navigation', {
+    name: 'Mobile primary navigation',
+  });
+  const clear = inline.getByRole('button', { name: 'Clear selection' });
+  await clear.scrollIntoViewIfNeeded();
+  const navBox = await bottomNav.boundingBox();
+  const clearBox = await clear.boundingBox();
+  expect(
+    navBox && clearBox && clearBox.y + clearBox.height < navBox.y,
+  ).toBeTruthy();
 
-  await map.scrollIntoViewIfNeeded()
-  await expect(map).toHaveAttribute('data-selected', 'little-worlds')
-  await expect(map.locator('[data-active="true"]')).toHaveCount(4)
+  await map.scrollIntoViewIfNeeded();
+  await expect(map).toHaveAttribute('data-selected', 'little-worlds');
+  await expect(map.locator('[data-active="true"]')).toHaveCount(4);
 
-  await page.getByRole('button', { name: /^Projects\./ }).click()
-  const projectsInline = page.getByRole('region', { name: /Projects inline details/ })
-  await expect(projectsInline).toBeVisible()
-  await expect(map).toHaveAttribute('data-selected', 'projects')
-  await projectsInline.getByRole('button', { name: 'Clear selection' }).click()
-  await expect(page.getByRole('region', { name: /inline details/ })).toHaveCount(0)
-  await expect(map).toHaveAttribute('data-selected', 'none')
-})
+  await page.getByRole('button', { name: /^Projects\./ }).click();
+  const projectsInline = page.getByRole('region', {
+    name: /Projects inline details/,
+  });
+  await expect(projectsInline).toBeVisible();
+  await expect(map).toHaveAttribute('data-selected', 'projects');
+  await projectsInline.getByRole('button', { name: 'Clear selection' }).click();
+  await expect(
+    page.getByRole('region', { name: /inline details/ }),
+  ).toHaveCount(0);
+  await expect(map).toHaveAttribute('data-selected', 'none');
+});
 
-test('routes, browser back, and clean /tech/ base path work', async ({ page }) => {
-  await page.goto('./')
-  await page.getByRole('link', { name: 'Projects', exact: true }).first().click()
-  await expect(page).toHaveURL(/\/tech\/projects\/$/)
-  await expect(page.getByRole('heading', { name: /Built to explore/ })).toBeVisible()
+test('routes, browser back, and clean /tech/ base path work', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await page
+    .getByRole('link', { name: 'Projects', exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/tech\/projects\/$/);
+  await expect(
+    page.getByRole('heading', { name: /Built to explore/ }),
+  ).toBeVisible();
   const clickedNavOutline = await page
     .getByRole('link', { name: 'Projects', exact: true })
     .first()
-    .evaluate((element) => getComputedStyle(element).outlineStyle)
-  expect(clickedNavOutline).toBe('none')
-  await page.goBack()
-  await expect(page).toHaveURL(/\/tech\/$/)
-})
+    .evaluate((element) => getComputedStyle(element).outlineStyle);
+  expect(clickedNavOutline).toBe('none');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/tech\/$/);
+});
 
-test('launch information architecture is public and durable', async ({ page }) => {
-  await page.setViewportSize({ width: 1366, height: 768 })
-  await page.goto('./')
-  const navigation = page.getByRole('navigation', { name: 'Primary navigation' })
+test('launch information architecture is public and durable', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto('./');
+  const navigation = page.getByRole('navigation', {
+    name: 'Primary navigation',
+  });
   await expect(navigation.getByRole('link')).toHaveText([
     'Overview',
     'Projects',
     'Built & Published',
     'Services',
     'Writings',
-  ])
-  await expect(navigation.getByRole('link', { name: 'Profile' })).toHaveCount(0)
-  await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0)
-  await expect(page.getByText(/preparing writings/i)).toHaveCount(0)
-  const latestWriting = page.getByRole('region', { name: 'Latest Writing' })
-  await expect(latestWriting.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
-  await expect(latestWriting.getByRole('link', { name: /Read article/ })).toHaveAttribute(
+  ]);
+  await expect(navigation.getByRole('link', { name: 'Profile' })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0);
+  await expect(page.getByText(/preparing writings/i)).toHaveCount(0);
+  const latestWriting = page.getByRole('region', { name: 'Latest Writing' });
+  await expect(
+    latestWriting.getByRole('heading', {
+      name: 'When the Workaround Becomes the Architecture',
+    }),
+  ).toBeVisible();
+  await expect(
+    latestWriting.getByRole('link', { name: /Read article/ }),
+  ).toHaveAttribute(
     'href',
     '/tech/writings/when-the-workaround-becomes-the-architecture/',
-  )
-  const books = page.getByRole('region', { name: 'Books' })
-  const recentTools = page.getByRole('region', { name: 'Recent Tools' })
-  await expect(books.getByRole('article')).toHaveCount(2)
-  await expect(books.getByRole('link', { name: /View on Amazon/ })).toHaveCount(2)
-  await expect(recentTools.getByRole('article')).toHaveCount(2)
-  await expect(recentTools.getByRole('link', { name: /View EnvGuard/ })).toHaveAttribute('href', 'https://payhip.com/b/KJzvD')
-  await expect(recentTools.getByRole('link', { name: /View on itch.io/ })).toHaveAttribute(
-    'href',
-    'https://ferdinraphael.itch.io/rpg-data-forge',
-  )
-  await expect(recentTools.getByRole('link', { name: /Pro version/ })).toHaveCount(0)
-  await expect(page.getByText(/Variables Are Simple/i)).toHaveCount(0)
+  );
+  const books = page.getByRole('region', { name: 'Books' });
+  const recentTools = page.getByRole('region', { name: 'Recent Tools' });
+  await expect(books.getByRole('article')).toHaveCount(2);
+  await expect(books.getByRole('link', { name: /View on Amazon/ })).toHaveCount(
+    2,
+  );
+  await expect(recentTools.getByRole('article')).toHaveCount(2);
+  await expect(
+    recentTools.getByRole('link', { name: /View EnvGuard/ }),
+  ).toHaveAttribute('href', 'https://payhip.com/b/KJzvD');
+  await expect(
+    recentTools.getByRole('link', { name: /View on itch.io/ }),
+  ).toHaveAttribute('href', 'https://ferdinraphael.itch.io/rpg-data-forge');
+  await expect(
+    recentTools.getByRole('link', { name: /Pro version/ }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/Variables Are Simple/i)).toHaveCount(0);
 
-  await page.goto('./projects/')
-  await expect(page.getByText('Deterministic simulation worlds')).toBeVisible()
-  await expect(page.getByText(/Evolving microbes with observable behaviour/)).toBeVisible()
-  await expect(page.getByText(/Interactive browser-based simulation/)).toBeVisible()
-  await expect(page.getByText(/Smaller finished tools and publications/).getByRole('link', { name: 'Built & Published' })).toHaveAttribute(
-    'href',
-    '/tech/built-and-published/',
-  )
+  await page.goto('./projects/');
+  await expect(page.getByText('Deterministic simulation worlds')).toBeVisible();
+  await expect(
+    page.getByText(/Evolving microbes with observable behaviour/),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/Interactive browser-based simulation/),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByText(/Smaller finished tools and publications/)
+      .getByRole('link', { name: 'Built & Published' }),
+  ).toHaveAttribute('href', '/tech/built-and-published/');
 
-  await page.goto('./built-and-published/')
-  await expect(page.getByRole('heading', { name: 'Bookshelf' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Tool Shelf' })).toBeVisible()
-  const csharpBook = page.getByRole('article').filter({ has: page.getByRole('heading', { name: /C# Debugging Drills/ }) })
-  const sqlBook = page.getByRole('article').filter({ has: page.getByRole('heading', { name: /SQL Data Cleaning Cookbook/ }) })
-  const envGuard = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'EnvGuard' }) })
-  const rpgDataForge = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'RPG Data Forge' }) })
-  await expect(csharpBook.getByRole('link', { name: /View on Amazon/ })).toHaveAttribute(
+  await page.goto('./built-and-published/');
+  await expect(page.getByRole('heading', { name: 'Bookshelf' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tool Shelf' })).toBeVisible();
+  const csharpBook = page.getByRole('article').filter({
+    has: page.getByRole('heading', { name: /C# Debugging Drills/ }),
+  });
+  const sqlBook = page.getByRole('article').filter({
+    has: page.getByRole('heading', { name: /SQL Data Cleaning Cookbook/ }),
+  });
+  const envGuard = page
+    .getByRole('article')
+    .filter({ has: page.getByRole('heading', { name: 'EnvGuard' }) });
+  const rpgDataForge = page
+    .getByRole('article')
+    .filter({ has: page.getByRole('heading', { name: 'RPG Data Forge' }) });
+  await expect(
+    csharpBook.getByRole('link', { name: /View on Amazon/ }),
+  ).toHaveAttribute(
     'href',
     'https://www.amazon.com/Debugging-Drills-Real-World-Bugs-Find-ebook/dp/B0HF8MLZ52/',
-  )
-  await expect(sqlBook.getByRole('link', { name: /View on Amazon/ })).toHaveAttribute(
+  );
+  await expect(
+    sqlBook.getByRole('link', { name: /View on Amazon/ }),
+  ).toHaveAttribute(
     'href',
     'https://www.amazon.in/SQL-Data-Cleaning-Cookbook-Real-World-ebook/dp/B0HF8KL378',
-  )
-  await expect(envGuard.getByRole('link', { name: /Free version/ })).toHaveAttribute('href', 'https://payhip.com/b/KJzvD')
-  await expect(envGuard.getByRole('link', { name: /Pro version/ })).toHaveAttribute('href', 'https://payhip.com/b/r3Tn7')
-  await expect(rpgDataForge.getByRole('link', { name: /View on itch.io/ })).toHaveAttribute(
-    'href',
-    'https://ferdinraphael.itch.io/rpg-data-forge',
-  )
+  );
+  await expect(
+    envGuard.getByRole('link', { name: /Free version/ }),
+  ).toHaveAttribute('href', 'https://payhip.com/b/KJzvD');
+  await expect(
+    envGuard.getByRole('link', { name: /Pro version/ }),
+  ).toHaveAttribute('href', 'https://payhip.com/b/r3Tn7');
+  await expect(
+    rpgDataForge.getByRole('link', { name: /View on itch.io/ }),
+  ).toHaveAttribute('href', 'https://ferdinraphael.itch.io/rpg-data-forge');
   for (const action of [
     csharpBook.getByRole('link'),
     sqlBook.getByRole('link'),
@@ -147,171 +217,293 @@ test('launch information architecture is public and durable', async ({ page }) =
     envGuard.getByRole('link').last(),
     rpgDataForge.getByRole('link'),
   ]) {
-    await expect(action).toHaveAttribute('target', '_blank')
-    await expect(action).toHaveAttribute('rel', 'noreferrer')
+    await expect(action).toHaveAttribute('target', '_blank');
+    await expect(action).toHaveAttribute('rel', 'noreferrer');
   }
 
-  await page.goto('./services/')
-  for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching']) {
-    await expect(page.getByRole('heading', { name: title })).toBeVisible()
+  await page.goto('./services/');
+  for (const title of [
+    'Software Development',
+    'Technical Consulting',
+    'Mentoring & Teaching',
+  ]) {
+    await expect(page.getByRole('heading', { name: title })).toBeVisible();
   }
-  await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0)
-  await expect(page.getByText('SCOPED SERVICE')).toHaveCount(0)
+  await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0);
+  await expect(page.getByText('SCOPED SERVICE')).toHaveCount(0);
 
-  await page.goto('./writings/')
-  await expect(page.getByRole('heading', {
-    level: 1,
-    name: 'Writing about software, systems, and the decisions behind them.',
-  })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
-  await expect(page.getByText(/Variables Are Simple/i)).toHaveCount(0)
-})
+  await page.goto('./writings/');
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'Writing about software, systems, and the decisions behind them.',
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: 'When the Workaround Becomes the Architecture',
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(/Variables Are Simple/i)).toHaveCount(0);
+});
 
-test('production Writings publishes the article while remaining draft-safe and canonical', async ({ page, context }) => {
-  const title = 'When the Workaround Becomes the Architecture'
-  const writingPath = './writings/when-the-workaround-becomes-the-architecture'
+test('production Writings publishes the article while remaining draft-safe and canonical', async ({
+  page,
+  context,
+}) => {
+  const title = 'When the Workaround Becomes the Architecture';
+  const writingPath = './writings/when-the-workaround-becomes-the-architecture';
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], {
     origin: 'http://127.0.0.1:4173',
-  })
-  await page.setViewportSize({ width: 1536, height: 864 })
-  await page.goto('./writings/')
-  await expect(page).toHaveURL(/\/tech\/writings\/$/)
-  await expect(page.getByRole('heading', { name: 'Latest writing' })).toBeVisible()
-  await expect(page.getByText('1 writing', { exact: true })).toHaveCount(0)
-  await expect(page.locator('[data-layout="single"]')).toHaveCount(1)
-  await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toHaveCount(0)
+  });
+  await page.setViewportSize({ width: 1536, height: 864 });
+  await page.goto('./writings/');
+  await expect(page).toHaveURL(/\/tech\/writings\/$/);
+  await expect(
+    page.getByRole('heading', { name: 'Latest writing' }),
+  ).toBeVisible();
+  await expect(page.getByText('1 writing', { exact: true })).toHaveCount(0);
+  await expect(page.locator('[data-layout="single"]')).toHaveCount(1);
+  await expect(
+    page.getByRole('heading', { name: 'No published writings yet.' }),
+  ).toHaveCount(0);
   const publishedCard = page.getByRole('article').filter({
     has: page.getByRole('heading', { name: title }),
-  })
-  await expect(publishedCard.getByText('Article', { exact: true })).toBeVisible()
-  await expect(publishedCard.getByText('Published May 10, 2026', { exact: true })).toBeVisible()
-  await expect(publishedCard.getByText('DRAFT', { exact: true })).toHaveCount(0)
-  await expect(publishedCard.getByRole('link', { name: 'Read writing' })).toBeVisible()
-  await expect(page.getByText('Technical writing framework preview')).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: 'Draft previews' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Writings', exact: true }).first()).toHaveAttribute('aria-current', 'page')
-  await expect(page.locator('a[href^="/notes"], a[href^="/tech/notes"]')).toHaveCount(0)
-  await page.screenshot({ path: 'visual-review/1536-writings-published-index.png', fullPage: false })
+  });
+  await expect(
+    publishedCard.getByText('Article', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    publishedCard.getByText('Published Jun 21, 2026', { exact: true }),
+  ).toBeVisible();
+  await expect(publishedCard.getByText('DRAFT', { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    publishedCard.getByRole('link', { name: 'Read writing' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Technical writing framework preview'),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: 'Draft previews' }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('link', { name: 'Writings', exact: true }).first(),
+  ).toHaveAttribute('aria-current', 'page');
+  await expect(
+    page.locator('a[href^="/notes"], a[href^="/tech/notes"]'),
+  ).toHaveCount(0);
+  await page.screenshot({
+    path: 'visual-review/1536-writings-published-index.png',
+    fullPage: false,
+  });
 
-  await publishedCard.getByRole('link', { name: 'Read writing' }).click()
-  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/)
-  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
-  await expect(page.getByText('ARTICLE', { exact: true })).toBeVisible()
-  await expect(page.getByText('Published May 10, 2026', { exact: true })).toBeVisible()
-  await expect(page.getByText('DRAFT', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('Unpublished draft', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('FRAMEWORK PREVIEW', { exact: true })).toHaveCount(0)
-  await expect(page.getByRole('group', { name: 'Read this article as' })).toHaveCount(0)
-  await page.screenshot({ path: 'visual-review/1536-workaround-published-article-top.png', fullPage: false })
+  await publishedCard.getByRole('link', { name: 'Read writing' }).click();
+  await expect(page).toHaveURL(
+    /\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/,
+  );
+  await expect(
+    page.getByRole('heading', { level: 1, name: title }),
+  ).toBeVisible();
+  await expect(page.getByText('ARTICLE', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Published Jun 21, 2026', { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('DRAFT', { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText('Unpublished draft', { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText('FRAMEWORK PREVIEW', { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('group', { name: 'Read this article as' }),
+  ).toHaveCount(0);
+  await page.screenshot({
+    path: 'visual-review/1536-workaround-published-article-top.png',
+    fullPage: false,
+  });
 
-  await expect(page.getByRole('tab', { name: 'C#' })).toHaveCount(8)
-  await expect(page.getByRole('tab', { name: 'TypeScript' })).toHaveCount(8)
-  await expect(page.getByRole('tab', { name: 'Python' })).toHaveCount(8)
-  await page.getByRole('tab', { name: 'TypeScript' }).first().click()
-  await expect(page.getByRole('tab', { name: 'TypeScript', selected: true })).toHaveCount(8)
-  const firstPanel = page.getByRole('tabpanel').first()
-  const copyButton = firstPanel.getByRole('button', { name: 'Copy TypeScript code' })
-  await copyButton.click()
-  await expect(copyButton).toContainText('Copied')
+  await expect(page.getByRole('tab', { name: 'C#' })).toHaveCount(8);
+  await expect(page.getByRole('tab', { name: 'TypeScript' })).toHaveCount(8);
+  await expect(page.getByRole('tab', { name: 'Python' })).toHaveCount(8);
+  await page.getByRole('tab', { name: 'TypeScript' }).first().click();
+  await expect(
+    page.getByRole('tab', { name: 'TypeScript', selected: true }),
+  ).toHaveCount(8);
+  const firstPanel = page.getByRole('tabpanel').first();
+  const copyButton = firstPanel.getByRole('button', {
+    name: 'Copy TypeScript code',
+  });
+  await copyButton.click();
+  await expect(copyButton).toContainText('Copied');
 
-  const contents = page.getByRole('navigation', { name: 'Contents' })
-  const explicitLink = contents.getByRole('link', { name: 'Make the decision explicit' })
-  await explicitLink.click()
-  await expect(explicitLink).toHaveAttribute('aria-current', 'location')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  const contents = page.getByRole('navigation', { name: 'Contents' });
+  const explicitLink = contents.getByRole('link', {
+    name: 'Make the decision explicit',
+  });
+  await explicitLink.click();
+  await expect(explicitLink).toHaveAttribute('aria-current', 'location');
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(false);
 
-  await page.goto('./writings/framework-preview')
-  await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Writings', exact: true }).first()).toHaveAttribute('aria-current', 'page')
+  await page.goto('./writings/framework-preview');
+  await expect(
+    page.getByRole('heading', { name: 'That writing is not available.' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Writings', exact: true }).first(),
+  ).toHaveAttribute('aria-current', 'page');
 
-  await page.goto('./writings/language-aware-preview')
-  await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
+  await page.goto('./writings/language-aware-preview');
+  await expect(
+    page.getByRole('heading', { name: 'That writing is not available.' }),
+  ).toBeVisible();
 
-  await page.goto('./notes/when-the-workaround-becomes-the-architecture')
-  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/)
-  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
+  await page.goto('./notes/when-the-workaround-becomes-the-architecture');
+  await expect(page).toHaveURL(
+    /\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/,
+  );
+  await expect(
+    page.getByRole('heading', { level: 1, name: title }),
+  ).toBeVisible();
 
-  await page.goto('./notes/unknown-writing#missing-section')
-  await expect(page).toHaveURL(/\/tech\/writings\/unknown-writing#missing-section$/)
-  await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
-  await page.goBack()
-  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/)
+  await page.goto('./notes/unknown-writing#missing-section');
+  await expect(page).toHaveURL(
+    /\/tech\/writings\/unknown-writing#missing-section$/,
+  );
+  await expect(
+    page.getByRole('heading', { name: 'That writing is not available.' }),
+  ).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(
+    /\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/,
+  );
 
-  await page.setViewportSize({ width: 412, height: 767 })
-  await page.goto('./writings/')
-  await expect(page.getByRole('heading', { name: title })).toBeVisible()
-  await page.screenshot({ path: 'visual-review/412-writings-published-index.png', fullPage: false })
+  await page.setViewportSize({ width: 412, height: 767 });
+  await page.goto('./writings/');
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  await page.screenshot({
+    path: 'visual-review/412-writings-published-index.png',
+    fullPage: false,
+  });
 
-  await page.goto(writingPath)
-  await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
-  await page.screenshot({ path: 'visual-review/412-workaround-published-article-top.png', fullPage: false })
-  const returnButton = page.getByRole('button', { name: /Return to this writing's Contents/ })
-  await page.getByRole('heading', { name: 'AI can accelerate the same mistake' }).scrollIntoViewIfNeeded()
-  await expect(returnButton).toBeVisible()
-  await returnButton.click()
-  await expect(page.getByRole('navigation', { name: 'Contents' })).toBeInViewport()
+  await page.goto(writingPath);
+  await expect(
+    page.getByRole('heading', { level: 1, name: title }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: 'visual-review/412-workaround-published-article-top.png',
+    fullPage: false,
+  });
+  const returnButton = page.getByRole('button', {
+    name: /Return to this writing's Contents/,
+  });
+  await page
+    .getByRole('heading', { name: 'AI can accelerate the same mistake' })
+    .scrollIntoViewIfNeeded();
+  await expect(returnButton).toBeVisible();
+  await returnButton.click();
+  await expect(
+    page.getByRole('navigation', { name: 'Contents' }),
+  ).toBeInViewport();
 
-  await page.setViewportSize({ width: 375, height: 667 })
-  await page.goto(writingPath)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-  await page.goto('./writings/')
-  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-})
+  await page.setViewportSize({ width: 375, height: 667 });
+  await page.goto(writingPath);
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(false);
+  await page.goto('./writings/');
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(false);
+});
 
 test('captures the primary desktop review states', async ({ page }) => {
-  await page.setViewportSize({ width: 1536, height: 864 })
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('./')
-  await page.screenshot({ path: 'visual-review/1536-default.png' })
+  await page.setViewportSize({ width: 1536, height: 864 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./');
+  await page.screenshot({ path: 'visual-review/1536-default.png' });
 
-  await page.getByRole('button', { name: /^Projects\./ }).click()
-  await expect(page.getByRole('article', { name: /Projects selected content/ })).toBeVisible()
-  await page.screenshot({ path: 'visual-review/1536-projects-selected.png' })
+  await page.getByRole('button', { name: /^Projects\./ }).click();
+  await expect(
+    page.getByRole('article', { name: /Projects selected content/ }),
+  ).toBeVisible();
+  await page.screenshot({ path: 'visual-review/1536-projects-selected.png' });
 
-  await page.getByRole('button', { name: /^Little Worlds\./ }).click()
+  await page.getByRole('button', { name: /^Little Worlds\./ }).click();
   await expect(
     page.getByRole('article', { name: /Little Worlds selected content/ }),
-  ).toBeVisible()
-  await page.screenshot({ path: 'visual-review/1536-little-worlds-selected.png' })
+  ).toBeVisible();
+  await page.screenshot({
+    path: 'visual-review/1536-little-worlds-selected.png',
+  });
 
-  for (const route of ['projects', 'built-and-published', 'services', 'writings']) {
-    await page.goto(`./${route}`)
-    const heading = page.getByRole('heading', { level: 1 })
-    await expect(heading).toBeVisible()
+  for (const route of [
+    'projects',
+    'built-and-published',
+    'services',
+    'writings',
+  ]) {
+    await page.goto(`./${route}`);
+    const heading = page.getByRole('heading', { level: 1 });
+    await expect(heading).toBeVisible();
     const headingSize = await heading.evaluate((element) =>
       Number.parseFloat(getComputedStyle(element).fontSize),
-    )
-    expect(headingSize).toBeLessThanOrEqual(48)
-    await page.screenshot({ path: `visual-review/1536-${route}-route.png` })
+    );
+    expect(headingSize).toBeLessThanOrEqual(48);
+    await page.screenshot({ path: `visual-review/1536-${route}-route.png` });
   }
-})
+});
 
 test('captures the primary mobile review states', async ({ page }) => {
-  await page.setViewportSize({ width: 412, height: 767 })
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('./')
-  await page.screenshot({ path: 'visual-review/412-default.png' })
+  await page.setViewportSize({ width: 412, height: 767 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('./');
+  await page.screenshot({ path: 'visual-review/412-default.png' });
 
-  const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
-  await page.getByRole('button', { name: /^Little Worlds\./ }).click()
-  const littleWorldsInline = page.getByRole('region', { name: /Little Worlds inline details/ })
-  await expect(littleWorldsInline).toBeVisible()
-  await page.screenshot({ path: 'visual-review/412-little-worlds-inline.png' })
+  const map = page.getByLabel(
+    "Interactive map of Ferdin Raphael's technical work",
+  );
+  await page.getByRole('button', { name: /^Little Worlds\./ }).click();
+  const littleWorldsInline = page.getByRole('region', {
+    name: /Little Worlds inline details/,
+  });
+  await expect(littleWorldsInline).toBeVisible();
+  await page.screenshot({ path: 'visual-review/412-little-worlds-inline.png' });
 
-  await map.scrollIntoViewIfNeeded()
-  await expect(map).toHaveAttribute('data-selected', 'little-worlds')
-  await page.screenshot({ path: 'visual-review/412-little-worlds-map-active.png' })
+  await map.scrollIntoViewIfNeeded();
+  await expect(map).toHaveAttribute('data-selected', 'little-worlds');
+  await page.screenshot({
+    path: 'visual-review/412-little-worlds-map-active.png',
+  });
 
-  await page.getByRole('button', { name: /^Projects\./ }).click()
-  const projectsInline = page.getByRole('region', { name: /Projects inline details/ })
-  await expect(projectsInline).toBeVisible()
-  await page.screenshot({ path: 'visual-review/412-projects-inline.png' })
+  await page.getByRole('button', { name: /^Projects\./ }).click();
+  const projectsInline = page.getByRole('region', {
+    name: /Projects inline details/,
+  });
+  await expect(projectsInline).toBeVisible();
+  await page.screenshot({ path: 'visual-review/412-projects-inline.png' });
 
-  await projectsInline.getByRole('button', { name: 'Clear selection' }).click()
-  await map.scrollIntoViewIfNeeded()
-  await expect(map).toHaveAttribute('data-selected', 'none')
-  await page.screenshot({ path: 'visual-review/412-selection-cleared.png' })
-})
+  await projectsInline.getByRole('button', { name: 'Clear selection' }).click();
+  await map.scrollIntoViewIfNeeded();
+  await expect(map).toHaveAttribute('data-selected', 'none');
+  await page.screenshot({ path: 'visual-review/412-selection-cleared.png' });
+});
 
 for (const viewport of [
   { width: 360, height: 800 },
@@ -325,57 +517,116 @@ for (const viewport of [
   test(`has no horizontal overflow or clipped primary navigation at ${viewport.width}x${viewport.height}`, async ({
     page,
   }) => {
-    await page.setViewportSize(viewport)
-    await page.goto('./')
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
-    expect(overflow).toBe(false)
-    const primaryNav = viewport.width < 1200
-      ? page.getByRole('button', { name: 'Open navigation menu' })
-      : page.getByRole('navigation', { name: 'Primary navigation' })
-    await expect(primaryNav).toBeVisible()
+    await page.setViewportSize(viewport);
+    await page.goto('./');
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    );
+    expect(overflow).toBe(false);
+    const primaryNav =
+      viewport.width < 1200
+        ? page.getByRole('button', { name: 'Open navigation menu' })
+        : page.getByRole('navigation', { name: 'Primary navigation' });
+    await expect(primaryNav).toBeVisible();
     if (viewport.width < 768) {
-      const map = page.getByLabel("Interactive map of Ferdin Raphael's technical work")
-      await expect(map.locator('[data-node-id]')).toHaveCount(7)
-      await page.getByRole('button', { name: /^Projects\./ }).click()
-      const inline = page.getByRole('region', { name: /Projects inline details/ })
-      await expect(inline).toBeVisible()
-      await expect(map).toHaveAttribute('data-selected', 'projects')
-      const bottomNav = page.getByRole('navigation', { name: 'Mobile primary navigation' })
-      await expect(bottomNav).toBeVisible()
-      const clear = inline.getByRole('button', { name: 'Clear selection' })
-      await clear.scrollIntoViewIfNeeded()
-      const navBox = await bottomNav.boundingBox()
-      const clearBox = await clear.boundingBox()
-      expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
+      const map = page.getByLabel(
+        "Interactive map of Ferdin Raphael's technical work",
+      );
+      await expect(map.locator('[data-node-id]')).toHaveCount(7);
+      await page.getByRole('button', { name: /^Projects\./ }).click();
+      const inline = page.getByRole('region', {
+        name: /Projects inline details/,
+      });
+      await expect(inline).toBeVisible();
+      await expect(map).toHaveAttribute('data-selected', 'projects');
+      const bottomNav = page.getByRole('navigation', {
+        name: 'Mobile primary navigation',
+      });
+      await expect(bottomNav).toBeVisible();
+      const clear = inline.getByRole('button', { name: 'Clear selection' });
+      await clear.scrollIntoViewIfNeeded();
+      const navBox = await bottomNav.boundingBox();
+      const clearBox = await clear.boundingBox();
+      expect(
+        navBox && clearBox && clearBox.y + clearBox.height < navBox.y,
+      ).toBeTruthy();
     }
 
-    await page.goto('./built-and-published/')
-    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-    await expect(page.getByRole('heading', { name: 'Bookshelf' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Tool Shelf' })).toBeVisible()
+    await page.goto('./built-and-published/');
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(false);
+    await expect(
+      page.getByRole('heading', { name: 'Bookshelf' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Tool Shelf' }),
+    ).toBeVisible();
 
-    await page.goto('./projects/')
-    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-    await expect(page.getByText('Deterministic simulation worlds')).toBeVisible()
+    await page.goto('./projects/');
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(false);
+    await expect(
+      page.getByText('Deterministic simulation worlds'),
+    ).toBeVisible();
 
-    await page.goto('./services/')
-    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-    await expect(page.getByRole('heading', { name: 'Technical Content' })).toHaveCount(0)
-    await expect(page.getByRole('article')).toHaveCount(3)
+    await page.goto('./services/');
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(false);
+    await expect(
+      page.getByRole('heading', { name: 'Technical Content' }),
+    ).toHaveCount(0);
+    await expect(page.getByRole('article')).toHaveCount(3);
 
-    await page.goto('./writings/')
-    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-    await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toHaveCount(0)
+    await page.goto('./writings/');
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(false);
+    await expect(
+      page.getByRole('heading', {
+        name: 'When the Workaround Becomes the Architecture',
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'No published writings yet.' }),
+    ).toHaveCount(0);
     if (viewport.width < 768) {
-      const bottomNav = page.getByRole('navigation', { name: 'Mobile primary navigation' })
-      const readLink = page.getByRole('link', { name: 'Read writing' })
-      await readLink.evaluate((element) => element.scrollIntoView({ block: 'center' }))
-      await expect.poll(async () => {
-        const navBox = await bottomNav.boundingBox()
-        const linkBox = await readLink.boundingBox()
-        return Boolean(navBox && linkBox && linkBox.y + linkBox.height < navBox.y)
-      }).toBe(true)
+      const bottomNav = page.getByRole('navigation', {
+        name: 'Mobile primary navigation',
+      });
+      const readLink = page.getByRole('link', { name: 'Read writing' });
+      await readLink.evaluate((element) =>
+        element.scrollIntoView({ block: 'center' }),
+      );
+      await expect
+        .poll(async () => {
+          const navBox = await bottomNav.boundingBox();
+          const linkBox = await readLink.boundingBox();
+          return Boolean(
+            navBox && linkBox && linkBox.y + linkBox.height < navBox.y,
+          );
+        })
+        .toBe(true);
     }
-  })
+  });
 }
