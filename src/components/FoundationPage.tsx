@@ -1,3 +1,4 @@
+import { publicPath } from '../publicUrl'
 import {
   ArrowLeft,
   ArrowRight,
@@ -134,7 +135,7 @@ function ProjectsContent() {
         )
       })}
       <p className={styles.projectOutputLink}>
-        Smaller finished tools and publications live under <Link to="/built-and-published">Built &amp; Published</Link>.
+        Smaller finished tools and publications live under <Link to={publicPath('/built-and-published')}>Built &amp; Published</Link>.
       </p>
     </>
   )
@@ -202,7 +203,7 @@ function ServicesContent() {
             <h2 id={`${offering.id}-heading`}>{offering.title}</h2>
             <p className={styles.serviceQuestion}>{offering.question}</p>
             <p>{offering.description}</p>
-            <Link to={`/services/${offering.id}`}>
+            <Link to={publicPath(`/services/${offering.id}`)}>
               Explore {offering.title} <ArrowRight aria-hidden="true" />
             </Link>
           </article>

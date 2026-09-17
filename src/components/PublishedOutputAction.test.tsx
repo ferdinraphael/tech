@@ -13,7 +13,7 @@ describe('PublishedOutputAction', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('link', { name: /Read more/ })).toHaveAttribute('href', '/output')
+    expect(screen.getByRole('link', { name: /Read more/ })).toHaveAttribute('href', '/output/')
     expect(screen.getByRole('link', { name: /View publisher/ })).toHaveAttribute('target', '_blank')
     expect(screen.getByRole('link', { name: /View publisher/ })).toHaveAttribute('rel', 'noreferrer')
     expect(screen.getByRole('link', { name: /Download ebook/ })).toHaveAttribute('download', 'book.epub')

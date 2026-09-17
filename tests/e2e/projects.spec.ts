@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test('Wildpath is a playable project with no public repository while Little Worlds stays featured', async ({ page }) => {
-  await page.goto('./projects')
+  await page.goto('./projects/')
   const littleWorlds = page.getByRole('region', { name: 'Little Worlds', exact: true })
   const wildpath = page.getByRole('region', { name: 'Wildpath', exact: true })
   await expect(littleWorlds.getByRole('link', { name: 'Live Demo', exact: true })).toHaveAttribute('href', 'https://ferdinraphael.github.io/little-worlds')
@@ -26,7 +26,7 @@ test('Wildpath is a playable project with no public repository while Little Worl
   await page.keyboard.press('Escape')
   await expect(page.getByRole('article', { name: 'Little Worlds featured content', exact: true })).toBeVisible()
 
-  await page.goto('./built-and-published')
+  await page.goto('./built-and-published/')
   await expect(page.getByRole('main')).not.toContainText('Wildpath')
   await expect(page.locator('a[href*="github.com/ferdinraphael/wildpath"]')).toHaveCount(0)
 })

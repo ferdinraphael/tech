@@ -45,7 +45,7 @@ describe('overview interactions', () => {
     await user.click(screen.getByRole('button', { name: /^Projects\./ }))
     expect(screen.getByRole('button', { name: /^Projects\./ })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('article', { name: /Projects selected content/ })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /View Projects/ })).toHaveAttribute('href', '/projects')
+    expect(screen.getByRole('link', { name: /View Projects/ })).toHaveAttribute('href', '/projects/')
     await user.keyboard('{Escape}')
     expect(screen.getByRole('button', { name: /^Projects\./ })).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('article', { name: /Little Worlds featured content/ })).toBeInTheDocument()
@@ -72,7 +72,7 @@ describe('overview interactions', () => {
     const panel = screen.getByRole('article', { name: /Built & Published selected content/ })
     expect(within(panel).getByRole('link', { name: /View Built & Published/ })).toHaveAttribute(
       'href',
-      '/built-and-published',
+      '/built-and-published/',
     )
   })
 
@@ -178,7 +178,7 @@ describe('overview interactions', () => {
     expect(within(latest).getByText(/Published May 10, 2026/)).toBeInTheDocument()
     expect(within(latest).getByRole('link', { name: /Read article/ })).toHaveAttribute(
       'href',
-      '/writings/when-the-workaround-becomes-the-architecture',
+      '/writings/when-the-workaround-becomes-the-architecture/',
     )
     expect(screen.queryByText(/Variables Are Simple/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/Technical writing framework preview/i)).not.toBeInTheDocument()
@@ -215,7 +215,7 @@ describe('overview interactions', () => {
       ['Technical Consulting', 'technical-consulting'],
       ['Mentoring & Teaching', 'mentoring-teaching'],
     ]) {
-      expect(within(services).getByRole('link', { name: `Explore ${title}` })).toHaveAttribute('href', `/services/${slug}`)
+      expect(within(services).getByRole('link', { name: `Explore ${title}` })).toHaveAttribute('href', `/services/${slug}/`)
     }
     expect(within(services).getByText('All services are remote.')).toBeInTheDocument()
     expect(screen.queryByText(/Technical Content/i)).not.toBeInTheDocument()

@@ -1,3 +1,4 @@
+import { publicPath } from './publicUrl'
 import { links, projectById, publishedOutputs } from './data/site'
 import { pageMetadata } from './seo'
 
@@ -63,7 +64,8 @@ export function trackEvent<Event extends keyof AnalyticsEvents>(event: Event, pa
 // Match only approved destinations; no arbitrary href, query, email, or message data is sent.
 export function trackSiteLink(href: string, pathname: string) {
   if (href === links.email || href === links.enquiry) {
-    const source = Object.entries(pageMetadata).find(([, metadata]) => metadata.path === pathname)
+    const source = Object.entries(pageMetadata).find(([, metadata]) => metadata.path !== null
+      && publicPath(metadata.path) === publicPath(pathname))
     const service = source && ['software-development', 'technical-consulting', 'mentoring-teaching'].includes(source[0])
       && 'title' in source[1] ? source[1].title : undefined
     trackEvent('service_enquiry', {

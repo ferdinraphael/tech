@@ -1,3 +1,4 @@
+import { publicPath } from '../publicUrl'
 import { ArrowRight, BookOpen, Compass, Github, Radio } from 'lucide-react'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -130,7 +131,7 @@ export function OverviewPage() {
         <section className={styles.sectionPanel} aria-labelledby="selected-projects-heading">
           <div className={styles.sectionHeader}>
             <h2 id="selected-projects-heading">Featured Project</h2>
-            <Link to="/projects">
+            <Link to={publicPath('/projects')}>
               View all projects <ArrowRight aria-hidden="true" />
             </Link>
           </div>
@@ -176,7 +177,7 @@ export function OverviewPage() {
       >
         <div className={styles.sectionHeader}>
           <h2 id="recent-tools-heading">Recent Tools</h2>
-          <Link to="/built-and-published">
+          <Link to={publicPath('/built-and-published')}>
             Browse Built &amp; Published <ArrowRight aria-hidden="true" />
           </Link>
         </div>
@@ -205,7 +206,7 @@ export function OverviewPage() {
       >
         <div className={styles.sectionHeader}>
           <h2 id="books-heading">Books</h2>
-          <Link to="/built-and-published">
+          <Link to={publicPath('/built-and-published')}>
             View bookshelf <ArrowRight aria-hidden="true" />
           </Link>
         </div>
@@ -229,7 +230,7 @@ export function OverviewPage() {
       >
         <div className={styles.sectionHeader}>
           <h2 id="services-heading">Services</h2>
-          <Link to="/services">
+          <Link to={publicPath('/services')}>
             View Services <ArrowRight aria-hidden="true" />
           </Link>
         </div>
@@ -247,7 +248,7 @@ export function OverviewPage() {
                   <h3>{offering.title}</h3>
                   <p className={styles.serviceQuestion}>{offering.question}</p>
                   <p>{offering.previewDescription}</p>
-                  <Link to={`/services/${offering.id}`} className={styles.serviceExplore}>
+                  <Link to={publicPath(`/services/${offering.id}`)} className={styles.serviceExplore}>
                     Explore {offering.title} <ArrowRight aria-hidden="true" />
                   </Link>
                 </div>

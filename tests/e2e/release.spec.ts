@@ -17,7 +17,7 @@ for (const [route, title] of routes) {
     await page.goto(route)
     await expect(page).toHaveTitle(title)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-    const canonical = `https://ferdinraphael.github.io/tech/${route.slice(2)}`
+    const canonical = `https://ferdinraphael.github.io/tech/${route === './' ? '' : route.slice(2) + '/'}`
     await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1)
     await expect(page.locator('head link[rel="canonical"]')).toHaveAttribute('href', canonical)
     await expect(page.locator('head meta[name="description"]')).toHaveAttribute('content', /\S+/)
@@ -40,7 +40,7 @@ test('titles follow navigation, history, legacy redirects, and unknown routes', 
   await page.goBack()
   await expect(page).toHaveTitle('Projects — Ferdin Raphael')
   await page.goto('./notes')
-  await expect(page).toHaveURL(/\/tech\/writings$/)
+  await expect(page).toHaveURL(/\/tech\/writings\/$/)
   await expect(page).toHaveTitle('Writings — Ferdin Raphael')
   await page.goto('./not-a-real-place')
   await expect(page.getByRole('heading', { name: /not in the constellation/ })).toBeVisible()
@@ -66,5 +66,5 @@ test('production crawl files are served and the sitemap is valid XML', async ({ 
     return { errors: document.querySelectorAll('parsererror').length, urls: Array.from(document.querySelectorAll('loc'), (node) => node.textContent) }
   }, await sitemap.text())
   expect(result.errors).toBe(0)
-  expect(result.urls).toEqual(routes.map(([route]) => `https://ferdinraphael.github.io/tech/${route.slice(2)}`))
+  expect(result.urls).toEqual(routes.map(([route]) => `https://ferdinraphael.github.io/tech/${route === './' ? '' : route.slice(2) + '/'}`))
 })

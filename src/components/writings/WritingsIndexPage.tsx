@@ -1,5 +1,6 @@
+import { publicPath } from '../../publicUrl'
 import { ArrowLeft, ArrowRight, Box, FileText, FlaskConical } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { writingCatalogue } from '../../content/writings/catalogue'
 import { writingFormatLabel } from '../../content/writings/formats'
 import type { WritingRecord } from '../../content/writings/types'
@@ -8,6 +9,8 @@ import { formatWritingDate, publishedWritingPresentation } from './writingFormat
 import styles from './Writings.module.css'
 
 function WritingCard({ writing }: { writing: WritingRecord }) {
+  const identity = `/writings/${writing.slug}`
+  const target = writing.draft ? identity : publicPath(identity)
   return (
     <article className={`${styles.articleCard} ${writing.featured ? styles.featuredCard : ''}`}>
       <div className={styles.cardTopline}>
@@ -15,7 +18,7 @@ function WritingCard({ writing }: { writing: WritingRecord }) {
         {writing.draft && <span>{writingFormatLabel(writing.format)}</span>}
         {writing.series && <span>{writing.series.name} · {writing.series.order}</span>}
       </div>
-      <h2><Link to={`/writings/${writing.slug}`}>{writing.title}</Link></h2>
+      <h2><Link to={target}>{writing.title}</Link></h2>
       <p>{writing.description}</p>
       <div className={styles.articleMeta}>
         {writing.publishedAt ? (
@@ -36,7 +39,7 @@ function WritingCard({ writing }: { writing: WritingRecord }) {
           Connected to {writing.relatedProjects.map((projectId) => projectById[projectId].title).join(', ')}
         </p>
       )}
-      <Link className={styles.cardLink} to={`/writings/${writing.slug}`}>
+      <Link className={styles.cardLink} to={target}>
         {writing.draft ? 'Preview draft' : 'Read writing'} <ArrowRight aria-hidden="true" />
       </Link>
     </article>
@@ -101,4 +104,14 @@ export default function WritingsIndexPage() {
       )}
     </div>
   )
+}
+
+// Preserve the existing legacy redirects, serializing only published targets.
+export function LegacyNotesRedirect() {
+  const { slug } = useParams()
+  const location = useLocation()
+  const identity = slug ? `/writings/${slug}` : '/writings'
+  const writing = slug ? writingCatalogue.getBySlug(slug) : undefined
+  const target = !slug || (writing && !writing.draft) ? publicPath(identity) : identity
+  return <Navigate replace to={`${target}${location.search}${location.hash}`} />
 }

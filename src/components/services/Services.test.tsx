@@ -47,7 +47,7 @@ describe('launch services', () => {
     expect(main.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual(services.map(({ title }) => title))
     for (const service of services) {
       const card = within(main.getByRole('article', { name: service.title }))
-      expect(card.getByRole('link', { name: `Explore ${service.title}` })).toHaveAttribute('href', `/services/${service.slug}`)
+      expect(card.getByRole('link', { name: `Explore ${service.title}` })).toHaveAttribute('href', `/services/${service.slug}/`)
     }
     expect(main.getByText('All services are remote.')).toBeInTheDocument()
     expect(main.queryByText(/Technical Content|Website in 2 Days/i)).not.toBeInTheDocument()
@@ -63,7 +63,7 @@ describe('launch services', () => {
     for (const link of screen.getAllByRole('link', { name: service.action })) {
       expect(link).toHaveAttribute('href', links.enquiry)
     }
-    expect(screen.getByRole('link', { name: 'Back to Services' })).toHaveAttribute('href', '/services')
+    expect(screen.getByRole('link', { name: 'Back to Services' })).toHaveAttribute('href', '/services/')
     const nav = within(screen.getByRole('navigation', { name: 'Primary navigation' }))
     expect(nav.getByRole('link', { name: 'Services' })).toHaveAttribute('aria-current', 'page')
     expect(nav.getAllByRole('link')).toHaveLength(5)

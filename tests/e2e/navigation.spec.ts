@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 for (const viewport of [{ width: 430, height: 932 }, { width: 375, height: 667 }, { width: 360, height: 800 }]) {
   test(`drawer dismissal and keyboard focus at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport)
-    await page.goto('./services')
+    await page.goto('./services/')
     const trigger = page.getByRole('button', { name: 'Open navigation menu' })
     const drawer = page.getByRole('navigation', { name: 'Mobile navigation', exact: true })
     const bottom = page.getByRole('navigation', { name: 'Mobile primary navigation' })
@@ -35,7 +35,7 @@ for (const viewport of [{ width: 430, height: 932 }, { width: 375, height: 667 }
     await drawer.getByRole('link', { name: 'Services', exact: true }).click()
     await expect(drawer).toHaveCount(0)
     await expect(trigger).toBeFocused()
-    await expect(page).toHaveURL(/\/tech\/services$/)
+    await expect(page).toHaveURL(/\/tech\/services\/$/)
     expect(await bottom.boundingBox()).toEqual(initialBottom)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     await page.screenshot({ path: `visual-review/pre-launch-stabilization/${viewport.width}-closed.png` })
@@ -43,9 +43,9 @@ for (const viewport of [{ width: 430, height: 932 }, { width: 375, height: 667 }
     await trigger.click()
     await drawer.getByRole('link', { name: 'Projects', exact: true }).click()
     await expect(drawer).toHaveCount(0)
-    await expect(page).toHaveURL(/\/tech\/projects$/)
+    await expect(page).toHaveURL(/\/tech\/projects\/$/)
     await expect(trigger).toBeFocused()
     await bottom.getByRole('link', { name: 'Services', exact: true }).click()
-    await expect(page).toHaveURL(/\/tech\/services$/)
+    await expect(page).toHaveURL(/\/tech\/services\/$/)
   })
 }

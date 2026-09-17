@@ -1,3 +1,4 @@
+import { publicPath } from '../publicUrl'
 import { ArrowRight, ArrowUpRight, CheckCircle2, Clock3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { ConstellationNode } from '../data/site'
@@ -56,7 +57,7 @@ export function ContextPanel({ node, featured = false, inline = false }: Context
               }
               if (action.route) {
                 return (
-                  <Link key={action.label} to={action.route}>
+                  <Link key={action.label} to={publicPath(action.route)}>
                     {action.label} <ArrowRight aria-hidden="true" />
                   </Link>
                 )

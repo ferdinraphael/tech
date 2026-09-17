@@ -1,3 +1,4 @@
+import { publicPath } from '../publicUrl'
 import { ArrowRight, FileText } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { writingCatalogue } from '../content/writings/catalogue'
@@ -13,7 +14,7 @@ export default function LatestWritingPreview() {
     <section className={styles.sectionPanel} aria-labelledby="latest-writing-heading">
       <div className={styles.sectionHeader}>
         <h2 id="latest-writing-heading">Latest Writing</h2>
-        <Link to="/writings">
+        <Link to={publicPath('/writings')}>
           View all writings <ArrowRight aria-hidden="true" />
         </Link>
       </div>
@@ -25,7 +26,7 @@ export default function LatestWritingPreview() {
         </div>
         <h3>{latestWriting.title}</h3>
         <p>{latestWriting.description}</p>
-        <Link to={`/writings/${latestWriting.slug}`}>
+        <Link to={publicPath(`/writings/${latestWriting.slug}`)}>
           Read article <ArrowRight aria-hidden="true" />
         </Link>
       </article>

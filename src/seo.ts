@@ -1,3 +1,5 @@
+import { publicPath } from './publicUrl.ts'
+
 export const siteUrl = 'https://ferdinraphael.github.io/tech/'
 
 export interface PageMetadata {
@@ -11,7 +13,7 @@ export function resolvePageMetadata({ title, description, path }: PageMetadata) 
   return {
     fullTitle: title ? `${title} — Ferdin Raphael` : 'Ferdin Raphael — Software & Systems',
     description,
-    canonicalUrl: path === null ? null : new URL(path.slice(1), siteUrl).href,
+    canonicalUrl: path === null ? null : new URL(publicPath(path.split(/[?#]/, 1)[0]).slice(1), siteUrl).href,
     robots: path === null ? 'noindex, follow' : 'index, follow',
   }
 }

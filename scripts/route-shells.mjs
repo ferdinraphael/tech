@@ -83,6 +83,12 @@ export function assertRouteShell(html, metadata, template) {
       .map((node) => attribute ? node.getAttribute(attribute) : node.textContent)
     assert.deepEqual(values('title'), [fullTitle], 'Incorrect shell title.')
     assert.deepEqual(values('link[rel="canonical"]', 'href'), canonicalUrl ? [canonicalUrl] : [], 'Incorrect shell canonical.')
+    if (canonicalUrl) {
+      const url = new URL(canonicalUrl)
+      assert.ok(url.pathname.endsWith('/'), 'Canonical directory URL must end with a slash.')
+      assert.ok(!url.pathname.includes('//') && !url.pathname.includes('/tech/tech/'), 'Malformed canonical path.')
+      assert.equal(url.search + url.hash, '', 'Canonical URLs must exclude queries and fragments.')
+    }
     for (const [attribute, key, content] of metadataEntries(metadata)) {
       assert.deepEqual(values(`meta[${attribute}="${key}"]`, 'content'), content === null ? [] : [content], `Incorrect shell ${key}.`)
     }

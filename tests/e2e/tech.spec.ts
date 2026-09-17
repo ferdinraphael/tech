@@ -66,7 +66,7 @@ test('mobile context stays inline while selection and relationships persist', as
 test('routes, browser back, and clean /tech/ base path work', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('link', { name: 'Projects', exact: true }).first().click()
-  await expect(page).toHaveURL(/\/tech\/projects$/)
+  await expect(page).toHaveURL(/\/tech\/projects\/$/)
   await expect(page.getByRole('heading', { name: /Built to explore/ })).toBeVisible()
   const clickedNavOutline = await page
     .getByRole('link', { name: 'Projects', exact: true })
@@ -95,7 +95,7 @@ test('launch information architecture is public and durable', async ({ page }) =
   await expect(latestWriting.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
   await expect(latestWriting.getByRole('link', { name: /Read article/ })).toHaveAttribute(
     'href',
-    '/tech/writings/when-the-workaround-becomes-the-architecture',
+    '/tech/writings/when-the-workaround-becomes-the-architecture/',
   )
   const books = page.getByRole('region', { name: 'Books' })
   const recentTools = page.getByRole('region', { name: 'Recent Tools' })
@@ -110,16 +110,16 @@ test('launch information architecture is public and durable', async ({ page }) =
   await expect(recentTools.getByRole('link', { name: /Pro version/ })).toHaveCount(0)
   await expect(page.getByText(/Variables Are Simple/i)).toHaveCount(0)
 
-  await page.goto('./projects')
+  await page.goto('./projects/')
   await expect(page.getByText('Deterministic simulation worlds')).toBeVisible()
   await expect(page.getByText(/Evolving microbes with observable behaviour/)).toBeVisible()
   await expect(page.getByText(/Interactive browser-based simulation/)).toBeVisible()
   await expect(page.getByText(/Smaller finished tools and publications/).getByRole('link', { name: 'Built & Published' })).toHaveAttribute(
     'href',
-    '/tech/built-and-published',
+    '/tech/built-and-published/',
   )
 
-  await page.goto('./built-and-published')
+  await page.goto('./built-and-published/')
   await expect(page.getByRole('heading', { name: 'Bookshelf' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Tool Shelf' })).toBeVisible()
   const csharpBook = page.getByRole('article').filter({ has: page.getByRole('heading', { name: /C# Debugging Drills/ }) })
@@ -151,14 +151,14 @@ test('launch information architecture is public and durable', async ({ page }) =
     await expect(action).toHaveAttribute('rel', 'noreferrer')
   }
 
-  await page.goto('./services')
+  await page.goto('./services/')
   for (const title of ['Software Development', 'Technical Consulting', 'Mentoring & Teaching']) {
     await expect(page.getByRole('heading', { name: title })).toBeVisible()
   }
   await expect(page.getByText(/Website in 2 Days/i)).toHaveCount(0)
   await expect(page.getByText('SCOPED SERVICE')).toHaveCount(0)
 
-  await page.goto('./writings')
+  await page.goto('./writings/')
   await expect(page.getByRole('heading', {
     level: 1,
     name: 'Writing about software, systems, and the decisions behind them.',
@@ -174,8 +174,8 @@ test('production Writings publishes the article while remaining draft-safe and c
     origin: 'http://127.0.0.1:4173',
   })
   await page.setViewportSize({ width: 1536, height: 864 })
-  await page.goto('./writings')
-  await expect(page).toHaveURL(/\/tech\/writings$/)
+  await page.goto('./writings/')
+  await expect(page).toHaveURL(/\/tech\/writings\/$/)
   await expect(page.getByRole('heading', { name: 'Latest writing' })).toBeVisible()
   await expect(page.getByText('1 writing', { exact: true })).toHaveCount(0)
   await expect(page.locator('[data-layout="single"]')).toHaveCount(1)
@@ -194,7 +194,7 @@ test('production Writings publishes the article while remaining draft-safe and c
   await page.screenshot({ path: 'visual-review/1536-writings-published-index.png', fullPage: false })
 
   await publishedCard.getByRole('link', { name: 'Read writing' }).click()
-  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture$/)
+  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/)
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
   await expect(page.getByText('ARTICLE', { exact: true })).toBeVisible()
   await expect(page.getByText('Published May 10, 2026', { exact: true })).toBeVisible()
@@ -228,17 +228,17 @@ test('production Writings publishes the article while remaining draft-safe and c
   await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
 
   await page.goto('./notes/when-the-workaround-becomes-the-architecture')
-  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture$/)
+  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/)
   await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible()
 
   await page.goto('./notes/unknown-writing#missing-section')
   await expect(page).toHaveURL(/\/tech\/writings\/unknown-writing#missing-section$/)
   await expect(page.getByRole('heading', { name: 'That writing is not available.' })).toBeVisible()
   await page.goBack()
-  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture$/)
+  await expect(page).toHaveURL(/\/tech\/writings\/when-the-workaround-becomes-the-architecture\/$/)
 
   await page.setViewportSize({ width: 412, height: 767 })
-  await page.goto('./writings')
+  await page.goto('./writings/')
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
   await page.screenshot({ path: 'visual-review/412-writings-published-index.png', fullPage: false })
 
@@ -254,7 +254,7 @@ test('production Writings publishes the article while remaining draft-safe and c
   await page.setViewportSize({ width: 375, height: 667 })
   await page.goto(writingPath)
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
-  await page.goto('./writings')
+  await page.goto('./writings/')
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
 
@@ -349,21 +349,21 @@ for (const viewport of [
       expect(navBox && clearBox && clearBox.y + clearBox.height < navBox.y).toBeTruthy()
     }
 
-    await page.goto('./built-and-published')
+    await page.goto('./built-and-published/')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     await expect(page.getByRole('heading', { name: 'Bookshelf' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Tool Shelf' })).toBeVisible()
 
-    await page.goto('./projects')
+    await page.goto('./projects/')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     await expect(page.getByText('Deterministic simulation worlds')).toBeVisible()
 
-    await page.goto('./services')
+    await page.goto('./services/')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     await expect(page.getByRole('heading', { name: 'Technical Content' })).toHaveCount(0)
     await expect(page.getByRole('article')).toHaveCount(3)
 
-    await page.goto('./writings')
+    await page.goto('./writings/')
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
     await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'No published writings yet.' })).toHaveCount(0)

@@ -1,8 +1,8 @@
 ---
-title: "When the Workaround Becomes the Architecture"
+title: 'When the Workaround Becomes the Architecture'
 description: "How a reasonable fallback can quietly redefine a system's contract—and how AI-assisted development can make that normalization happen faster."
 format: article
-publishedAt: "2026-05-10"
+publishedAt: '2026-06-21'
 draft: false
 tags:
   - architecture
@@ -34,11 +34,7 @@ public interface IOrderApi
 
 ```typescript
 interface OrderApi {
-  addOrder(
-    id: string,
-    amount: number,
-    currency: string
-  ): void;
+  addOrder(id: string, amount: number, currency: string): void;
 }
 ```
 
@@ -87,9 +83,8 @@ if (string.IsNullOrWhiteSpace(currency))
 ```typescript
 let currency = order.currency;
 
-if (!currency?.trim())
-{
-    currency = "INR";
+if (!currency?.trim()) {
+  currency = 'INR';
 }
 ```
 
@@ -128,13 +123,9 @@ public void AddOrder(
 ```
 
 ```typescript
-function addOrder(
-  id: string,
-  amount: number,
-  currency: string
-): void {
+function addOrder(id: string, amount: number, currency: string): void {
   if (!currency?.trim()) {
-    currency = "INR";
+    currency = 'INR';
   }
 
   // Save order
@@ -174,12 +165,12 @@ public async Task Missing_currency_defaults_to_INR()
 ```
 
 ```typescript
-it("defaults missing currency to INR", async () => {
-  addOrder("ORD-1", 1499, "");
+it('defaults missing currency to INR', async () => {
+  addOrder('ORD-1', 1499, '');
 
-  const order = await client.getOrder("ORD-1");
+  const order = await client.getOrder('ORD-1');
 
-  expect(order.currency).toBe("INR");
+  expect(order.currency).toBe('INR');
 });
 ```
 
@@ -224,7 +215,7 @@ public enum CurrencySource
 public record CurrencyValue(
     string Value,
     CurrencySource Source);
-	
+
 public record Order(
     string Id,
     decimal Amount,
@@ -233,8 +224,8 @@ public record Order(
 
 ```typescript
 export enum CurrencySource {
-  Provided = "Provided",
-  Defaulted = "Defaulted"
+  Provided = 'Provided',
+  Defaulted = 'Defaulted',
 }
 
 export interface CurrencyValue {
@@ -291,9 +282,9 @@ if (string.IsNullOrWhiteSpace(currency))
 
 ```typescript
 if (!currency?.trim()) {
-    logger.warn(`Order ${id} arrived without currency. Defaulting to INR.`);
-    
-    currency = "INR";
+  logger.warn(`Order ${id} arrived without currency. Defaulting to INR.`);
+
+  currency = 'INR';
 }
 ```
 
@@ -365,9 +356,8 @@ if (string.IsNullOrWhiteSpace(currency))
 ```
 
 ```typescript
-if (!currency?.trim())
-{
-    currency = "INR";
+if (!currency?.trim()) {
+  currency = 'INR';
 }
 ```
 

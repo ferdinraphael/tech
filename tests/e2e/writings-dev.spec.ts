@@ -194,7 +194,7 @@ test('language-aware prose and code stay synchronized in single and Compare read
     })
   }
 
-  await page.goto('./writings/when-the-workaround-becomes-the-architecture')
+  await page.goto('./writings/when-the-workaround-becomes-the-architecture/')
   await expect(page.getByRole('group', { name: 'Read this article as' })).toHaveCount(0)
   await expect(page.getByRole('region', { name: /runtime model/ })).toHaveCount(0)
   await expect(page.getByRole('tab', { name: 'TypeScript' }).first()).toBeVisible()
@@ -393,7 +393,7 @@ test('desktop writing tracks active headings, direct hashes, history, tabs, copy
 
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 
-  await page.goto('./writings')
+  await page.goto('./writings/')
   await expect(page.getByRole('heading', { name: 'Latest writings' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Draft previews' })).toBeVisible()
@@ -446,7 +446,7 @@ test('mobile Contents control appears only after the TOC, preserves state, and r
   await expect(page.getByRole('tab', { name: 'C#', selected: true })).toBeVisible()
   await page.screenshot({ path: 'visual-review/412-writings-code-tabs.png', fullPage: false })
 
-  await page.goto('./writings')
+  await page.goto('./writings/')
   await expect(page.getByRole('heading', { name: 'Latest writings' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Draft previews' })).toBeVisible()

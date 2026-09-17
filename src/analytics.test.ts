@@ -69,6 +69,13 @@ describe('GA4 initialization and failure isolation', () => {
 })
 
 describe('approved custom events', () => {
+  it.each(['/services/software-development', '/services/software-development/'])('preserves service event labels at %s', (pathname) => {
+    analytics.trackSiteLink(links.enquiry, pathname)
+    expect(window.gtag).toHaveBeenCalledExactlyOnceWith('event', 'service_enquiry', {
+      source_page: 'software-development', service_category: 'Software Development', link_type: 'mailto',
+    })
+  })
+
   it('records a service category without transmitting mail or arbitrary route content', () => {
     analytics.trackSiteLink(links.enquiry, '/services/software-development')
     expect(window.gtag).toHaveBeenLastCalledWith('event', 'service_enquiry', {

@@ -1,3 +1,4 @@
+import { publicPath } from '../../publicUrl'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
@@ -22,7 +23,7 @@ export function ServiceDetailLayout({
 }: ServiceDetailLayoutProps) {
   return (
     <div className={`${shared.routePage} ${styles.detailPage}`}>
-      <Link to="/services" className={shared.backLink}>
+      <Link to={publicPath('/services')} className={shared.backLink}>
         <ArrowLeft aria-hidden="true" /> Back to Services
       </Link>
       <header className={`${shared.routeHero} ${styles.hero}`}>
@@ -47,7 +48,7 @@ export function ServiceDetailLayout({
         </div>
       </section>
       <nav className={shared.nextRoute} aria-label="Continue exploring">
-        <Link to="/services">All services <ArrowRight aria-hidden="true" /></Link>
+        <Link to={publicPath('/services')}>All services <ArrowRight aria-hidden="true" /></Link>
       </nav>
     </div>
   )

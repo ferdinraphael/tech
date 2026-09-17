@@ -35,6 +35,20 @@ for (const path of ['/projects', '/services/software-development', '/writings/wh
     await expect(page.locator('link[rel="canonical"]')).toHaveCount(1)
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', metadata.canonicalUrl!)
     await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', metadata.description)
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', metadata.canonicalUrl!)
+    const nav = page.getByRole('navigation', { name: 'Primary navigation', exact: true })
+    const category = path.startsWith('/services/') ? 'Services' : path.startsWith('/writings/') ? 'Writings' : 'Projects'
+    await expect(nav.getByRole('link', { name: category, exact: true })).toHaveAttribute('aria-current', 'page')
+    const hrefs = await page.locator('a[href]').evaluateAll((links) => links.map((link) => link.getAttribute('href')!))
+    for (const href of hrefs) {
+      expect(href).not.toContain('/tech/tech/')
+      const url = new URL(href, server.url)
+      const identity = url.pathname.replace(/\/$/, '')
+      if (url.origin === new URL(server.url).origin && routes.some((route) => identity === `/tech${route.path === '/' ? '' : route.path}`)) {
+        expect(url.pathname.endsWith('/'), `Public link must end with a slash: ${href}`).toBe(true)
+        expect(url.pathname).not.toContain('//')
+      }
+    }
     expect((await page.reload())?.status()).toBe(200)
     await expect(page.locator('h1')).toBeVisible()
     await expect(page).toHaveTitle(metadata.fullTitle)

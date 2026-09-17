@@ -1,3 +1,4 @@
+import { publicPath } from '../publicUrl'
 import {
   ArrowUpRight,
   BookOpen,
@@ -12,7 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation, useMatch, type LinkProps } from 'react-router-dom'
 import { links } from '../data/site'
 import { trackSiteLink } from '../analytics'
 import styles from './Tech.module.css'
@@ -33,14 +34,23 @@ const bottomNav = [
   { label: 'Writings', to: '/writings', icon: FileText },
 ]
 
+function NavigationLink({ to, className, ...props }: Omit<LinkProps, 'to' | 'className'> & {
+  to: string
+  className?: string | ((state: { isActive: boolean }) => string | undefined)
+}) {
+  const isActive = useMatch({ path: to, end: to === '/' }) !== null
+  return <Link {...props} to={publicPath(to)} aria-current={isActive ? 'page' : undefined}
+    className={typeof className === 'function' ? className({ isActive }) : className ?? (isActive ? 'active' : undefined)} />
+}
+
 function Brand() {
   return (
-    <NavLink to="/" className={styles.brand} aria-label="Ferdin Raphael technical overview">
+    <NavigationLink to="/" className={styles.brand} aria-label="Ferdin Raphael technical overview">
       <Code2 aria-hidden="true" />
       <span className={styles.brandName}>Ferdin Raphael</span>
       <span className={styles.brandRule} aria-hidden="true" />
       <span className={styles.brandDescriptor}>Software &amp; Systems</span>
-    </NavLink>
+    </NavigationLink>
   )
 }
 
@@ -101,14 +111,13 @@ export function AppShell() {
         <Brand />
         <nav className={styles.desktopNav} aria-label="Primary navigation">
           {primaryNav.map((item) => (
-            <NavLink
+            <NavigationLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
               className={({ isActive }) => (isActive ? styles.navActive : undefined)}
             >
               {item.label}
-            </NavLink>
+            </NavigationLink>
           ))}
         </nav>
         <div className={styles.headerActions}>
@@ -163,9 +172,9 @@ export function AppShell() {
               </button>
             </div>
             {primaryNav.map((item) => (
-              <NavLink key={item.to} to={item.to} end={item.to === '/'} onClick={closeMenu}>
+              <NavigationLink key={item.to} to={item.to} onClick={closeMenu}>
                 {item.label}
-              </NavLink>
+              </NavigationLink>
             ))}
             <div className={styles.mobileMenuExternal}>
               <a href={links.github} target="_blank" rel="noreferrer" onClick={closeMenu}>
@@ -190,9 +199,9 @@ export function AppShell() {
           <a href={links.github} target="_blank" rel="noreferrer">
             <Github aria-hidden="true" /> GitHub
           </a>
-          <NavLink to="/writings">
+          <NavigationLink to="/writings">
             <FileText aria-hidden="true" /> Writings
-          </NavLink>
+          </NavigationLink>
           <a href={links.email}>
             <Mail aria-hidden="true" /> Contact
           </a>
@@ -204,15 +213,14 @@ export function AppShell() {
 
       <nav className={styles.bottomNav} aria-label="Mobile primary navigation" inert={menuOpen}>
         {bottomNav.map(({ label, to, icon: Icon }) => (
-          <NavLink
+          <NavigationLink
             key={to}
             to={to}
-            end={to === '/'}
             className={({ isActive }) => (isActive ? styles.bottomNavActive : undefined)}
           >
             <Icon aria-hidden="true" />
             <span>{label}</span>
-          </NavLink>
+          </NavigationLink>
         ))}
       </nav>
     </div>

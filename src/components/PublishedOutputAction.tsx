@@ -1,3 +1,4 @@
+import { publicPath } from '../publicUrl'
 import { ArrowDownToLine, ArrowRight, ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { PublishedOutputAction as OutputAction } from '../data/site'
@@ -10,7 +11,7 @@ interface PublishedOutputActionProps {
 export function PublishedOutputAction({ action, className }: PublishedOutputActionProps) {
   if (action.kind === 'internal') {
     return (
-      <Link className={className} to={action.route}>
+      <Link className={className} to={publicPath(action.route)}>
         {action.label} <ArrowRight aria-hidden="true" />
       </Link>
     )

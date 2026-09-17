@@ -23,9 +23,9 @@ test('services are reachable from Overview and the index with canonical deep lin
   await expect(preview.getByText('All services are remote.')).toBeVisible()
   await expect(page.getByText(/Technical Content|Website in 2 Days|Variables Are Simple/i)).toHaveCount(0)
   for (const service of services) {
-    await expect(preview.getByRole('link', { name: `Explore ${service.title}` })).toHaveAttribute('href', `/tech/services/${service.slug}`)
+    await expect(preview.getByRole('link', { name: `Explore ${service.title}` })).toHaveAttribute('href', `/tech/services/${service.slug}/`)
     await preview.getByRole('link', { name: `Explore ${service.title}` }).click()
-    await expect(page).toHaveURL(new RegExp(`/tech/services/${service.slug}$`))
+    await expect(page).toHaveURL(new RegExp(`/tech/services/${service.slug}/$`))
     await expect(page.getByRole('heading', { level: 1, name: service.heading })).toBeVisible()
     await page.reload()
     await expect(page.getByRole('heading', { level: 1, name: service.heading })).toBeVisible()
@@ -34,7 +34,7 @@ test('services are reachable from Overview and the index with canonical deep lin
     await page.getByRole('link', { name: 'Back to Services' }).click()
     await expect(page.getByRole('article')).toHaveCount(3)
     for (const item of services) {
-      await expect(page.getByRole('article', { name: item.title }).getByRole('link')).toHaveAttribute('href', `/tech/services/${item.slug}`)
+      await expect(page.getByRole('article', { name: item.title }).getByRole('link')).toHaveAttribute('href', `/tech/services/${item.slug}/`)
     }
     await page.getByRole('link', { name: `Explore ${service.title}` }).click()
     await expect(page.getByRole('heading', { name: service.heading })).toBeVisible()
@@ -120,7 +120,7 @@ for (const viewport of viewports) {
 }
 
 test('Variables and preview drafts remain unavailable in production', async ({ page }) => {
-  await page.goto('./writings')
+  await page.goto('./writings/')
   await expect(page.getByRole('heading', { name: 'When the Workaround Becomes the Architecture' })).toBeVisible()
   await expect(page.getByText(/Variables Are Simple|Draft previews/i)).toHaveCount(0)
   for (const slug of ['variables-are-simple-until-they-arent', 'framework-preview', 'language-aware-preview']) {

@@ -1,3 +1,4 @@
+import { publicPath } from '../../publicUrl'
 import { useRef } from 'react';
 import {
   ArrowLeft,
@@ -33,7 +34,7 @@ function WritingNotFound() {
         The address may be incorrect, or the writing may still be an unpublished
         draft.
       </p>
-      <Link to="/writings">
+      <Link to={publicPath('/writings')}>
         <ArrowLeft aria-hidden="true" /> Return to Writings
       </Link>
     </div>
@@ -64,7 +65,7 @@ function WritingView({ writing }: { writing: WritingRecord }) {
   return (
     <div className={styles.articlePage}>
       <header className={styles.articleHeader}>
-        <Link to="/writings" className={styles.backLink}>
+        <Link to={publicPath('/writings')} className={styles.backLink}>
           <ArrowLeft aria-hidden="true" /> Back to Writings
         </Link>
         <div className={styles.articleEyebrow}>
@@ -144,7 +145,7 @@ function WritingView({ writing }: { writing: WritingRecord }) {
                       <h3>{project.title}</h3>
                       <p>{project.description}</p>
                       <div>
-                        <Link to={project.route}>
+                        <Link to={publicPath(project.route)}>
                           Project page <ArrowRight aria-hidden="true" />
                         </Link>
                         {project.repository && <a
@@ -163,7 +164,7 @@ function WritingView({ writing }: { writing: WritingRecord }) {
           )}
 
           <nav className={styles.articleReturn} aria-label="Return to Writings">
-            <Link to="/writings">
+            <Link to={publicPath('/writings')}>
               <ArrowLeft aria-hidden="true" /> Return to Writings
             </Link>
           </nav>

@@ -20,6 +20,24 @@ function renderRoute(path: string) {
 }
 
 describe('foundation routes', () => {
+  it('keeps the trailing-slash deployment base on root links without duplicating it on nested links', () => {
+    render(<MemoryRouter basename="/tech/" initialEntries={['/tech/services/']}><App /></MemoryRouter>)
+    const nav = within(screen.getByRole('navigation', { name: 'Primary navigation' }))
+    expect(nav.getByRole('link', { name: 'Overview' })).toHaveAttribute('href', '/tech/')
+    expect(nav.getByRole('link', { name: 'Services' })).toHaveAttribute('href', '/tech/services/')
+    expect(nav.getByRole('link', { name: 'Services' })).toHaveAttribute('aria-current', 'page')
+    expect(nav.getByRole('link', { name: 'Projects' })).toHaveAttribute('href', '/tech/projects/')
+  })
+
+  it.each(['/services', '/services/', '/services/software-development', '/services/software-development/'])('keeps active navigation and canonical hrefs at %s', (path) => {
+    renderRoute(path)
+    const nav = within(screen.getByRole('navigation', { name: 'Primary navigation' }))
+    expect(nav.getByRole('link', { name: 'Services' })).toHaveAttribute('aria-current', 'page')
+    expect(nav.getByRole('link', { name: 'Services' })).toHaveAttribute('href', '/services/')
+    expect(nav.getByRole('link', { name: 'Projects' })).not.toHaveAttribute('aria-current')
+    expect(nav.getByRole('link', { name: 'Projects' })).toHaveAttribute('href', '/projects/')
+  })
+
   it.each([
     ['/projects', 'Public software projects including Little Worlds and Wildpath.'],
     ['/services', 'Remote software development, technical consulting, and mentoring services.'],
@@ -32,8 +50,8 @@ describe('foundation routes', () => {
     expect(document.head.querySelector('meta[property="og:title"]')).toHaveAttribute('content', document.title)
     expect(document.head.querySelector('meta[name="twitter:title"]')).toHaveAttribute('content', document.title)
     expect(document.head.querySelectorAll('link[rel="canonical"]')).toHaveLength(1)
-    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', `https://ferdinraphael.github.io/tech${path}`)
-    expect(document.head.querySelector('meta[property="og:url"]')).toHaveAttribute('content', `https://ferdinraphael.github.io/tech${path}`)
+    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', `https://ferdinraphael.github.io/tech${path}/`)
+    expect(document.head.querySelector('meta[property="og:url"]')).toHaveAttribute('content', `https://ferdinraphael.github.io/tech${path}/`)
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute('content', 'index, follow')
   })
 
@@ -50,8 +68,8 @@ describe('foundation routes', () => {
 
   it('uses canonical target metadata after a legacy redirect', async () => {
     renderRoute('/notes?source=review#top')
-    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/writings?source=review#top'))
-    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'https://ferdinraphael.github.io/tech/writings')
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/writings/?source=review#top'))
+    await waitFor(() => expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'https://ferdinraphael.github.io/tech/writings/'))
     expect(document.head.querySelectorAll('link[rel="canonical"]')).toHaveLength(1)
   })
 
@@ -186,7 +204,7 @@ describe('foundation routes', () => {
     const outputRelationship = screen.getByText(/Smaller finished tools and publications/)
     expect(within(outputRelationship).getByRole('link', { name: 'Built & Published' })).toHaveAttribute(
       'href',
-      '/built-and-published',
+      '/built-and-published/',
     )
   })
 
@@ -216,7 +234,7 @@ describe('foundation routes', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'When the Workaround Becomes the Architecture' }, { timeout: 5_000 })).toBeInTheDocument()
     expect(document.title).toBe('When the Workaround Becomes the Architecture — Ferdin Raphael')
     expect(document.head.querySelector('meta[name="description"]')).toHaveAttribute('content', writingCatalogue.getBySlug('when-the-workaround-becomes-the-architecture')!.description)
-    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'https://ferdinraphael.github.io/tech/writings/when-the-workaround-becomes-the-architecture')
+    expect(document.head.querySelector('link[rel="canonical"]')).toHaveAttribute('href', 'https://ferdinraphael.github.io/tech/writings/when-the-workaround-becomes-the-architecture/')
     expect(screen.getByText('ARTICLE')).toBeInTheDocument()
     expect(screen.getByText('Published May 10, 2026')).toBeInTheDocument()
     expect(screen.queryByText('DRAFT')).not.toBeInTheDocument()
@@ -242,12 +260,12 @@ describe('foundation routes', () => {
     renderRoute('/writings/not-a-real-writing')
     expect(await screen.findByRole('heading', { name: 'That writing is not available.' })).toBeInTheDocument()
     expect(document.title).toBe('Not Found — Ferdin Raphael')
-    expect(screen.getByRole('link', { name: /Return to Writings/ })).toHaveAttribute('href', '/writings')
+    expect(screen.getByRole('link', { name: /Return to Writings/ })).toHaveAttribute('href', '/writings/')
   })
 
   it.each([
-    ['/notes', '/writings'],
-    ['/notes/when-the-workaround-becomes-the-architecture', '/writings/when-the-workaround-becomes-the-architecture'],
+    ['/notes', '/writings/'],
+    ['/notes/when-the-workaround-becomes-the-architecture', '/writings/when-the-workaround-becomes-the-architecture/'],
     ['/notes/framework-preview?mode=review#equivalent-examples', '/writings/framework-preview?mode=review#equivalent-examples'],
   ])('redirects legacy %s with replace-style canonical location', async (legacy, canonical) => {
     renderRoute(legacy)
