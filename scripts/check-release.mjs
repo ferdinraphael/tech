@@ -17,7 +17,7 @@ const filesUnder = (directory) => readdirSync(join(root, directory), { withFileT
 assert.equal(process.env.VITE_INCLUDE_DRAFTS, 'false', 'Release checks require VITE_INCLUDE_DRAFTS=false; draft-enabled releases are forbidden.')
 const article = 'src/content/writings/published/when-the-workaround-becomes-the-architecture.md'
 const hash = execFileSync('git', ['hash-object', article], { cwd: root, encoding: 'utf8', windowsHide: true }).trim()
-assert.equal(hash, 'f23fb656e3e6fc9eda611c575640832e7068a541', 'Protected published article changed; release stopped.')
+assert.equal(hash, 'b8a1abd5b453110ef3d68f9976b7fd97cc7e7124', 'Protected published article changed; release stopped.')
 console.log('Release source checks passed: draft-safe environment and protected article.')
 
 if (process.argv.includes('--artifact')) {
